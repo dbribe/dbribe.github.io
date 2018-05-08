@@ -19436,7 +19436,7 @@ var Bundle = (function (exports) {
       initializer: function initializer() {
           return {
               position: "fixed",
-              height: "100%",
+              height: "85%",
               width: "100%",
               display: "flex",
               justifyContent: "center",
