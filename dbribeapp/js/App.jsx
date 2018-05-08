@@ -10,6 +10,8 @@ Theme.Global.setProperties({
 });
 
 export class AppClass extends EstablishmentApp {
+    static registerWebsocketStreams() {}
+
     getRoutes() {
         return MAIN_ROUTE;
     }

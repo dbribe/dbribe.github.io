@@ -18994,7 +18994,7 @@ var Bundle = (function (exports) {
       return StaticCodeHighlighter;
   }(CodeEditor)) || _class4$1);
 
-  var _class$41, _descriptor$17, _descriptor2$15, _descriptor3$15, _class3$12, _descriptor4$13, _class5$4, _descriptor5$11, _descriptor6$9, _descriptor7$7, _dec$20, _class7$4, _dec2$7, _class8, _dec3$2, _class9$1;
+  var _class$41, _descriptor$17, _dec$20, _class3$12;
 
   function _initDefineProp$18(target, property, descriptor, context) {
       if (!descriptor) return;
@@ -19035,110 +19035,403 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var CardStyle = (_class$41 = function (_StyleSheet) {
-      inherits(CardStyle, _StyleSheet);
+  var getPathPrefix = function getPathPrefix() {
+      return window.location.hostname === "localhost" ? "../../" : "dbribeapp/";
+  };
 
-      function CardStyle() {
+  var transitionDelay = .9;
+
+  var getTransitionDelay = function getTransitionDelay() {
+      transitionDelay += .1;
+      return transitionDelay;
+  };
+
+  var ImportedSVG = function (_Image) {
+      inherits(ImportedSVG, _Image);
+
+      function ImportedSVG() {
+          classCallCheck(this, ImportedSVG);
+          return possibleConstructorReturn(this, (ImportedSVG.__proto__ || Object.getPrototypeOf(ImportedSVG)).apply(this, arguments));
+      }
+
+      createClass(ImportedSVG, [{
+          key: "getDefaultOptions",
+          value: function getDefaultOptions() {
+              return Object.assign({}, get(ImportedSVG.prototype.__proto__ || Object.getPrototypeOf(ImportedSVG.prototype), "getDefaultOptions", this).call(this), {
+                  src: getPathPrefix() + "static/svg/" + this.getSVGName() + ".svg"
+              });
+          }
+      }, {
+          key: "getSVGName",
+          value: function getSVGName() {
+              return this.options.svgName;
+          }
+      }, {
+          key: "extraNodeAttributes",
+          value: function extraNodeAttributes(attr) {
+              get(ImportedSVG.prototype.__proto__ || Object.getPrototypeOf(ImportedSVG.prototype), "extraNodeAttributes", this).call(this, attr);
+              attr.setStyle({
+                  opacity: 0,
+                  transform: "translateY(-69px)",
+                  transition: "transform, opacity",
+                  transitionDuration: "1s",
+                  transitionTimingFunction: "ease",
+                  transitionDelay: getTransitionDelay() + "s"
+              });
+          }
+      }, {
+          key: "onMount",
+          value: function onMount() {
+              var _this2 = this;
+
+              get(ImportedSVG.prototype.__proto__ || Object.getPrototypeOf(ImportedSVG.prototype), "onMount", this).call(this);
+              setTimeout(function () {
+                  _this2.setStyle({
+                      opacity: 1,
+                      transform: "translateY(0)"
+                  });
+              });
+          }
+      }]);
+      return ImportedSVG;
+  }(Image);
+
+  var LogoStyle = (_class$41 = function (_StyleSheet) {
+      inherits(LogoStyle, _StyleSheet);
+
+      function LogoStyle() {
           var _ref;
 
-          var _temp, _this, _ret;
+          var _temp, _this3, _ret;
 
-          classCallCheck(this, CardStyle);
+          classCallCheck(this, LogoStyle);
 
           for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = CardStyle.__proto__ || Object.getPrototypeOf(CardStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$18(_this, "container", _descriptor$17, _this), _initDefineProp$18(_this, "header", _descriptor2$15, _this), _initDefineProp$18(_this, "body", _descriptor3$15, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this3 = possibleConstructorReturn(this, (_ref = LogoStyle.__proto__ || Object.getPrototypeOf(LogoStyle)).call.apply(_ref, [this].concat(args))), _this3), _initDefineProp$18(_this3, "logo", _descriptor$17, _this3), _temp), possibleConstructorReturn(_this3, _ret);
       }
 
-      return CardStyle;
-  }(StyleSheet), (_descriptor$17 = _applyDecoratedDescriptor$18(_class$41.prototype, "container", [styleRule], {
+      return LogoStyle;
+  }(StyleSheet), (_descriptor$17 = _applyDecoratedDescriptor$18(_class$41.prototype, "logo", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
-              width: "450px",
-              maxHeight: "100%",
-              maxWidth: "100%",
-              backgroundColor: "#fff",
-              boxShadow: "#a05100 0px 0px 10px"
-          };
-      }
-  }), _descriptor2$15 = _applyDecoratedDescriptor$18(_class$41.prototype, "header", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "100px",
-              width: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontSize: "28px"
-          };
-      }
-  }), _descriptor3$15 = _applyDecoratedDescriptor$18(_class$41.prototype, "body", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              paddingLeft: "20px",
-              paddingRight: "20px",
-              paddingBottom: "40px",
-              textAlign: "center",
-              fontSize: "17px",
-              ">p": {
-                  margin: "0px"
+              display: "inline-block",
+              margin: "20px",
+              transitionProperty: "transform",
+              transitionTimingFunction: "ease",
+              transform: "translateY(0) scale(1)",
+              transitionDuration: ".3s",
+              ":hover": {
+                  transform: "translateY(-8px) scale(1.1)"
               }
           };
       }
   })), _class$41);
-  var QuoteStyle = (_class3$12 = function (_StyleSheet2) {
-      inherits(QuoteStyle, _StyleSheet2);
 
-      function QuoteStyle() {
-          var _ref2;
+  var Logo = (_dec$20 = registerStyle(LogoStyle), _dec$20(_class3$12 = function (_Link) {
+      inherits(Logo, _Link);
 
-          var _temp2, _this2, _ret2;
+      function Logo() {
+          classCallCheck(this, Logo);
+          return possibleConstructorReturn(this, (Logo.__proto__ || Object.getPrototypeOf(Logo)).apply(this, arguments));
+      }
 
-          classCallCheck(this, QuoteStyle);
-
-          for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-              args[_key2] = arguments[_key2];
+      createClass(Logo, [{
+          key: "getDefaultOptions",
+          value: function getDefaultOptions() {
+              return Object.assign({}, get(Logo.prototype.__proto__ || Object.getPrototypeOf(Logo.prototype), "getDefaultOptions", this).call(this), {
+                  href: this.getHref(),
+                  newTab: true
+              });
           }
+      }, {
+          key: "extraNodeAttributes",
+          value: function extraNodeAttributes(attr) {
+              get(Logo.prototype.__proto__ || Object.getPrototypeOf(Logo.prototype), "extraNodeAttributes", this).call(this, attr);
+              attr.addClass(this.styleSheet.logo);
+          }
+      }, {
+          key: "render",
+          value: function render() {
+              return [UI.createElement(ImportedSVG, { svgName: this.getSVGName() })];
+          }
+      }]);
+      return Logo;
+  }(Link)) || _class3$12);
 
-          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = QuoteStyle.__proto__ || Object.getPrototypeOf(QuoteStyle)).call.apply(_ref2, [this].concat(args))), _this2), _initDefineProp$18(_this2, "quote", _descriptor4$13, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+  var MediumLogo = function (_Logo) {
+      inherits(MediumLogo, _Logo);
+
+      function MediumLogo() {
+          classCallCheck(this, MediumLogo);
+          return possibleConstructorReturn(this, (MediumLogo.__proto__ || Object.getPrototypeOf(MediumLogo)).apply(this, arguments));
       }
 
-      return QuoteStyle;
-  }(StyleSheet), (_descriptor4$13 = _applyDecoratedDescriptor$18(_class3$12.prototype, "quote", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              color: "#aaa",
-              fontStyle: "italic",
-              fontSize: "17px",
-              marginTop: "10px"
-          };
+      createClass(MediumLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "medium";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://medium.com/@dbribe";
+          }
+      }]);
+      return MediumLogo;
+  }(Logo);
+
+  var FacebookLogo = function (_Logo2) {
+      inherits(FacebookLogo, _Logo2);
+
+      function FacebookLogo() {
+          classCallCheck(this, FacebookLogo);
+          return possibleConstructorReturn(this, (FacebookLogo.__proto__ || Object.getPrototypeOf(FacebookLogo)).apply(this, arguments));
       }
-  })), _class3$12);
-  var IndexPageStyle = (_class5$4 = function (_StyleSheet3) {
-      inherits(IndexPageStyle, _StyleSheet3);
+
+      createClass(FacebookLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "facebook";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://www.facebook.com/k1r496";
+          }
+      }]);
+      return FacebookLogo;
+  }(Logo);
+
+  var GitHubLogo = function (_Logo3) {
+      inherits(GitHubLogo, _Logo3);
+
+      function GitHubLogo() {
+          classCallCheck(this, GitHubLogo);
+          return possibleConstructorReturn(this, (GitHubLogo.__proto__ || Object.getPrototypeOf(GitHubLogo)).apply(this, arguments));
+      }
+
+      createClass(GitHubLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "github";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://github.com/dbribe";
+          }
+      }]);
+      return GitHubLogo;
+  }(Logo);
+
+  var InstagramLogo = function (_Logo4) {
+      inherits(InstagramLogo, _Logo4);
+
+      function InstagramLogo() {
+          classCallCheck(this, InstagramLogo);
+          return possibleConstructorReturn(this, (InstagramLogo.__proto__ || Object.getPrototypeOf(InstagramLogo)).apply(this, arguments));
+      }
+
+      createClass(InstagramLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "instagram";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://www.instagram.com/dbribe/";
+          }
+      }]);
+      return InstagramLogo;
+  }(Logo);
+
+  var LinkedInLogo = function (_Logo5) {
+      inherits(LinkedInLogo, _Logo5);
+
+      function LinkedInLogo() {
+          classCallCheck(this, LinkedInLogo);
+          return possibleConstructorReturn(this, (LinkedInLogo.__proto__ || Object.getPrototypeOf(LinkedInLogo)).apply(this, arguments));
+      }
+
+      createClass(LinkedInLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "linkedin";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://www.linkedin.com/in/denis-mita/";
+          }
+      }]);
+      return LinkedInLogo;
+  }(Logo);
+
+  var PinterestLogo = function (_Logo6) {
+      inherits(PinterestLogo, _Logo6);
+
+      function PinterestLogo() {
+          classCallCheck(this, PinterestLogo);
+          return possibleConstructorReturn(this, (PinterestLogo.__proto__ || Object.getPrototypeOf(PinterestLogo)).apply(this, arguments));
+      }
+
+      createClass(PinterestLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "pinterest";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://www.pinterest.co.uk/skywalkerrr1996/";
+          }
+      }]);
+      return PinterestLogo;
+  }(Logo);
+
+  var TwitterLogo = function (_Logo7) {
+      inherits(TwitterLogo, _Logo7);
+
+      function TwitterLogo() {
+          classCallCheck(this, TwitterLogo);
+          return possibleConstructorReturn(this, (TwitterLogo.__proto__ || Object.getPrototypeOf(TwitterLogo)).apply(this, arguments));
+      }
+
+      createClass(TwitterLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "twitter";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://twitter.com/d_bribe";
+          }
+      }]);
+      return TwitterLogo;
+  }(Logo);
+
+  var YouTubeLogo = function (_Logo8) {
+      inherits(YouTubeLogo, _Logo8);
+
+      function YouTubeLogo() {
+          classCallCheck(this, YouTubeLogo);
+          return possibleConstructorReturn(this, (YouTubeLogo.__proto__ || Object.getPrototypeOf(YouTubeLogo)).apply(this, arguments));
+      }
+
+      createClass(YouTubeLogo, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "youtube";
+          }
+      }, {
+          key: "getHref",
+          value: function getHref() {
+              return "https://www.youtube.com/channel/UC0k47b8_h6x2I7R5vMTLpMg?view_as=subscriber";
+          }
+      }]);
+      return YouTubeLogo;
+  }(Logo);
+
+  var Shadow = function (_ImportedSVG) {
+      inherits(Shadow, _ImportedSVG);
+
+      function Shadow() {
+          classCallCheck(this, Shadow);
+          return possibleConstructorReturn(this, (Shadow.__proto__ || Object.getPrototypeOf(Shadow)).apply(this, arguments));
+      }
+
+      createClass(Shadow, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "shadow";
+          }
+      }]);
+      return Shadow;
+  }(ImportedSVG);
+
+  var DBribe = function (_ImportedSVG2) {
+      inherits(DBribe, _ImportedSVG2);
+
+      function DBribe() {
+          classCallCheck(this, DBribe);
+          return possibleConstructorReturn(this, (DBribe.__proto__ || Object.getPrototypeOf(DBribe)).apply(this, arguments));
+      }
+
+      createClass(DBribe, [{
+          key: "getSVGName",
+          value: function getSVGName() {
+              return "dbribe";
+          }
+      }]);
+      return DBribe;
+  }(ImportedSVG);
+
+  var _class$42, _descriptor$18, _dec$21, _class3$13;
+
+  function _initDefineProp$19(target, property, descriptor, context) {
+      if (!descriptor) return;
+      Object.defineProperty(target, property, {
+          enumerable: descriptor.enumerable,
+          configurable: descriptor.configurable,
+          writable: descriptor.writable,
+          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+      });
+  }
+
+  function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, context) {
+      var desc = {};
+      Object['ke' + 'ys'](descriptor).forEach(function (key) {
+          desc[key] = descriptor[key];
+      });
+      desc.enumerable = !!desc.enumerable;
+      desc.configurable = !!desc.configurable;
+
+      if ('value' in desc || desc.initializer) {
+          desc.writable = true;
+      }
+
+      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+          return decorator(target, property, desc) || desc;
+      }, desc);
+
+      if (context && desc.initializer !== void 0) {
+          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+          desc.initializer = undefined;
+      }
+
+      if (desc.initializer === void 0) {
+          Object['define' + 'Property'](target, property, desc);
+          desc = null;
+      }
+
+      return desc;
+  }
+
+  var IndexPageStyle = (_class$42 = function (_StyleSheet) {
+      inherits(IndexPageStyle, _StyleSheet);
 
       function IndexPageStyle() {
-          var _ref3;
+          var _ref;
 
-          var _temp3, _this3, _ret3;
+          var _temp, _this, _ret;
 
           classCallCheck(this, IndexPageStyle);
 
-          for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-              args[_key3] = arguments[_key3];
+          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+              args[_key] = arguments[_key];
           }
 
-          return _ret3 = (_temp3 = (_this3 = possibleConstructorReturn(this, (_ref3 = IndexPageStyle.__proto__ || Object.getPrototypeOf(IndexPageStyle)).call.apply(_ref3, [this].concat(args))), _this3), _initDefineProp$18(_this3, "container", _descriptor5$11, _this3), _initDefineProp$18(_this3, "topContainer", _descriptor6$9, _this3), _initDefineProp$18(_this3, "bottomContainer", _descriptor7$7, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = IndexPageStyle.__proto__ || Object.getPrototypeOf(IndexPageStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$19(_this, "container", _descriptor$18, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return IndexPageStyle;
-  }(StyleSheet), (_descriptor5$11 = _applyDecoratedDescriptor$18(_class5$4.prototype, "container", [styleRule], {
+  }(StyleSheet), (_descriptor$18 = _applyDecoratedDescriptor$19(_class$42.prototype, "container", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -19151,104 +19444,10 @@ var Bundle = (function (exports) {
               flexDirection: "column"
           };
       }
-  }), _descriptor6$9 = _applyDecoratedDescriptor$18(_class5$4.prototype, "topContainer", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              flexGrow: "1.5",
-              width: "100%",
-              backgroundColor: "#f0a150",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center"
-          };
-      }
-  }), _descriptor7$7 = _applyDecoratedDescriptor$18(_class5$4.prototype, "bottomContainer", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              flexGrow: "2",
-              width: "100%",
-              fontSize: "18px",
-              paddingTop: "20px",
-              textAlign: "center"
-          };
-      }
-  })), _class5$4);
+  })), _class$42);
 
-  var Card = (_dec$20 = registerStyle(CardStyle), _dec$20(_class7$4 = function (_UI$Element) {
-      inherits(Card, _UI$Element);
-
-      function Card() {
-          classCallCheck(this, Card);
-          return possibleConstructorReturn(this, (Card.__proto__ || Object.getPrototypeOf(Card)).apply(this, arguments));
-      }
-
-      createClass(Card, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.container);
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _options = this.options,
-                  headerText = _options.headerText,
-                  bodyText = _options.bodyText;
-
-
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.header },
-                  headerText
-              ), UI.createElement(
-                  "div",
-                  { className: this.styleSheet.body },
-                  bodyText.map(function (line) {
-                      return UI.createElement(
-                          "p",
-                          null,
-                          line
-                      );
-                  })
-              )];
-          }
-      }]);
-      return Card;
-  }(UI.Element)) || _class7$4);
-
-  var Quote = (_dec2$7 = registerStyle(QuoteStyle), _dec2$7(_class8 = function (_UI$Element2) {
-      inherits(Quote, _UI$Element2);
-
-      function Quote() {
-          classCallCheck(this, Quote);
-          return possibleConstructorReturn(this, (Quote.__proto__ || Object.getPrototypeOf(Quote)).apply(this, arguments));
-      }
-
-      createClass(Quote, [{
-          key: "render",
-          value: function render() {
-              var _options2 = this.options,
-                  text = _options2.text,
-                  hasQuotes = _options2.hasQuotes,
-                  message = text;
-
-              if (hasQuotes) {
-                  message = "\"" + message + "\"";
-              }
-
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.quote },
-                  message
-              );
-          }
-      }]);
-      return Quote;
-  }(UI.Element)) || _class8);
-
-  var IndexPage = (_dec3$2 = registerStyle(IndexPageStyle), _dec3$2(_class9$1 = function (_UI$Element3) {
-      inherits(IndexPage, _UI$Element3);
+  var IndexPage = (_dec$21 = registerStyle(IndexPageStyle), _dec$21(_class3$13 = function (_UI$Element) {
+      inherits(IndexPage, _UI$Element);
 
       function IndexPage() {
           classCallCheck(this, IndexPage);
@@ -19263,12 +19462,27 @@ var Bundle = (function (exports) {
       }, {
           key: "render",
           value: function render() {
-
-              return [UI.createElement(RawHTML, { __innerHTML: "<svg width=\"1440px\" height=\"1024px\" viewBox=\"0 0 1440 1024\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"> <!-- Generator: Sketch 49 (51002) - http://www.bohemiancoding.com/sketch --> <title>Desktop HD</title> <desc>Created with Sketch.</desc> <defs> <path d=\"M209.554745,202.146892 L208.028776,209.969658 C215.784112,203.594036 223.363582,200.665132 230.767415,201.182859 C237.262005,201.637005 243.006233,204.420761 248.00027,209.534212 L233.024468,226.30384 C229.298924,222.649624 225.45536,220.684031 221.49366,220.407002 C218.765932,220.216261 216.325503,220.584025 214.172301,221.510306 C212.019098,222.436586 210.0988,223.999131 208.411349,226.197986 C206.723899,228.396841 205.249704,231.279514 203.988721,234.846092 C202.727738,238.41267 201.627889,242.708348 200.689142,247.733255 L191.837164,293.124781 L170.307705,291.619295 L188.025286,200.641406 L209.554745,202.146892 Z M70.2630542,213.617307 C64.8137621,217.694475 59.014925,220.619069 55.1732572,221.974096 C51.232454,223.264852 46.4369777,223.712669 40.7866843,223.317562 C27.9273959,222.418353 17.7037789,217.428755 10.1155267,208.348618 C2.53181583,199.203535 -0.787677964,187.87679 0.156945674,174.368043 C1.16514975,159.950053 6.48423646,148.28107 16.1143654,139.360744 C25.7444943,130.440418 37.3462314,126.454897 50.9199247,127.404062 C57.8691361,127.889998 63.6301637,129.500205 68.2031805,132.23473 C72.9664935,135.047825 77.5215431,139.153555 82.49878,145.440573 L100.320078,59.6642596 L100.362051,59.667882 L111.982097,-3.21964677e-15 L133.511453,1.50547924 L115.793926,92.4833721 L115.740648,92.4796465 L107.858774,132.877827 L107.767742,133.087028 L92.8891128,209.343497 C98.834601,205.51712 103.935494,203.034891 108.191943,201.896734 C112.647772,200.707256 117.408505,200.289641 122.474286,200.643875 C134.943899,201.515835 144.937938,206.522011 152.456703,215.662552 C159.980009,224.738147 163.280655,235.867787 162.358738,249.051805 C161.345993,263.534741 155.892475,275.259586 145.998021,284.226692 C136.029538,293.319149 124.356044,297.397545 110.977188,296.462004 C98.5075753,295.590044 87.9328906,290.021166 79.2528169,279.755202 L76.8357914,291.920922 L55.3063329,290.415435 L70.2630542,213.617307 Z M281.91287,203.505485 L264.195289,294.483374 L242.66583,292.977887 L260.383411,201.999998 L281.91287,203.505485 Z M71.9991358,173.182185 C72.544111,165.388677 70.5816637,158.920988 66.111735,153.778923 C61.6418064,148.636858 55.51018,145.793381 47.7166719,145.248406 C39.2737048,144.658016 32.0718676,147.319646 26.1109445,153.233374 C20.1500213,159.147102 16.8335414,166.909847 16.1614054,176.52184 C15.5937229,184.640077 17.5078029,191.332803 21.9037027,196.600218 C26.304144,201.802688 32.4334997,204.678637 40.2919537,205.228154 C48.4751372,205.800378 55.6233829,202.971845 61.7369051,196.74247 C67.9062904,190.647528 71.3269997,182.794179 71.9991358,173.182185 Z M146.173154,247.942528 C146.745378,239.759345 144.777707,232.899715 140.270081,227.363433 C135.762455,221.827152 129.61198,218.786569 121.818472,218.241594 C113.375505,217.651204 106.175939,220.280361 100.219557,226.129143 C94.2722582,231.848034 90.9603197,239.545833 90.2836422,249.222773 C89.7159597,257.34101 91.6300397,264.033736 96.0259395,269.301151 C100.412756,274.698458 106.40541,277.662742 114.004081,278.194093 C122.382102,278.779942 129.648884,276.122854 135.804645,270.22275 C142.090297,264.331729 145.546433,256.905062 146.173154,247.942528 Z M288.437252,173.30905 C288.219262,176.426453 286.894258,179.042194 284.4622,181.156349 C282.030142,183.270504 279.222981,184.216302 276.040632,183.993771 C272.858283,183.771239 270.179869,182.409221 268.005309,179.907676 C265.904778,177.280781 264.965792,174.376202 265.188323,171.193853 C265.410855,168.011504 266.703386,165.393493 269.065957,163.339742 C271.498014,161.225587 274.272703,160.277518 277.390106,160.495508 C280.572456,160.71804 283.248599,162.11253 285.418618,164.679021 C287.658123,167.185108 288.664325,170.061755 288.437252,173.30905 Z M341.338917,130.798233 L325.623488,211.343497 C331.568976,207.51712 336.669869,205.034891 340.926318,203.896734 C345.382147,202.707256 350.14288,202.289641 355.208661,202.643875 C367.678274,203.515835 377.672313,208.522011 385.191078,217.662552 C392.714384,226.738147 396.01503,237.867787 395.093113,251.051805 C394.080368,265.534741 388.62685,277.259586 378.732396,286.226692 C368.763913,295.319149 357.090419,299.397545 343.711563,298.462004 C331.24195,297.590044 320.667266,292.021166 311.987192,281.755202 L309.570166,293.920922 L288.040708,292.415435 L319.809459,129.292746 L341.338917,130.798233 Z M378.907529,249.942528 C379.479753,241.759345 377.512082,234.899715 373.004456,229.363433 C368.49683,223.827152 362.346355,220.786569 354.552847,220.241594 C346.10988,219.651204 338.910314,222.280361 332.953932,228.129143 C327.006633,233.848034 323.694695,241.545833 323.018017,251.222773 C322.450335,259.34101 324.364415,266.033736 328.760315,271.301151 C333.147131,276.698458 339.139785,279.662742 346.738456,280.194093 C355.116477,280.779942 362.383259,278.122854 368.53902,272.22275 C374.824672,266.331729 378.280808,258.905062 378.907529,249.942528 Z M427.837266,254.214143 C427.364954,260.968516 429.314682,266.684798 433.686509,271.363158 C438.123282,276.04606 444.011024,278.644064 451.349911,279.157249 C461.416525,279.861176 469.408372,276.634795 475.325691,269.478012 L490.779815,279.467089 C484.667658,286.610248 478.55218,291.468874 472.433196,294.043112 C466.244724,296.677755 458.669335,297.681701 449.706801,297.05498 C435.483648,296.0604 424.443678,291.078979 416.586559,282.110568 C408.729441,273.142157 405.29141,261.643967 406.272366,247.615653 C407.298736,232.937879 412.800621,220.987997 422.778187,211.765649 C432.686265,202.603705 444.686755,198.515543 458.780015,199.50104 C472.418654,200.454747 482.858225,205.622602 490.09904,215.004761 C497.465206,224.460949 500.625974,236.657639 499.581438,251.595196 C499.472443,253.153897 499.197911,255.679938 498.757835,259.173392 L427.837266,254.214143 Z M479.028964,240.233796 C477.745896,225.916639 470.415044,218.290404 457.036188,217.354863 C444.371737,216.469279 435.62872,222.971519 430.806874,236.861779 L479.028964,240.233796 Z\" id=\"path-1\"></path> <filter x=\"-0.0%\" y=\"-0.0%\" width=\"100.0%\" height=\"100.0%\" filterUnits=\"objectBoundingBox\" id=\"filter-2\"> <feGaussianBlur stdDeviation=\"0\" in=\"SourceGraphic\"></feGaussianBlur> </filter> <linearGradient x1=\"45.3715028%\" y1=\"2.2102363%\" x2=\"13.1335393%\" y2=\"94.6682255%\" id=\"linearGradient-3\"> <stop stop-color=\"#5555CE\" offset=\"0%\"></stop> <stop stop-color=\"#BD309F\" offset=\"51.7589415%\"></stop> <stop stop-color=\"#E02F74\" offset=\"75.1576261%\"></stop> <stop stop-color=\"#FFD879\" offset=\"100%\"></stop> </linearGradient> <ellipse id=\"path-4\" cx=\"720\" cy=\"507.5\" rx=\"250\" ry=\"4.5\"></ellipse> <filter x=\"-4.5%\" y=\"-250.0%\" width=\"109.0%\" height=\"600.0%\" filterUnits=\"objectBoundingBox\" id=\"filter-5\"> <feOffset dx=\"0\" dy=\"0\" in=\"SourceAlpha\" result=\"shadowOffsetOuter1\"></feOffset> <feGaussianBlur stdDeviation=\"7.5\" in=\"shadowOffsetOuter1\" result=\"shadowBlurOuter1\"></feGaussianBlur> <feColorMatrix values=\"0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.5 0\" type=\"matrix\" in=\"shadowBlurOuter1\"></feColorMatrix> </filter> </defs> <g id=\"Desktop-HD\" stroke=\"none\" stroke-width=\"1\" fill=\"none\" fill-rule=\"evenodd\"> <g id=\"Group-2\" transform=\"translate(470.000000, 116.000000)\"> <g id=\"dbribe\" filter=\"url(#filter-2)\"> <use fill=\"#656565\" xlink:href=\"#path-1\"></use> </g> </g> <g id=\"Group\" transform=\"translate(260.000000, 650.000000)\"> <path d=\"M31.7411093,50.7856926 L53.3482779,39.624965 L31.7411093,28.3303087 L31.7411093,50.7856926 Z M40.0000477,12.3035038 C56.8304249,12.3035038 67.9911525,13.1070762 67.9911525,13.1070762 C69.5536543,13.2856479 72.9911584,13.2856479 76.0268763,16.4999374 C76.0268763,16.4999374 78.4822364,18.9106546 79.196523,24.4463755 C80.0447383,30.9195975 80.0000954,37.3928195 80.0000954,37.3928195 L80.0000954,43.4642553 C80.0000954,43.4642553 80.0447383,49.9374773 79.196523,56.4106993 C78.4822364,61.9017773 76.0268763,64.3571373 76.0268763,64.3571373 C72.9911584,67.526784 69.5536543,67.526784 67.9911525,67.7053556 C67.9911525,67.7053556 56.8304249,68.5535709 40.0000477,68.5535709 C19.1964515,68.3749993 12.8125153,67.7499985 12.8125153,67.7499985 C11.0267989,67.4374981 7.00893693,67.526784 3.97321902,64.3571373 C3.97321902,64.3571373 1.51785895,61.9017773 0.803572387,56.4106993 C-0.0446429104,49.9374773 5.15538133e-17,43.4642553 5.15538133e-17,43.4642553 L5.15538133e-17,37.3928195 C5.15538133e-17,37.3928195 -0.0446429104,30.9195975 0.803572387,24.4463755 C1.51785895,18.9106546 3.97321902,16.4999374 3.97321902,16.4999374 C7.00893693,13.2856479 10.446441,13.2856479 12.0089429,13.1070762 C12.0089429,13.1070762 23.1696705,12.3035038 40.0000477,12.3035038 Z\" id=\"youtube-play---FontAwesome\" fill=\"#FF0002\"></path> <path d=\"M141.58037,63.5535649 L151.892882,63.5535649 L151.892882,32.5713851 L141.58037,32.5713851 L141.58037,63.5535649 Z M152.562526,23.0178023 C152.517883,19.9820844 150.33038,17.6606531 146.80359,17.6606531 C143.2768,17.6606531 140.955369,19.9820844 140.955369,23.0178023 C140.955369,25.9642344 143.187515,28.3749516 146.669662,28.3749516 L146.714304,28.3749516 C150.33038,28.3749516 152.562526,25.9642344 152.562526,23.0178023 Z M167.875044,36.9387478 L167.875044,37.0803191 L167.785758,37.0803191 C167.814982,37.0335611 167.844737,36.9863567 167.875044,36.9387478 Z M167.875044,36.9387478 L167.875044,32.5713851 L157.562532,32.5713851 C157.562532,32.5713851 157.69646,35.4731743 157.562532,63.5535649 L167.875044,63.5535649 L167.875044,46.2321157 C167.875044,45.3392575 167.919687,44.4017564 168.187544,43.7321127 C168.946474,41.9017534 170.642904,39.9821083 173.500051,39.9821083 C177.205412,39.9821083 178.678628,42.7946116 178.678628,46.9910452 L178.678628,63.5535649 L188.991141,63.5535649 L188.991141,45.7856866 C188.991141,36.2767467 183.901849,31.8570986 177.116126,31.8570986 C171.701197,31.8570986 169.233666,34.8044968 167.875044,36.9387478 Z M199.57151,18.9999404 L199.57151,61.8571343 C199.57151,68.9553571 193.812575,74.7142925 186.714352,74.7142925 L143.857158,74.7142925 C136.758935,74.7142925 131,68.9553571 131,61.8571343 L131,18.9999404 C131,11.9017176 136.758935,6.14278221 143.857158,6.14278221 L186.714352,6.14278221 C193.812575,6.14278221 199.57151,11.9017176 199.57151,18.9999404 Z\" id=\"linkedin-square---FontAwesome\" fill=\"#0076B5\"></path> <path d=\"M306.714352,6.14278221 C313.812575,6.14278221 319.57151,11.9017176 319.57151,18.9999404 L319.57151,61.8571343 C319.57151,68.9553571 313.812575,74.7142925 306.714352,74.7142925 L298.321485,74.7142925 L298.321485,48.1517609 L307.205424,48.1517609 L308.544711,37.7946057 L298.321485,37.7946057 L298.321485,31.1874549 C298.321485,28.1963799 299.125057,26.187449 303.45542,26.187449 L308.901855,26.1428061 L308.901855,16.9017236 C307.964354,16.7677949 304.705421,16.4999374 300.955417,16.4999374 C293.053622,16.4999374 287.607186,21.3213717 287.607186,30.160668 L287.607186,37.7946057 L278.678604,37.7946057 L278.678604,48.1517609 L287.607186,48.1517609 L287.607186,74.7142925 L263.857158,74.7142925 C256.758935,74.7142925 251,68.9553571 251,61.8571343 L251,18.9999404 C251,11.9017176 256.758935,6.14278221 263.857158,6.14278221 L306.714352,6.14278221 Z\" id=\"facebook-square---FontAwesome\" fill=\"#3B5898\"></path> <path d=\"M416.71434,40.4285374 C416.71434,34.133887 411.580406,28.9999523 405.285755,28.9999523 C398.991105,28.9999523 393.85717,34.133887 393.85717,40.4285374 C393.85717,46.7231877 398.991105,51.8571224 405.285755,51.8571224 C411.580406,51.8571224 416.71434,46.7231877 416.71434,40.4285374 Z M422.875062,40.4285374 C422.875062,50.1606918 415.01791,58.0178441 405.285755,58.0178441 C395.553601,58.0178441 387.696448,50.1606918 387.696448,40.4285374 C387.696448,30.6963829 395.553601,22.8392307 405.285755,22.8392307 C415.01791,22.8392307 422.875062,30.6963829 422.875062,40.4285374 Z M427.696496,22.1249441 C427.696496,24.4017325 425.866137,26.2320919 423.589348,26.2320919 C421.31256,26.2320919 419.482201,24.4017325 419.482201,22.1249441 C419.482201,19.8481557 421.31256,18.0177964 423.589348,18.0177964 C425.866137,18.0177964 427.696496,19.8481557 427.696496,22.1249441 Z M405.285755,12.3035038 C400.285749,12.3035038 389.571451,11.9017176 385.062517,13.6874341 C383.500015,14.3124348 382.339299,15.0713643 381.133941,16.2767229 C379.928582,17.4820814 379.169653,18.6427971 378.544652,20.205299 C376.758935,24.7142329 377.160722,35.4285314 377.160722,40.4285374 C377.160722,45.4285433 376.758935,56.1428418 378.544652,60.6517758 C379.169653,62.2142776 379.928582,63.3749933 381.133941,64.5803519 C382.339299,65.7857105 383.500015,66.5446399 385.062517,67.1696407 C389.571451,68.9553571 400.285749,68.5535709 405.285755,68.5535709 C410.285761,68.5535709 421.00006,68.9553571 425.508994,67.1696407 C427.071495,66.5446399 428.232211,65.7857105 429.43757,64.5803519 C430.642928,63.3749933 431.401858,62.2142776 432.026858,60.6517758 C433.812575,56.1428418 433.410789,45.4285433 433.410789,40.4285374 C433.410789,35.4285314 433.812575,24.7142329 432.026858,20.205299 C431.401858,18.6427971 430.642928,17.4820814 429.43757,16.2767229 C428.232211,15.0713643 427.071495,14.3124348 425.508994,13.6874341 C421.00006,11.9017176 410.285761,12.3035038 405.285755,12.3035038 Z M439.57151,40.4285374 C439.57151,45.1606859 439.616153,49.8481915 439.348296,54.58034 C439.080438,60.0714179 437.830437,64.9374952 433.812575,68.9553571 C429.794713,72.973219 424.928636,74.2232205 419.437558,74.491078 C414.705409,74.7589354 410.017904,74.7142925 405.285755,74.7142925 C400.553607,74.7142925 395.866101,74.7589354 391.133953,74.491078 C385.642875,74.2232205 380.776797,72.973219 376.758935,68.9553571 C372.741074,64.9374952 371.491072,60.0714179 371.223215,54.58034 C370.955357,49.8481915 371,45.1606859 371,40.4285374 C371,35.6963889 370.955357,31.0088833 371.223215,26.2767348 C371.491072,20.7856568 372.741074,15.9195796 376.758935,11.9017176 C380.776797,7.88385572 385.642875,6.63385423 391.133953,6.36599676 C395.866101,6.0981393 400.553607,6.14278221 405.285755,6.14278221 C410.017904,6.14278221 414.705409,6.0981393 419.437558,6.36599676 C424.928636,6.63385423 429.794713,7.88385572 433.812575,11.9017176 C437.830437,15.9195796 439.080438,20.7856568 439.348296,26.2767348 C439.616153,31.0088833 439.57151,35.6963889 439.57151,40.4285374 Z\" id=\"instagram---FontAwesome\" fill=\"url(#linearGradient-3)\"></path> <path d=\"M548.142925,27.660665 C546.446495,28.4195945 544.660778,28.9106665 542.741133,29.178524 C544.705421,28.0178083 546.178637,26.1428061 546.892924,23.9553034 C545.062564,25.0267333 543.053633,25.8303057 540.910774,26.2320919 C539.214343,24.4017325 536.758983,23.2856598 534.080408,23.2856598 C528.901831,23.2856598 524.705397,27.4820934 524.705397,32.660671 C524.705397,33.3749575 524.75004,34.133887 524.928612,34.8035307 C517.116103,34.4017445 510.196451,30.6963829 505.553589,24.9820904 C504.750016,26.3660206 504.258944,28.0178083 504.258944,29.7142389 C504.258944,32.9731713 505.776803,35.8303176 508.321449,37.5267482 C506.758947,37.4821053 505.285731,37.0356762 503.857158,36.3660325 L503.857158,36.4553183 C503.857158,41.0088952 507.294662,44.8035426 511.580382,45.6517579 C510.776809,45.8749724 510.151809,46.0089012 509.303593,46.0089012 C508.723235,46.0089012 508.142878,45.9196153 507.56252,45.8303295 C508.767878,49.5356911 512.205382,52.2589086 516.31253,52.3481944 C513.098241,54.8481974 509.080379,56.3660564 504.660731,56.3660564 C503.901801,56.3660564 503.142872,56.3214135 502.428585,56.2321276 C506.580376,58.8660593 511.491096,60.4285612 516.803602,60.4285612 C534.035766,60.4285612 543.500063,46.1428299 543.500063,33.7321008 C543.500063,33.3303146 543.500063,32.9285284 543.45542,32.5267422 C545.285779,31.2320978 546.892924,29.5803102 548.142925,27.660665 Z M559.57151,18.9999404 L559.57151,61.8571343 C559.57151,68.9553571 553.812575,74.7142925 546.714352,74.7142925 L503.857158,74.7142925 C496.758935,74.7142925 491,68.9553571 491,61.8571343 L491,18.9999404 C491,11.9017176 496.758935,6.14278221 503.857158,6.14278221 L546.714352,6.14278221 C553.812575,6.14278221 559.57151,11.9017176 559.57151,18.9999404 Z\" id=\"twitter-square---FontAwesome\" fill=\"#1EA1F3\"></path> <path d=\"M885.285755,6.14278221 C904.214349,6.14278221 919.57151,21.4999434 919.57151,40.4285374 C919.57151,55.562484 909.75007,68.4196422 896.133982,72.973219 C894.392909,73.2857194 893.767908,72.2142895 893.767908,71.3214313 C893.767908,70.2053586 893.812551,66.499997 893.812551,61.9017773 C893.812551,58.6874877 892.741121,56.6339138 891.49112,55.562484 C899.125057,54.7142687 907.160781,51.8124795 907.160781,38.642821 C907.160781,34.8928165 905.821494,31.8570986 903.633991,29.4463814 C903.991135,28.5535232 905.15185,25.0713762 903.276848,20.3392277 C900.419702,19.4463695 893.857194,23.8660176 893.857194,23.8660176 C891.133976,23.1070881 888.187544,22.705302 885.285755,22.705302 C882.383966,22.705302 879.437534,23.1070881 876.714316,23.8660176 C876.714316,23.8660176 870.151809,19.4463695 867.294662,20.3392277 C865.41966,25.0713762 866.580376,28.5535232 866.937519,29.4463814 C864.750016,31.8570986 863.410729,34.8928165 863.410729,38.642821 C863.410729,51.7678366 871.40181,54.7142687 879.035748,55.562484 C878.053604,56.4553422 877.160745,57.9732011 876.848245,60.1607037 C874.883957,61.053562 869.883951,62.5714209 866.892876,57.3035575 C865.017874,54.044625 861.625013,53.7767676 861.625013,53.7767676 C858.276794,53.7321247 861.401798,55.8749844 861.401798,55.8749844 C863.633944,56.9017713 865.196445,60.8749903 865.196445,60.8749903 C867.205376,66.991069 876.758959,64.9374952 876.758959,64.9374952 C876.758959,67.7946414 876.803602,70.473216 876.803602,71.3214313 C876.803602,72.2142895 876.178601,73.2857194 874.437528,72.973219 C860.82144,68.4196422 851,55.562484 851,40.4285374 C851,21.4999434 866.357161,6.14278221 885.285755,6.14278221 Z M863.991087,55.3839123 C863.901801,55.562484 863.633944,55.6071269 863.410729,55.4731982 C863.142872,55.3392694 863.008943,55.1160549 863.098229,54.9374832 C863.187515,54.8035545 863.410729,54.7589116 863.678587,54.8481974 C863.946444,54.9821261 864.080373,55.2053407 863.991087,55.3839123 Z M865.375017,56.9017713 C865.196445,57.0803429 864.883945,56.9910571 864.660731,56.7678426 C864.437516,56.4999851 864.392873,56.1874847 864.571445,56.053556 C864.750016,55.8749844 865.062517,55.9642702 865.285731,56.1874847 C865.508946,56.4553422 865.553589,56.7678426 865.375017,56.9017713 Z M866.714304,58.9107023 C866.535733,59.044631 866.17859,58.9107023 865.955375,58.5982019 C865.73216,58.2857015 865.73216,57.9285582 865.955375,57.7946295 C866.17859,57.6160579 866.535733,57.7499866 866.714304,58.062487 C866.937519,58.3749873 866.937519,58.7321306 866.714304,58.9107023 Z M868.589307,60.7857045 C868.410735,61.008919 868.008949,60.9642761 867.696448,60.6517758 C867.383948,60.3839183 867.294662,59.9821321 867.517877,59.8035605 C867.696448,59.5803459 868.098235,59.6249888 868.410735,59.9374892 C868.678593,60.2053467 868.767878,60.6071329 868.589307,60.7857045 Z M871.133953,61.9017773 C871.044667,62.1696347 870.642881,62.3035634 870.285737,62.1696347 C869.883951,62.0803489 869.616094,61.7678485 869.705379,61.4999911 C869.794665,61.2321336 870.196451,61.0982049 870.553595,61.1874907 C870.955381,61.3214194 871.223238,61.6339198 871.133953,61.9017773 Z M873.946456,62.1249918 C873.946456,62.3928493 873.633956,62.6160638 873.232169,62.6160638 C872.78574,62.6607067 872.47324,62.4374922 872.47324,62.1249918 C872.47324,61.8571343 872.78574,61.6339198 873.187526,61.6339198 C873.589313,61.5892769 873.946456,61.8124914 873.946456,62.1249918 Z M876.535745,61.6785627 C876.580388,61.9464202 876.31253,62.2142776 875.910744,62.3035634 C875.508958,62.3928493 875.151815,62.2142776 875.107172,61.9464202 C875.062529,61.6339198 875.330386,61.3660623 875.732172,61.2767765 C876.133959,61.2321336 876.491102,61.4107052 876.535745,61.6785627 Z\" id=\"github---FontAwesome\" fill=\"#000000\"></path> <g id=\"medium\" transform=\"translate(611.000000, 6.000000)\" fill=\"#000000\" fill-rule=\"nonzero\"> <path d=\"M0,0 L0,69 L69,69 L69,0 L0,0 Z M57.3254464,16.3412946 L53.6290179,19.8837054 C53.3055804,20.1301339 53.1515625,20.5305804 53.2131696,20.915625 L53.2131696,46.9908482 C53.1515625,47.3912946 53.3055804,47.7917411 53.6290179,48.0227679 L57.2484375,51.5651786 L57.2484375,52.3506696 L39.0743304,52.3506696 L39.0743304,51.5959821 L42.8169643,47.9611607 C43.1866071,47.5915179 43.1866071,47.4837054 43.1866071,46.9292411 L43.1866071,25.8441964 L32.775,52.2736607 L31.3734375,52.2736607 L19.2522321,25.8441964 L19.2522321,43.55625 C19.1444196,44.2955357 19.40625,45.0502232 19.9299107,45.5892857 L24.796875,51.4881696 L24.796875,52.2736607 L10.9660714,52.2736607 L10.9660714,51.4881696 L15.8330357,45.5892857 C16.3566964,45.0502232 16.5877232,44.2955357 16.4645089,43.55625 L16.4645089,23.071875 C16.5261161,22.5020089 16.3104911,21.9475446 15.8792411,21.5625 L11.5513393,16.3412946 L11.5513393,15.5558036 L24.9970982,15.5558036 L35.3779018,38.3504464 L44.5111607,15.5712054 L57.3254464,15.5712054 L57.3254464,16.3412946 Z\" id=\"Shape\"></path> </g> <path d=\"M786.714352,6.14278221 C793.812575,6.14278221 799.57151,11.9017176 799.57151,18.9999404 L799.57151,61.8571343 C799.57151,68.9553571 793.812575,74.7142925 786.714352,74.7142925 L754.348242,74.7142925 C755.821458,72.6160757 758.232175,69 759.169676,65.3392814 C759.169676,65.3392814 759.571463,63.8214224 761.535751,56.0089131 C762.741109,58.2857015 766.178613,60.2499896 769.839332,60.2499896 C780.732202,60.2499896 788.142925,50.2946206 788.142925,36.9910333 C788.142925,26.9463784 779.616129,17.5713673 766.669685,17.5713673 C750.553595,17.5713673 742.428585,29.133881 742.428585,38.7767497 C742.428585,44.580328 744.660731,49.7589056 749.392879,51.7231937 C750.151809,52.0356941 750.866095,51.7231937 751.08931,50.8749784 C751.223238,50.2946206 751.580382,48.7767616 751.758953,48.1517609 C751.982168,47.3035456 751.892882,46.9910452 751.267881,46.2767586 C749.928594,44.6249709 749.035736,42.5713971 749.035736,39.5803221 C749.035736,31.0088833 755.464315,23.3749456 765.732184,23.3749456 C774.839338,23.3749456 779.839344,28.9106665 779.839344,36.3660325 C779.839344,46.1428299 775.508982,54.4017683 769.080403,54.4017683 C765.553613,54.4017683 762.875038,51.4553362 763.723253,47.8392605 C764.75004,43.5535411 766.714328,38.9106784 766.714328,35.8303176 C766.714328,33.0624572 765.241112,30.7410258 762.160751,30.7410258 C758.544676,30.7410258 755.642887,34.4910303 755.642887,39.4910363 C755.642887,39.4910363 755.642887,42.7053258 756.714316,44.8928284 C753.008955,60.6071329 752.339311,63.3749933 752.339311,63.3749933 C751.357167,67.482141 751.758953,72.2589325 752.026811,74.7142925 L743.857158,74.7142925 C736.758935,74.7142925 731,68.9553571 731,61.8571343 L731,18.9999404 C731,11.9017176 736.758935,6.14278221 743.857158,6.14278221 L786.714352,6.14278221 Z\" id=\"pinterest-square---FontAwesome\" fill=\"#BD081C\"></path> </g> <g id=\"Oval\"> <use fill=\"black\" fill-opacity=\"1\" filter=\"url(#filter-5)\" xlink:href=\"#path-4\"></use> <use fill=\"#FFFFFF\" fill-rule=\"evenodd\" xlink:href=\"#path-4\"></use> </g> <rect id=\"Rectangle\" fill=\"#FFFFFF\" x=\"444\" y=\"461\" width=\"552\" height=\"47\"></rect> </g>\n</svg>" })];
+              return [UI.createElement(
+                  "div",
+                  { style: { flex: 1, width: "-webkit-fill-available", maxWidth: "550px", padding: "30px", paddingTop: 0 } },
+                  UI.createElement(DBribe, { style: { display: "block", margin: "5vh auto", marginBottom: "5vh", width: "100%" } }),
+                  UI.createElement(Shadow, { style: { width: "100%" } })
+              ), UI.createElement(
+                  "div",
+                  { style: { minHeight: "25vh", margin: "0 auto", textAlign: "center" } },
+                  UI.createElement(YouTubeLogo, null),
+                  UI.createElement(LinkedInLogo, null),
+                  UI.createElement(FacebookLogo, null),
+                  UI.createElement(InstagramLogo, null),
+                  UI.createElement(TwitterLogo, null),
+                  UI.createElement(MediumLogo, null),
+                  UI.createElement(PinterestLogo, null),
+                  UI.createElement(GitHubLogo, null)
+              )];
           }
       }]);
       return IndexPage;
-  }(UI.Element)) || _class9$1);
+  }(UI.Element)) || _class3$13);
 
   var State = function (_Dispatchable) {
       inherits(State, _Dispatchable);
@@ -23275,9 +23489,9 @@ var Bundle = (function (exports) {
 
   ArticleRenderer.markupClassMap = new MarkupClassMap(MarkupClassMap.GLOBAL, [["Article", RecursiveArticleRenderer], ["RawSVG", SVG.RawSVG]]);
 
-  var _class$42, _descriptor$18, _descriptor2$16, _descriptor3$16, _descriptor4$14, _descriptor5$12, _descriptor6$10, _class3$13, _descriptor7$8, _descriptor8$5;
+  var _class$43, _descriptor$19, _descriptor2$15, _descriptor3$15, _descriptor4$13, _descriptor5$11, _descriptor6$9, _class3$14, _descriptor7$7, _descriptor8$5;
 
-  function _initDefineProp$19(target, property, descriptor, context) {
+  function _initDefineProp$20(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -23287,7 +23501,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$20(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -23328,7 +23542,7 @@ var Bundle = (function (exports) {
       color: color
   };
 
-  var BlogStyle = (_class$42 = function (_StyleSheet) {
+  var BlogStyle = (_class$43 = function (_StyleSheet) {
       inherits(BlogStyle, _StyleSheet);
 
       function BlogStyle() {
@@ -23342,7 +23556,7 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = BlogStyle.__proto__ || Object.getPrototypeOf(BlogStyle)).call.apply(_ref, [this].concat(args))), _this), _this.titleFontSize = "2em", _initDefineProp$19(_this, "commentsTitle", _descriptor$18, _this), _initDefineProp$19(_this, "bottomSection", _descriptor2$16, _this), _initDefineProp$19(_this, "blogEntryView", _descriptor3$16, _this), _this.title = {
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = BlogStyle.__proto__ || Object.getPrototypeOf(BlogStyle)).call.apply(_ref, [this].concat(args))), _this), _this.titleFontSize = "2em", _initDefineProp$20(_this, "commentsTitle", _descriptor$19, _this), _initDefineProp$20(_this, "bottomSection", _descriptor2$15, _this), _initDefineProp$20(_this, "blogEntryView", _descriptor3$15, _this), _this.title = {
               "font-size": _this.titleFontSize,
               "padding-top": "20px",
               "padding-bottom": "10px",
@@ -23372,11 +23586,11 @@ var Bundle = (function (exports) {
               "text-align": "justify",
               "font-size": "17px",
               marginBottom: "25px"
-          }, _initDefineProp$19(_this, "whiteOverlay", _descriptor4$14, _this), _initDefineProp$19(_this, "loadMoreButton", _descriptor5$12, _this), _initDefineProp$19(_this, "sendMessageButtonStyle", _descriptor6$10, _this), _temp), possibleConstructorReturn(_this, _ret);
+          }, _initDefineProp$20(_this, "whiteOverlay", _descriptor4$13, _this), _initDefineProp$20(_this, "loadMoreButton", _descriptor5$11, _this), _initDefineProp$20(_this, "sendMessageButtonStyle", _descriptor6$9, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return BlogStyle;
-  }(StyleSheet), (_descriptor$18 = _applyDecoratedDescriptor$19(_class$42.prototype, "commentsTitle", [styleRule], {
+  }(StyleSheet), (_descriptor$19 = _applyDecoratedDescriptor$20(_class$43.prototype, "commentsTitle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23387,7 +23601,7 @@ var Bundle = (function (exports) {
               textTransform: "uppercase"
           };
       }
-  }), _descriptor2$16 = _applyDecoratedDescriptor$19(_class$42.prototype, "bottomSection", [styleRule], {
+  }), _descriptor2$15 = _applyDecoratedDescriptor$20(_class$43.prototype, "bottomSection", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23396,7 +23610,7 @@ var Bundle = (function (exports) {
               width: "100%"
           };
       }
-  }), _descriptor3$16 = _applyDecoratedDescriptor$19(_class$42.prototype, "blogEntryView", [styleRule], {
+  }), _descriptor3$15 = _applyDecoratedDescriptor$20(_class$43.prototype, "blogEntryView", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23407,7 +23621,7 @@ var Bundle = (function (exports) {
               // "padding-bottom": "50px",
           };
       }
-  }), _descriptor4$14 = _applyDecoratedDescriptor$19(_class$42.prototype, "whiteOverlay", [styleRule], {
+  }), _descriptor4$13 = _applyDecoratedDescriptor$20(_class$43.prototype, "whiteOverlay", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23419,7 +23633,7 @@ var Bundle = (function (exports) {
               width: "92%"
           };
       }
-  }), _descriptor5$12 = _applyDecoratedDescriptor$19(_class$42.prototype, "loadMoreButton", [styleRule], {
+  }), _descriptor5$11 = _applyDecoratedDescriptor$20(_class$43.prototype, "loadMoreButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23460,7 +23674,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor6$10 = _applyDecoratedDescriptor$19(_class$42.prototype, "sendMessageButtonStyle", [styleRule], {
+  }), _descriptor6$9 = _applyDecoratedDescriptor$20(_class$43.prototype, "sendMessageButtonStyle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23495,8 +23709,8 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class$42);
-  var BlogArticleRendererStyle = (_class3$13 = function (_StyleSheet2) {
+  })), _class$43);
+  var BlogArticleRendererStyle = (_class3$14 = function (_StyleSheet2) {
       inherits(BlogArticleRendererStyle, _StyleSheet2);
 
       function BlogArticleRendererStyle() {
@@ -23515,11 +23729,11 @@ var Bundle = (function (exports) {
               "margin-top": "30px",
               "margin-bottom": "30px",
               "width": "100%"
-          }, _initDefineProp$19(_this2, "blogArticleRenderer", _descriptor7$8, _this2), _initDefineProp$19(_this2, "quote", _descriptor8$5, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+          }, _initDefineProp$20(_this2, "blogArticleRenderer", _descriptor7$7, _this2), _initDefineProp$20(_this2, "quote", _descriptor8$5, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
       }
 
       return BlogArticleRendererStyle;
-  }(StyleSheet), (_descriptor7$8 = _applyDecoratedDescriptor$19(_class3$13.prototype, "blogArticleRenderer", [styleRule], {
+  }(StyleSheet), (_descriptor7$7 = _applyDecoratedDescriptor$20(_class3$14.prototype, "blogArticleRenderer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23531,7 +23745,7 @@ var Bundle = (function (exports) {
               " h6": this.hStyle
           };
       }
-  }), _descriptor8$5 = _applyDecoratedDescriptor$19(_class3$13.prototype, "quote", [styleRule], {
+  }), _descriptor8$5 = _applyDecoratedDescriptor$20(_class3$14.prototype, "quote", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -23544,11 +23758,11 @@ var Bundle = (function (exports) {
               "width": "100%"
           };
       }
-  })), _class3$13);
+  })), _class3$14);
 
-  var _dec$21, _class$43, _dec2$8, _class2$8;
+  var _dec$22, _class$44, _dec2$7, _class2$8;
 
-  var BlogArticleRenderer = (_dec$21 = registerStyle(BlogArticleRendererStyle), _dec$21(_class$43 = function (_ArticleRenderer) {
+  var BlogArticleRenderer = (_dec$22 = registerStyle(BlogArticleRendererStyle), _dec$22(_class$44 = function (_ArticleRenderer) {
       inherits(BlogArticleRenderer, _ArticleRenderer);
 
       function BlogArticleRenderer() {
@@ -23564,8 +23778,8 @@ var Bundle = (function (exports) {
           }
       }]);
       return BlogArticleRenderer;
-  }(ArticleRenderer)) || _class$43);
-  var BlogQuote = (_dec2$8 = registerStyle(BlogArticleRendererStyle), _dec2$8(_class2$8 = function (_UI$Primitive) {
+  }(ArticleRenderer)) || _class$44);
+  var BlogQuote = (_dec2$7 = registerStyle(BlogArticleRendererStyle), _dec2$7(_class2$8 = function (_UI$Primitive) {
       inherits(BlogQuote, _UI$Primitive);
 
       function BlogQuote() {
@@ -25393,9 +25607,9 @@ var Bundle = (function (exports) {
       }
   });
 
-  var _class$44, _temp$8;
+  var _class$45, _temp$8;
 
-  var BasePopup = (_temp$8 = _class$44 = function (_FloatingWindow) {
+  var BasePopup = (_temp$8 = _class$45 = function (_FloatingWindow) {
       inherits(BasePopup, _FloatingWindow);
 
       function BasePopup() {
@@ -25643,7 +25857,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return BasePopup;
-  }(FloatingWindow), _class$44.bodyPopups = new Set(), _temp$8);
+  }(FloatingWindow), _class$45.bodyPopups = new Set(), _temp$8);
 
   var Popup = function (_BasePopup) {
       inherits(Popup, _BasePopup);
@@ -26743,9 +26957,9 @@ var Bundle = (function (exports) {
 
   var CountryStore = new CountryStoreClass("country", Country);
 
-  var _class$45, _descriptor$19, _descriptor2$17, _descriptor3$17, _descriptor4$15, _descriptor5$13, _descriptor6$11, _descriptor7$9, _descriptor8$6, _descriptor9$5, _descriptor10$4, _descriptor11$4, _descriptor12$4, _descriptor13$4, _descriptor14$4, _descriptor15$4, _descriptor16$4, _descriptor17$4, _descriptor18$2, _descriptor19$2, _descriptor20$2, _descriptor21$1, _descriptor22, _descriptor23;
+  var _class$46, _descriptor$20, _descriptor2$16, _descriptor3$16, _descriptor4$14, _descriptor5$12, _descriptor6$10, _descriptor7$8, _descriptor8$6, _descriptor9$5, _descriptor10$4, _descriptor11$4, _descriptor12$4, _descriptor13$4, _descriptor14$4, _descriptor15$4, _descriptor16$4, _descriptor17$4, _descriptor18$2, _descriptor19$2, _descriptor20$2, _descriptor21$1, _descriptor22, _descriptor23;
 
-  function _initDefineProp$20(target, property, descriptor, context) {
+  function _initDefineProp$21(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -26755,7 +26969,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$20(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$21(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -26793,7 +27007,7 @@ var Bundle = (function (exports) {
   var signInButtonHeight = 50;
   var signInButtonWidth = 120;
 
-  var LoginStyle = (_class$45 = function (_StyleSheet) {
+  var LoginStyle = (_class$46 = function (_StyleSheet) {
       inherits(LoginStyle, _StyleSheet);
 
       function LoginStyle() {
@@ -26807,17 +27021,17 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = LoginStyle.__proto__ || Object.getPrototypeOf(LoginStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$20(_this, "loginRegisterSystem", _descriptor$19, _this), _initDefineProp$20(_this, "loginRegisterButtons", _descriptor2$17, _this), _initDefineProp$20(_this, "loginSystemButton", _descriptor3$17, _this), _initDefineProp$20(_this, "registerSystemButton", _descriptor4$15, _this), _this.selectedLeft = {
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = LoginStyle.__proto__ || Object.getPrototypeOf(LoginStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$21(_this, "loginRegisterSystem", _descriptor$20, _this), _initDefineProp$21(_this, "loginRegisterButtons", _descriptor2$16, _this), _initDefineProp$21(_this, "loginSystemButton", _descriptor3$16, _this), _initDefineProp$21(_this, "registerSystemButton", _descriptor4$14, _this), _this.selectedLeft = {
               borderBottom: "0",
               borderRight: "0",
               backgroundColor: "#fff",
               fontWeight: "bold"
-          }, _initDefineProp$20(_this, "selectedLeftClass", _descriptor5$13, _this), _this.selectedRight = {
+          }, _initDefineProp$21(_this, "selectedLeftClass", _descriptor5$12, _this), _this.selectedRight = {
               borderBottom: "0",
               borderLeft: "0",
               backgroundColor: "#fff",
               fontWeight: "bold"
-          }, _initDefineProp$20(_this, "selectedRightClass", _descriptor6$11, _this), _initDefineProp$20(_this, "loginWidget", _descriptor7$9, _this), _initDefineProp$20(_this, "registerWidget", _descriptor8$6, _this), _this.fontAwesomeIcon = {
+          }, _initDefineProp$21(_this, "selectedRightClass", _descriptor6$10, _this), _initDefineProp$21(_this, "loginWidget", _descriptor7$8, _this), _initDefineProp$21(_this, "registerWidget", _descriptor8$6, _this), _this.fontAwesomeIcon = {
               height: fontAwesomeIconHeight + "px",
               lineHeight: fontAwesomeIconHeight + "px",
               width: "15%",
@@ -26830,7 +27044,7 @@ var Bundle = (function (exports) {
               borderBottomLeftRadius: "5px",
               borderRight: "0px solid white",
               marginTop: "20px"
-          }, _initDefineProp$20(_this, "input", _descriptor9$5, _this), _initDefineProp$20(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$20(_this, "badLogin", _descriptor11$4, _this), _initDefineProp$20(_this, "rememberMe", _descriptor12$4, _this), _initDefineProp$20(_this, "rememberMeCheckbox", _descriptor13$4, _this), _initDefineProp$20(_this, "forgotPassword", _descriptor14$4, _this), _initDefineProp$20(_this, "signInButtonContainer", _descriptor15$4, _this), _initDefineProp$20(_this, "signInButton", _descriptor16$4, _this), _initDefineProp$20(_this, "horizontalLine", _descriptor17$4, _this), _this.connectWith = {
+          }, _initDefineProp$21(_this, "input", _descriptor9$5, _this), _initDefineProp$21(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$21(_this, "badLogin", _descriptor11$4, _this), _initDefineProp$21(_this, "rememberMe", _descriptor12$4, _this), _initDefineProp$21(_this, "rememberMeCheckbox", _descriptor13$4, _this), _initDefineProp$21(_this, "forgotPassword", _descriptor14$4, _this), _initDefineProp$21(_this, "signInButtonContainer", _descriptor15$4, _this), _initDefineProp$21(_this, "signInButton", _descriptor16$4, _this), _initDefineProp$21(_this, "horizontalLine", _descriptor17$4, _this), _this.connectWith = {
               width: "100%",
               textAlign: "center",
               marginTop: "20px"
@@ -26842,11 +27056,11 @@ var Bundle = (function (exports) {
               justifyContent: "center",
               alignItems: "center",
               marginTop: "20px"
-          }, _initDefineProp$20(_this, "faLogo", _descriptor18$2, _this), _initDefineProp$20(_this, "recaptchaContainer", _descriptor19$2, _this), _initDefineProp$20(_this, "connectWithButtonsSpan", _descriptor20$2, _this), _initDefineProp$20(_this, "thirdPartyLoginContainer", _descriptor21$1, _this), _this.socialConnectDimensions = "35px", _initDefineProp$20(_this, "socialConnectButtonContainer", _descriptor22, _this), _initDefineProp$20(_this, "socialConnectButtonIcon", _descriptor23, _this), _temp), possibleConstructorReturn(_this, _ret);
+          }, _initDefineProp$21(_this, "faLogo", _descriptor18$2, _this), _initDefineProp$21(_this, "recaptchaContainer", _descriptor19$2, _this), _initDefineProp$21(_this, "connectWithButtonsSpan", _descriptor20$2, _this), _initDefineProp$21(_this, "thirdPartyLoginContainer", _descriptor21$1, _this), _this.socialConnectDimensions = "35px", _initDefineProp$21(_this, "socialConnectButtonContainer", _descriptor22, _this), _initDefineProp$21(_this, "socialConnectButtonIcon", _descriptor23, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return LoginStyle;
-  }(StyleSheet), (_descriptor$19 = _applyDecoratedDescriptor$20(_class$45.prototype, "loginRegisterSystem", [styleRule], {
+  }(StyleSheet), (_descriptor$20 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginRegisterSystem", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return function () {
@@ -26871,7 +27085,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor2$17 = _applyDecoratedDescriptor$20(_class$45.prototype, "loginRegisterButtons", [styleRule], {
+  }), _descriptor2$16 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginRegisterButtons", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -26881,7 +27095,7 @@ var Bundle = (function (exports) {
               height: buttonHeight / loginHeight * 100 + "%"
           };
       }
-  }), _descriptor3$17 = _applyDecoratedDescriptor$20(_class$45.prototype, "loginSystemButton", [styleRule], {
+  }), _descriptor3$16 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginSystemButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return defineProperty({
@@ -26904,7 +27118,7 @@ var Bundle = (function (exports) {
               textTransform: "uppercase"
           }, "fontSize", "1.1em");
       }
-  }), _descriptor4$15 = _applyDecoratedDescriptor$20(_class$45.prototype, "registerSystemButton", [styleRule], {
+  }), _descriptor4$14 = _applyDecoratedDescriptor$21(_class$46.prototype, "registerSystemButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return defineProperty({
@@ -26927,7 +27141,7 @@ var Bundle = (function (exports) {
               textTransform: "uppercase"
           }, "fontSize", "1.1em");
       }
-  }), _descriptor5$13 = _applyDecoratedDescriptor$20(_class$45.prototype, "selectedLeftClass", [styleRule], {
+  }), _descriptor5$12 = _applyDecoratedDescriptor$21(_class$46.prototype, "selectedLeftClass", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -26936,7 +27150,7 @@ var Bundle = (function (exports) {
               backgroundColor: "#fff"
           };
       }
-  }), _descriptor6$11 = _applyDecoratedDescriptor$20(_class$45.prototype, "selectedRightClass", [styleRule], {
+  }), _descriptor6$10 = _applyDecoratedDescriptor$21(_class$46.prototype, "selectedRightClass", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -26945,7 +27159,7 @@ var Bundle = (function (exports) {
               backgroundColor: "#fff"
           };
       }
-  }), _descriptor7$9 = _applyDecoratedDescriptor$20(_class$45.prototype, "loginWidget", [styleRule], {
+  }), _descriptor7$8 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginWidget", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -26957,7 +27171,7 @@ var Bundle = (function (exports) {
               borderTop: "0px solid #d3d5d9"
           };
       }
-  }), _descriptor8$6 = _applyDecoratedDescriptor$20(_class$45.prototype, "registerWidget", [styleRule], {
+  }), _descriptor8$6 = _applyDecoratedDescriptor$21(_class$46.prototype, "registerWidget", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -26969,7 +27183,7 @@ var Bundle = (function (exports) {
               borderTop: "0px solid #d3d5d9"
           };
       }
-  }), _descriptor9$5 = _applyDecoratedDescriptor$20(_class$45.prototype, "input", [styleRule], {
+  }), _descriptor9$5 = _applyDecoratedDescriptor$21(_class$46.prototype, "input", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -26997,7 +27211,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor10$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "countrySelect", [styleRule], {
+  }), _descriptor10$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "countrySelect", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27008,7 +27222,7 @@ var Bundle = (function (exports) {
               marginBottom: "10px"
           };
       }
-  }), _descriptor11$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "badLogin", [styleRule], {
+  }), _descriptor11$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "badLogin", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27019,7 +27233,7 @@ var Bundle = (function (exports) {
               textAlign: "center"
           };
       }
-  }), _descriptor12$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "rememberMe", [styleRule], {
+  }), _descriptor12$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "rememberMe", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27028,14 +27242,14 @@ var Bundle = (function (exports) {
               paddingLeft: "5px"
           };
       }
-  }), _descriptor13$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "rememberMeCheckbox", [styleRule], {
+  }), _descriptor13$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "rememberMeCheckbox", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               float: "left"
           };
       }
-  }), _descriptor14$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "forgotPassword", [styleRule], {
+  }), _descriptor14$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "forgotPassword", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27044,7 +27258,7 @@ var Bundle = (function (exports) {
               paddingRight: "5px"
           };
       }
-  }), _descriptor15$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "signInButtonContainer", [styleRule], {
+  }), _descriptor15$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "signInButtonContainer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27056,7 +27270,7 @@ var Bundle = (function (exports) {
               margin: "20px auto"
           };
       }
-  }), _descriptor16$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "signInButton", [styleRule], {
+  }), _descriptor16$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "signInButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27078,7 +27292,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor17$4 = _applyDecoratedDescriptor$20(_class$45.prototype, "horizontalLine", [styleRule], {
+  }), _descriptor17$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "horizontalLine", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27087,7 +27301,7 @@ var Bundle = (function (exports) {
               marginTop: "20px"
           };
       }
-  }), _descriptor18$2 = _applyDecoratedDescriptor$20(_class$45.prototype, "faLogo", [styleRule], {
+  }), _descriptor18$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "faLogo", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27112,7 +27326,7 @@ var Bundle = (function (exports) {
               fontWeight: "bold"
           };
       }
-  }), _descriptor19$2 = _applyDecoratedDescriptor$20(_class$45.prototype, "recaptchaContainer", [styleRule], {
+  }), _descriptor19$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "recaptchaContainer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27123,7 +27337,7 @@ var Bundle = (function (exports) {
               width: "100%"
           };
       }
-  }), _descriptor20$2 = _applyDecoratedDescriptor$20(_class$45.prototype, "connectWithButtonsSpan", [styleRule], {
+  }), _descriptor20$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "connectWithButtonsSpan", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27131,7 +27345,7 @@ var Bundle = (function (exports) {
               fontSize: "15px"
           };
       }
-  }), _descriptor21$1 = _applyDecoratedDescriptor$20(_class$45.prototype, "thirdPartyLoginContainer", [styleRule], {
+  }), _descriptor21$1 = _applyDecoratedDescriptor$21(_class$46.prototype, "thirdPartyLoginContainer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27142,7 +27356,7 @@ var Bundle = (function (exports) {
               margin: "15px 0"
           };
       }
-  }), _descriptor22 = _applyDecoratedDescriptor$20(_class$45.prototype, "socialConnectButtonContainer", [styleRule], {
+  }), _descriptor22 = _applyDecoratedDescriptor$21(_class$46.prototype, "socialConnectButtonContainer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27163,7 +27377,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor23 = _applyDecoratedDescriptor$20(_class$45.prototype, "socialConnectButtonIcon", [styleRule], {
+  }), _descriptor23 = _applyDecoratedDescriptor$21(_class$46.prototype, "socialConnectButtonIcon", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27174,9 +27388,9 @@ var Bundle = (function (exports) {
               alignItems: "center"
           };
       }
-  })), _class$45);
+  })), _class$46);
 
-  var _dec$22, _class$46, _dec2$9, _class2$9, _dec3$3, _class3$14, _dec4, _class4$2, _dec5, _class5$5, _dec6, _class6$1, _dec7, _class7$5;
+  var _dec$23, _class$47, _dec2$8, _class2$9, _dec3$2, _class3$15, _dec4, _class4$2, _dec5, _class5$4, _dec6, _class6$1, _dec7, _class7$4;
 
   var ERROR_TIMEOUT = 6 * 1000;
 
@@ -27206,7 +27420,7 @@ var Bundle = (function (exports) {
       }
   };
 
-  var SocialConnectButton = (_dec$22 = registerStyle(LoginStyle), _dec$22(_class$46 = function (_UI$Primitive) {
+  var SocialConnectButton = (_dec$23 = registerStyle(LoginStyle), _dec$23(_class$47 = function (_UI$Primitive) {
       inherits(SocialConnectButton, _UI$Primitive);
 
       function SocialConnectButton() {
@@ -27259,8 +27473,8 @@ var Bundle = (function (exports) {
           }
       }]);
       return SocialConnectButton;
-  }(UI.Primitive("button"))) || _class$46);
-  var ThirdPartyLogin = (_dec2$9 = registerStyle(LoginStyle), _dec2$9(_class2$9 = function (_UI$Element) {
+  }(UI.Primitive("button"))) || _class$47);
+  var ThirdPartyLogin = (_dec2$8 = registerStyle(LoginStyle), _dec2$8(_class2$9 = function (_UI$Element) {
       inherits(ThirdPartyLogin, _UI$Element);
 
       function ThirdPartyLogin() {
@@ -27305,7 +27519,7 @@ var Bundle = (function (exports) {
       return ThirdPartyLogin;
   }(UI.Element)) || _class2$9);
 
-  var LoginWidget = (_dec3$3 = registerStyle(LoginStyle), _dec3$3(_class3$14 = function (_UI$Element2) {
+  var LoginWidget = (_dec3$2 = registerStyle(LoginStyle), _dec3$2(_class3$15 = function (_UI$Element2) {
       inherits(LoginWidget, _UI$Element2);
 
       function LoginWidget() {
@@ -27469,7 +27683,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return LoginWidget;
-  }(UI.Element)) || _class3$14);
+  }(UI.Element)) || _class3$15);
 
   var RecaptchaWidget = function (_UI$Element3) {
       inherits(RecaptchaWidget, _UI$Element3);
@@ -27640,7 +27854,7 @@ var Bundle = (function (exports) {
   RegisterWidget.prototype.getHorizontalLine = LoginWidget.prototype.getHorizontalLine;
 
   // original name: LoginRegisterSystem
-  var NormalLogin = (_dec5 = registerStyle(LoginStyle), _dec5(_class5$5 = function (_UI$Element5) {
+  var NormalLogin = (_dec5 = registerStyle(LoginStyle), _dec5(_class5$4 = function (_UI$Element5) {
       inherits(NormalLogin, _UI$Element5);
 
       function NormalLogin() {
@@ -27727,7 +27941,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return NormalLogin;
-  }(UI.Element)) || _class5$5);
+  }(UI.Element)) || _class5$4);
   var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$1 = function (_UI$Primitive2) {
       inherits(LoginTabButton, _UI$Primitive2);
 
@@ -27754,7 +27968,7 @@ var Bundle = (function (exports) {
       }]);
       return LoginTabButton;
   }(UI.Primitive(BasicTabTitle, "div"))) || _class6$1);
-  var RegisterTabButton = (_dec7 = registerStyle(LoginStyle), _dec7(_class7$5 = function (_UI$Primitive3) {
+  var RegisterTabButton = (_dec7 = registerStyle(LoginStyle), _dec7(_class7$4 = function (_UI$Primitive3) {
       inherits(RegisterTabButton, _UI$Primitive3);
 
       function RegisterTabButton() {
@@ -27779,7 +27993,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return RegisterTabButton;
-  }(UI.Primitive(BasicTabTitle, "div"))) || _class7$5);
+  }(UI.Primitive(BasicTabTitle, "div"))) || _class7$4);
 
   var Login = function (_UI$Element6) {
       inherits(Login, _UI$Element6);
@@ -27861,9 +28075,9 @@ var Bundle = (function (exports) {
       return LoginModal;
   }(Modal);
 
-  var _class$47, _descriptor$20, _descriptor2$18, _descriptor3$18, _descriptor4$16, _descriptor5$14;
+  var _class$48, _descriptor$21, _descriptor2$17, _descriptor3$17, _descriptor4$15, _descriptor5$13;
 
-  function _initDefineProp$21(target, property, descriptor, context) {
+  function _initDefineProp$22(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -27873,7 +28087,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$21(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$22(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -27902,7 +28116,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var VotingWidgetStyle = (_class$47 = function (_StyleSheet) {
+  var VotingWidgetStyle = (_class$48 = function (_StyleSheet) {
       inherits(VotingWidgetStyle, _StyleSheet);
 
       function VotingWidgetStyle() {
@@ -27916,7 +28130,7 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = VotingWidgetStyle.__proto__ || Object.getPrototypeOf(VotingWidgetStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 40, _this.size = 1, _this.likeColor = _this.options.likeColor || "#1E8921", _this.dislikeColor = _this.options.dislikeColor || "#C5302C", _this.notVoteColor = _this.options.notVoteColor || "#313534", _this.balanceColor = _this.options.balanceColor || "#313534", _this.orientation = Orientation.VERTICAL, _initDefineProp$21(_this, "container", _descriptor$20, _this), _this.mainClass = {
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = VotingWidgetStyle.__proto__ || Object.getPrototypeOf(VotingWidgetStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 40, _this.size = 1, _this.likeColor = _this.options.likeColor || "#1E8921", _this.dislikeColor = _this.options.dislikeColor || "#C5302C", _this.notVoteColor = _this.options.notVoteColor || "#313534", _this.balanceColor = _this.options.balanceColor || "#313534", _this.orientation = Orientation.VERTICAL, _initDefineProp$22(_this, "container", _descriptor$21, _this), _this.mainClass = {
               height: "40px",
               lineHeight: "40px",
               fontSize: "14px",
@@ -27927,17 +28141,17 @@ var Bundle = (function (exports) {
           }, _this.thumbsStyle = {
               fontSize: _this.height / 2 + "px",
               lineHeight: _this.height + "px"
-          }, _initDefineProp$21(_this, "displayStyle", _descriptor2$18, _this), _this.counterStyle = {
+          }, _initDefineProp$22(_this, "displayStyle", _descriptor2$17, _this), _this.counterStyle = {
               fontSize: 18 * _this.size + "px",
               fontWeight: "900",
               color: _this.balanceColor
-          }, _initDefineProp$21(_this, "thumbsUpHoverStyle", _descriptor3$18, _this), _initDefineProp$21(_this, "thumbsDownHoverStyle", _descriptor4$16, _this), _initDefineProp$21(_this, "padding", _descriptor5$14, _this), _temp), possibleConstructorReturn(_this, _ret);
+          }, _initDefineProp$22(_this, "thumbsUpHoverStyle", _descriptor3$17, _this), _initDefineProp$22(_this, "thumbsDownHoverStyle", _descriptor4$15, _this), _initDefineProp$22(_this, "padding", _descriptor5$13, _this), _temp), possibleConstructorReturn(_this, _ret);
       } //            |
       //      |- Triadic colors + Shades
 
 
       return VotingWidgetStyle;
-  }(StyleSheet), (_descriptor$20 = _applyDecoratedDescriptor$21(_class$47.prototype, "container", [styleRule], {
+  }(StyleSheet), (_descriptor$21 = _applyDecoratedDescriptor$22(_class$48.prototype, "container", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27950,7 +28164,7 @@ var Bundle = (function (exports) {
               alignItems: "center"
           };
       }
-  }), _descriptor2$18 = _applyDecoratedDescriptor$21(_class$47.prototype, "displayStyle", [styleRule], {
+  }), _descriptor2$17 = _applyDecoratedDescriptor$22(_class$48.prototype, "displayStyle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27959,7 +28173,7 @@ var Bundle = (function (exports) {
               paddingLeft: "3px"
           };
       }
-  }), _descriptor3$18 = _applyDecoratedDescriptor$21(_class$47.prototype, "thumbsUpHoverStyle", [styleRule], {
+  }), _descriptor3$17 = _applyDecoratedDescriptor$22(_class$48.prototype, "thumbsUpHoverStyle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27971,7 +28185,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor4$16 = _applyDecoratedDescriptor$21(_class$47.prototype, "thumbsDownHoverStyle", [styleRule], {
+  }), _descriptor4$15 = _applyDecoratedDescriptor$22(_class$48.prototype, "thumbsDownHoverStyle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27983,7 +28197,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor5$14 = _applyDecoratedDescriptor$21(_class$47.prototype, "padding", [styleRule], {
+  }), _descriptor5$13 = _applyDecoratedDescriptor$22(_class$48.prototype, "padding", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -27993,9 +28207,9 @@ var Bundle = (function (exports) {
               height: this.height + "px"
           };
       }
-  })), _class$47);
+  })), _class$48);
 
-  var _dec$23, _class$48;
+  var _dec$24, _class$49;
 
   var VotingWidget = function (_UI$Element) {
       inherits(VotingWidget, _UI$Element);
@@ -28184,7 +28398,7 @@ var Bundle = (function (exports) {
   // TODO: rewrite
 
 
-  var CommentVotingWidgetWithThumbs = (_dec$23 = registerStyle(VotingWidgetStyle), _dec$23(_class$48 = function (_CommentVotingWidget) {
+  var CommentVotingWidgetWithThumbs = (_dec$24 = registerStyle(VotingWidgetStyle), _dec$24(_class$49 = function (_CommentVotingWidget) {
       inherits(CommentVotingWidgetWithThumbs, _CommentVotingWidget);
 
       function CommentVotingWidgetWithThumbs() {
@@ -28238,11 +28452,11 @@ var Bundle = (function (exports) {
           }
       }]);
       return CommentVotingWidgetWithThumbs;
-  }(CommentVotingWidget)) || _class$48);
+  }(CommentVotingWidget)) || _class$49);
 
-  var _class$49, _descriptor$21, _descriptor2$19, _descriptor3$19, _descriptor4$17, _descriptor5$15, _descriptor6$12, _descriptor7$10, _descriptor8$7, _descriptor9$6, _descriptor10$5, _descriptor11$5;
+  var _class$50, _descriptor$22, _descriptor2$18, _descriptor3$18, _descriptor4$16, _descriptor5$14, _descriptor6$11, _descriptor7$9, _descriptor8$7, _descriptor9$6, _descriptor10$5, _descriptor11$5;
 
-  function _initDefineProp$22(target, property, descriptor, context) {
+  function _initDefineProp$23(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -28252,7 +28466,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$22(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$23(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -28281,7 +28495,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var ChatStyle = (_class$49 = function (_StyleSheet) {
+  var ChatStyle = (_class$50 = function (_StyleSheet) {
       inherits(ChatStyle, _StyleSheet);
 
       function ChatStyle() {
@@ -28295,7 +28509,7 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ChatStyle.__proto__ || Object.getPrototypeOf(ChatStyle)).call.apply(_ref, [this].concat(args))), _this), _this.navbarHeight = "50px", _this.renderMessageHeight = "100px", _this.userFontSize = "1.1em", _this.commentFontSize = "1.1em", _this.backgroundColor = "#fff", _this.hrBackgroundColor = "#ddd", _this.hoverBackgroundColor = "#f8f8f8", _initDefineProp$22(_this, "renderMessageView", _descriptor$21, _this), _initDefineProp$22(_this, "renderMessage", _descriptor2$19, _this), _initDefineProp$22(_this, "chatInput", _descriptor3$19, _this), _initDefineProp$22(_this, "messageBoxButton", _descriptor4$17, _this), _this.previewButton = { // TODO: This is currently not restyled.
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ChatStyle.__proto__ || Object.getPrototypeOf(ChatStyle)).call.apply(_ref, [this].concat(args))), _this), _this.navbarHeight = "50px", _this.renderMessageHeight = "100px", _this.userFontSize = "1.1em", _this.commentFontSize = "1.1em", _this.backgroundColor = "#fff", _this.hrBackgroundColor = "#ddd", _this.hoverBackgroundColor = "#f8f8f8", _initDefineProp$23(_this, "renderMessageView", _descriptor$22, _this), _initDefineProp$23(_this, "renderMessage", _descriptor2$18, _this), _initDefineProp$23(_this, "chatInput", _descriptor3$18, _this), _initDefineProp$23(_this, "messageBoxButton", _descriptor4$16, _this), _this.previewButton = { // TODO: This is currently not restyled.
               // We might not want to use it because previewButton is bad practice
               height: "30px",
               width: "30px",
@@ -28311,11 +28525,11 @@ var Bundle = (function (exports) {
               padding: "5px 10px",
               textTransform: "uppercase",
               marginTop: "15px"
-          }, _initDefineProp$22(_this, "messageTimeStampHr", _descriptor5$15, _this), _initDefineProp$22(_this, "messageTimeStamp", _descriptor6$12, _this), _initDefineProp$22(_this, "groupChatMessage", _descriptor7$10, _this), _initDefineProp$22(_this, "comment", _descriptor8$7, _this), _initDefineProp$22(_this, "userHandle", _descriptor9$6, _this), _initDefineProp$22(_this, "commentContent", _descriptor10$5, _this), _initDefineProp$22(_this, "timestamp", _descriptor11$5, _this), _temp), possibleConstructorReturn(_this, _ret);
+          }, _initDefineProp$23(_this, "messageTimeStampHr", _descriptor5$14, _this), _initDefineProp$23(_this, "messageTimeStamp", _descriptor6$11, _this), _initDefineProp$23(_this, "groupChatMessage", _descriptor7$9, _this), _initDefineProp$23(_this, "comment", _descriptor8$7, _this), _initDefineProp$23(_this, "userHandle", _descriptor9$6, _this), _initDefineProp$23(_this, "commentContent", _descriptor10$5, _this), _initDefineProp$23(_this, "timestamp", _descriptor11$5, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return ChatStyle;
-  }(StyleSheet), (_descriptor$21 = _applyDecoratedDescriptor$22(_class$49.prototype, "renderMessageView", [styleRule], {
+  }(StyleSheet), (_descriptor$22 = _applyDecoratedDescriptor$23(_class$50.prototype, "renderMessageView", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28328,7 +28542,7 @@ var Bundle = (function (exports) {
               wordBreak: "break-word"
           };
       }
-  }), _descriptor2$19 = _applyDecoratedDescriptor$22(_class$49.prototype, "renderMessage", [styleRule], {
+  }), _descriptor2$18 = _applyDecoratedDescriptor$23(_class$50.prototype, "renderMessage", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28340,7 +28554,7 @@ var Bundle = (function (exports) {
               position: "relative"
           };
       }
-  }), _descriptor3$19 = _applyDecoratedDescriptor$22(_class$49.prototype, "chatInput", [styleRule], {
+  }), _descriptor3$18 = _applyDecoratedDescriptor$23(_class$50.prototype, "chatInput", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _ref2;
@@ -28363,7 +28577,7 @@ var Bundle = (function (exports) {
               boxShadow: "none"
           }), _ref2;
       }
-  }), _descriptor4$17 = _applyDecoratedDescriptor$22(_class$49.prototype, "messageBoxButton", [styleRule], {
+  }), _descriptor4$16 = _applyDecoratedDescriptor$23(_class$50.prototype, "messageBoxButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28401,7 +28615,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor5$15 = _applyDecoratedDescriptor$22(_class$49.prototype, "messageTimeStampHr", [styleRule], {
+  }), _descriptor5$14 = _applyDecoratedDescriptor$23(_class$50.prototype, "messageTimeStampHr", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28417,7 +28631,7 @@ var Bundle = (function (exports) {
               textTransform: "uppercase"
           };
       }
-  }), _descriptor6$12 = _applyDecoratedDescriptor$22(_class$49.prototype, "messageTimeStamp", [styleRule], {
+  }), _descriptor6$11 = _applyDecoratedDescriptor$23(_class$50.prototype, "messageTimeStamp", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28431,7 +28645,7 @@ var Bundle = (function (exports) {
               fontWeight: "bold"
           };
       }
-  }), _descriptor7$10 = _applyDecoratedDescriptor$22(_class$49.prototype, "groupChatMessage", [styleRule], {
+  }), _descriptor7$9 = _applyDecoratedDescriptor$23(_class$50.prototype, "groupChatMessage", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28439,7 +28653,7 @@ var Bundle = (function (exports) {
               backgroundColor: "#fff"
           };
       }
-  }), _descriptor8$7 = _applyDecoratedDescriptor$22(_class$49.prototype, "comment", [styleRule], {
+  }), _descriptor8$7 = _applyDecoratedDescriptor$23(_class$50.prototype, "comment", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28452,14 +28666,14 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor9$6 = _applyDecoratedDescriptor$22(_class$49.prototype, "userHandle", [styleRule], {
+  }), _descriptor9$6 = _applyDecoratedDescriptor$23(_class$50.prototype, "userHandle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               fontSize: this.userFontSize
           };
       }
-  }), _descriptor10$5 = _applyDecoratedDescriptor$22(_class$49.prototype, "commentContent", [styleRule], {
+  }), _descriptor10$5 = _applyDecoratedDescriptor$23(_class$50.prototype, "commentContent", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28473,7 +28687,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor11$5 = _applyDecoratedDescriptor$22(_class$49.prototype, "timestamp", [styleRule], {
+  }), _descriptor11$5 = _applyDecoratedDescriptor$23(_class$50.prototype, "timestamp", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -28482,7 +28696,7 @@ var Bundle = (function (exports) {
               margin: "0 10px"
           };
       }
-  })), _class$49);
+  })), _class$50);
 
   // Plugins should be used to extends on runtime the functionality of a class, to easily split functionality
 
@@ -28575,7 +28789,7 @@ var Bundle = (function (exports) {
       }(BaseClass);
   };
 
-  var _dec$24, _class$50, _dec2$10, _class2$10;
+  var _dec$25, _class$51, _dec2$9, _class2$10;
 
   ButtonStyle.getInstance().ensureFirstUpdate();
   InputStyle.getInstance().ensureFirstUpdate();
@@ -28769,7 +28983,7 @@ var Bundle = (function (exports) {
       return EditableMessage;
   }(UI.Element);
 
-  var GroupChatMessage = (_dec$24 = registerStyle(ChatStyle), _dec$24(_class$50 = function (_EditableMessage) {
+  var GroupChatMessage = (_dec$25 = registerStyle(ChatStyle), _dec$25(_class$51 = function (_EditableMessage) {
       inherits(GroupChatMessage, _EditableMessage);
 
       function GroupChatMessage() {
@@ -28875,8 +29089,8 @@ var Bundle = (function (exports) {
           }
       }]);
       return GroupChatMessage;
-  }(EditableMessage)) || _class$50);
-  var PrivateChatMessage = (_dec2$10 = registerStyle(ChatStyle), _dec2$10(_class2$10 = function (_Panel) {
+  }(EditableMessage)) || _class$51);
+  var PrivateChatMessage = (_dec2$9 = registerStyle(ChatStyle), _dec2$9(_class2$10 = function (_Panel) {
       inherits(PrivateChatMessage, _Panel);
 
       function PrivateChatMessage() {
@@ -29585,9 +29799,9 @@ var Bundle = (function (exports) {
       return VotableGroupChatWidget;
   }(ChatWidget(VotableChatMessage));
 
-  var _class$51, _descriptor$22, _descriptor2$20;
+  var _class$52, _descriptor$23, _descriptor2$19;
 
-  function _initDefineProp$23(target, property, descriptor, context) {
+  function _initDefineProp$24(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -29597,7 +29811,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$23(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$24(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -29626,7 +29840,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var CommentWidgetStyle = (_class$51 = function (_StyleSheet) {
+  var CommentWidgetStyle = (_class$52 = function (_StyleSheet) {
       inherits(CommentWidgetStyle, _StyleSheet);
 
       function CommentWidgetStyle() {
@@ -29650,7 +29864,7 @@ var Bundle = (function (exports) {
           }, _this.writingSectionStyle = {
               height: "auto",
               marginTop: "10px"
-          }, _initDefineProp$23(_this, "chatInputStyle", _descriptor$22, _this), _initDefineProp$23(_this, "chatInputMax", _descriptor2$20, _this), _this.previewButtonStyle = { // TODO: This is currently not restyled. We might not want to use it because previewButton is bad practice
+          }, _initDefineProp$24(_this, "chatInputStyle", _descriptor$23, _this), _initDefineProp$24(_this, "chatInputMax", _descriptor2$19, _this), _this.previewButtonStyle = { // TODO: This is currently not restyled. We might not want to use it because previewButton is bad practice
               height: "30px",
               width: "auto",
               fontSize: "100%",
@@ -29659,7 +29873,7 @@ var Bundle = (function (exports) {
       }
 
       return CommentWidgetStyle;
-  }(StyleSheet), (_descriptor$22 = _applyDecoratedDescriptor$23(_class$51.prototype, "chatInputStyle", [styleRule], {
+  }(StyleSheet), (_descriptor$23 = _applyDecoratedDescriptor$24(_class$52.prototype, "chatInputStyle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -29685,16 +29899,16 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor2$20 = _applyDecoratedDescriptor$23(_class$51.prototype, "chatInputMax", [styleRule], {
+  }), _descriptor2$19 = _applyDecoratedDescriptor$24(_class$52.prototype, "chatInputMax", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               height: "120px"
           };
       }
-  })), _class$51);
+  })), _class$52);
 
-  var _dec$25, _class$52, _dec2$11, _class2$11;
+  var _dec$26, _class$53, _dec2$10, _class2$11;
 
   var ThreadMessage = function (_EditableMessage) {
       inherits(ThreadMessage, _EditableMessage);
@@ -29810,7 +30024,7 @@ var Bundle = (function (exports) {
       return ToggleLogin;
   }(UI.Primitive("span"));
 
-  var BlogCommentWidget = (_dec$25 = registerStyle(BlogStyle), _dec$25(_class$52 = function (_ChatWidget) {
+  var BlogCommentWidget = (_dec$26 = registerStyle(BlogStyle), _dec$26(_class$53 = function (_ChatWidget) {
       inherits(BlogCommentWidget, _ChatWidget);
 
       function BlogCommentWidget() {
@@ -29903,8 +30117,8 @@ var Bundle = (function (exports) {
           }
       }]);
       return BlogCommentWidget;
-  }(ChatWidget(ThreadMessage))) || _class$52);
-  var CommentWidget = (_dec2$11 = registerStyle(BlogStyle), _dec2$11(_class2$11 = function (_BlogCommentWidget) {
+  }(ChatWidget(ThreadMessage))) || _class$53);
+  var CommentWidget = (_dec2$10 = registerStyle(BlogStyle), _dec2$10(_class2$11 = function (_BlogCommentWidget) {
       inherits(CommentWidget, _BlogCommentWidget);
 
       function CommentWidget() {
@@ -30037,9 +30251,9 @@ var Bundle = (function (exports) {
       return AsyncCommentThread;
   }(UI.Element);
 
-  var _class$53, _descriptor$23, _descriptor2$21, _dec$26, _class3$15;
+  var _class$54, _descriptor$24, _descriptor2$20, _dec$27, _class3$16;
 
-  function _initDefineProp$24(target, property, descriptor, context) {
+  function _initDefineProp$25(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -30049,7 +30263,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$24(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$25(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -30104,7 +30318,7 @@ var Bundle = (function (exports) {
       return UI.createElement("div", { style: getCircleStyle(size, borderSize, color, animationName, animationDuration) });
   }
 
-  var RotatingHelperStyle = (_class$53 = function (_StyleSheet) {
+  var RotatingHelperStyle = (_class$54 = function (_StyleSheet) {
       inherits(RotatingHelperStyle, _StyleSheet);
 
       function RotatingHelperStyle() {
@@ -30118,11 +30332,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = RotatingHelperStyle.__proto__ || Object.getPrototypeOf(RotatingHelperStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$24(_this, "rotateClockwise", _descriptor$23, _this), _initDefineProp$24(_this, "rotateCounterclockwise", _descriptor2$21, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = RotatingHelperStyle.__proto__ || Object.getPrototypeOf(RotatingHelperStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$25(_this, "rotateClockwise", _descriptor$24, _this), _initDefineProp$25(_this, "rotateCounterclockwise", _descriptor2$20, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return RotatingHelperStyle;
-  }(StyleSheet), (_descriptor$23 = _applyDecoratedDescriptor$24(_class$53.prototype, "rotateClockwise", [keyframesRule], {
+  }(StyleSheet), (_descriptor$24 = _applyDecoratedDescriptor$25(_class$54.prototype, "rotateClockwise", [keyframesRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -30134,7 +30348,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor2$21 = _applyDecoratedDescriptor$24(_class$53.prototype, "rotateCounterclockwise", [keyframesRule], {
+  }), _descriptor2$20 = _applyDecoratedDescriptor$25(_class$54.prototype, "rotateCounterclockwise", [keyframesRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -30146,8 +30360,8 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class$53);
-  var ConcentricCirclesLoadingScreen = (_dec$26 = registerStyle(RotatingHelperStyle), _dec$26(_class3$15 = function (_UI$Element) {
+  })), _class$54);
+  var ConcentricCirclesLoadingScreen = (_dec$27 = registerStyle(RotatingHelperStyle), _dec$27(_class3$16 = function (_UI$Element) {
       inherits(ConcentricCirclesLoadingScreen, _UI$Element);
 
       function ConcentricCirclesLoadingScreen() {
@@ -30177,7 +30391,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return ConcentricCirclesLoadingScreen;
-  }(UI.Element)) || _class3$15);
+  }(UI.Element)) || _class3$16);
 
   var DelayedElement = function DelayedElement(BaseClass) {
       return function (_BaseClass) {
@@ -31314,9 +31528,9 @@ var Bundle = (function (exports) {
 
   var DeleteThreadReplyButton = ActionModalButton(DeleteThreadReplyModal);
 
-  var _class$54, _descriptor$24, _descriptor2$22, _descriptor3$20, _descriptor4$18, _descriptor5$16, _class3$16, _descriptor6$13, _descriptor7$11, _descriptor8$8, _descriptor9$7, _descriptor10$6, _descriptor11$6, _descriptor12$5, _descriptor13$5, _descriptor14$5, _descriptor15$5, _descriptor16$5, _descriptor17$5, _descriptor18$3, _descriptor19$3, _descriptor20$3, _descriptor21$2, _descriptor22$1, _descriptor23$1, _descriptor24, _class5$6, _descriptor25, _class7$6, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _class9$2, _descriptor33, _class11, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class13, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52;
+  var _class$55, _descriptor$25, _descriptor2$21, _descriptor3$19, _descriptor4$17, _descriptor5$15, _class3$17, _descriptor6$12, _descriptor7$10, _descriptor8$8, _descriptor9$7, _descriptor10$6, _descriptor11$6, _descriptor12$5, _descriptor13$5, _descriptor14$5, _descriptor15$5, _descriptor16$5, _descriptor17$5, _descriptor18$3, _descriptor19$3, _descriptor20$3, _descriptor21$2, _descriptor22$1, _descriptor23$1, _descriptor24, _class5$5, _descriptor25, _class7$5, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _class9$1, _descriptor33, _class11, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class13, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52;
 
-  function _initDefineProp$25(target, property, descriptor, context) {
+  function _initDefineProp$26(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -31326,7 +31540,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$25(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -31367,7 +31581,7 @@ var Bundle = (function (exports) {
       WHITE: "#eee"
   };
 
-  var ForumThreadReplyStyle = (_class$54 = function (_StyleSheet) {
+  var ForumThreadReplyStyle = (_class$55 = function (_StyleSheet) {
       inherits(ForumThreadReplyStyle, _StyleSheet);
 
       function ForumThreadReplyStyle() {
@@ -31381,11 +31595,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ForumThreadReplyStyle.__proto__ || Object.getPrototypeOf(ForumThreadReplyStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$25(_this, "mainClass", _descriptor$24, _this), _initDefineProp$25(_this, "repliesUserAndDate", _descriptor2$22, _this), _initDefineProp$25(_this, "repliesUser", _descriptor3$20, _this), _initDefineProp$25(_this, "repliesDate", _descriptor4$18, _this), _initDefineProp$25(_this, "repliesContent", _descriptor5$16, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ForumThreadReplyStyle.__proto__ || Object.getPrototypeOf(ForumThreadReplyStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$26(_this, "mainClass", _descriptor$25, _this), _initDefineProp$26(_this, "repliesUserAndDate", _descriptor2$21, _this), _initDefineProp$26(_this, "repliesUser", _descriptor3$19, _this), _initDefineProp$26(_this, "repliesDate", _descriptor4$17, _this), _initDefineProp$26(_this, "repliesContent", _descriptor5$15, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return ForumThreadReplyStyle;
-  }(StyleSheet), (_descriptor$24 = _applyDecoratedDescriptor$25(_class$54.prototype, "mainClass", [styleRule], {
+  }(StyleSheet), (_descriptor$25 = _applyDecoratedDescriptor$26(_class$55.prototype, "mainClass", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31394,7 +31608,7 @@ var Bundle = (function (exports) {
               maxWidth: "1200px"
           };
       }
-  }), _descriptor2$22 = _applyDecoratedDescriptor$25(_class$54.prototype, "repliesUserAndDate", [styleRule], {
+  }), _descriptor2$21 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesUserAndDate", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31406,7 +31620,7 @@ var Bundle = (function (exports) {
               marginBottom: "8px"
           };
       }
-  }), _descriptor3$20 = _applyDecoratedDescriptor$25(_class$54.prototype, "repliesUser", [styleRule], {
+  }), _descriptor3$19 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesUser", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31416,7 +31630,7 @@ var Bundle = (function (exports) {
               fontSize: "14px"
           };
       }
-  }), _descriptor4$18 = _applyDecoratedDescriptor$25(_class$54.prototype, "repliesDate", [styleRule], {
+  }), _descriptor4$17 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesDate", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31424,7 +31638,7 @@ var Bundle = (function (exports) {
               float: "right"
           };
       }
-  }), _descriptor5$16 = _applyDecoratedDescriptor$25(_class$54.prototype, "repliesContent", [styleRule], {
+  }), _descriptor5$15 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesContent", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31432,9 +31646,9 @@ var Bundle = (function (exports) {
               fontSize: "16px"
           };
       }
-  })), _class$54);
+  })), _class$55);
 
-  var ForumThreadPanelStyle = (_class3$16 = function (_StyleSheet2) {
+  var ForumThreadPanelStyle = (_class3$17 = function (_StyleSheet2) {
       inherits(ForumThreadPanelStyle, _StyleSheet2);
 
       function ForumThreadPanelStyle() {
@@ -31448,11 +31662,11 @@ var Bundle = (function (exports) {
               args[_key2] = arguments[_key2];
           }
 
-          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$25(_this2, "mainClass", _descriptor6$13, _this2), _initDefineProp$25(_this2, "title", _descriptor7$11, _this2), _initDefineProp$25(_this2, "backButton", _descriptor8$8, _this2), _initDefineProp$25(_this2, "replyButtonDiv", _descriptor9$7, _this2), _initDefineProp$25(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$25(_this2, "fullPost", _descriptor11$6, _this2), _initDefineProp$25(_this2, "dislikeButton", _descriptor12$5, _this2), _initDefineProp$25(_this2, "likeButton", _descriptor13$5, _this2), _initDefineProp$25(_this2, "author", _descriptor14$5, _this2), _initDefineProp$25(_this2, "header", _descriptor15$5, _this2), _initDefineProp$25(_this2, "message", _descriptor16$5, _this2), _initDefineProp$25(_this2, "buttons", _descriptor17$5, _this2), _initDefineProp$25(_this2, "bottomPanel", _descriptor18$3, _this2), _initDefineProp$25(_this2, "voting", _descriptor19$3, _this2), _initDefineProp$25(_this2, "numReplies", _descriptor20$3, _this2), _initDefineProp$25(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$25(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$25(_this2, "editButton", _descriptor23$1, _this2), _initDefineProp$25(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$26(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$26(_this2, "title", _descriptor7$10, _this2), _initDefineProp$26(_this2, "backButton", _descriptor8$8, _this2), _initDefineProp$26(_this2, "replyButtonDiv", _descriptor9$7, _this2), _initDefineProp$26(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$26(_this2, "fullPost", _descriptor11$6, _this2), _initDefineProp$26(_this2, "dislikeButton", _descriptor12$5, _this2), _initDefineProp$26(_this2, "likeButton", _descriptor13$5, _this2), _initDefineProp$26(_this2, "author", _descriptor14$5, _this2), _initDefineProp$26(_this2, "header", _descriptor15$5, _this2), _initDefineProp$26(_this2, "message", _descriptor16$5, _this2), _initDefineProp$26(_this2, "buttons", _descriptor17$5, _this2), _initDefineProp$26(_this2, "bottomPanel", _descriptor18$3, _this2), _initDefineProp$26(_this2, "voting", _descriptor19$3, _this2), _initDefineProp$26(_this2, "numReplies", _descriptor20$3, _this2), _initDefineProp$26(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$26(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$26(_this2, "editButton", _descriptor23$1, _this2), _initDefineProp$26(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
       }
 
       return ForumThreadPanelStyle;
-  }(StyleSheet), (_descriptor6$13 = _applyDecoratedDescriptor$25(_class3$16.prototype, "mainClass", [styleRule], {
+  }(StyleSheet), (_descriptor6$12 = _applyDecoratedDescriptor$26(_class3$17.prototype, "mainClass", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31461,7 +31675,7 @@ var Bundle = (function (exports) {
               width: "100%"
           };
       }
-  }), _descriptor7$11 = _applyDecoratedDescriptor$25(_class3$16.prototype, "title", [styleRule], {
+  }), _descriptor7$10 = _applyDecoratedDescriptor$26(_class3$17.prototype, "title", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31476,7 +31690,7 @@ var Bundle = (function (exports) {
               alignItems: "center"
           };
       }
-  }), _descriptor8$8 = _applyDecoratedDescriptor$25(_class3$16.prototype, "backButton", [styleRule], {
+  }), _descriptor8$8 = _applyDecoratedDescriptor$26(_class3$17.prototype, "backButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31492,7 +31706,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor9$7 = _applyDecoratedDescriptor$25(_class3$16.prototype, "replyButtonDiv", [styleRule], {
+  }), _descriptor9$7 = _applyDecoratedDescriptor$26(_class3$17.prototype, "replyButtonDiv", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31505,14 +31719,14 @@ var Bundle = (function (exports) {
               margin: "0 auto"
           };
       }
-  }), _descriptor10$6 = _applyDecoratedDescriptor$25(_class3$16.prototype, "replyButton", [styleRule], {
+  }), _descriptor10$6 = _applyDecoratedDescriptor$26(_class3$17.prototype, "replyButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               margin: "0"
           };
       }
-  }), _descriptor11$6 = _applyDecoratedDescriptor$25(_class3$16.prototype, "fullPost", [styleRule], {
+  }), _descriptor11$6 = _applyDecoratedDescriptor$26(_class3$17.prototype, "fullPost", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31524,7 +31738,7 @@ var Bundle = (function (exports) {
               borderTop: "0"
           };
       }
-  }), _descriptor12$5 = _applyDecoratedDescriptor$25(_class3$16.prototype, "dislikeButton", [styleRule], {
+  }), _descriptor12$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "dislikeButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31533,7 +31747,7 @@ var Bundle = (function (exports) {
               marginRight: "16px"
           };
       }
-  }), _descriptor13$5 = _applyDecoratedDescriptor$25(_class3$16.prototype, "likeButton", [styleRule], {
+  }), _descriptor13$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "likeButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31542,7 +31756,7 @@ var Bundle = (function (exports) {
               marginRight: "8px"
           };
       }
-  }), _descriptor14$5 = _applyDecoratedDescriptor$25(_class3$16.prototype, "author", [styleRule], {
+  }), _descriptor14$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "author", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31557,12 +31771,12 @@ var Bundle = (function (exports) {
               // fontWeight: "bold",
           };
       }
-  }), _descriptor15$5 = _applyDecoratedDescriptor$25(_class3$16.prototype, "header", [styleRule], {
+  }), _descriptor15$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "header", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {};
       }
-  }), _descriptor16$5 = _applyDecoratedDescriptor$25(_class3$16.prototype, "message", [styleRule], {
+  }), _descriptor16$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "message", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31575,7 +31789,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor17$5 = _applyDecoratedDescriptor$25(_class3$16.prototype, "buttons", [styleRule], {
+  }), _descriptor17$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "buttons", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31584,7 +31798,7 @@ var Bundle = (function (exports) {
               paddingTop: "12px"
           };
       }
-  }), _descriptor18$3 = _applyDecoratedDescriptor$25(_class3$16.prototype, "bottomPanel", [styleRule], {
+  }), _descriptor18$3 = _applyDecoratedDescriptor$26(_class3$17.prototype, "bottomPanel", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31595,14 +31809,14 @@ var Bundle = (function (exports) {
               justifyContent: "space-between"
           };
       }
-  }), _descriptor19$3 = _applyDecoratedDescriptor$25(_class3$16.prototype, "voting", [styleRule], {
+  }), _descriptor19$3 = _applyDecoratedDescriptor$26(_class3$17.prototype, "voting", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               paddingRight: "12px"
           };
       }
-  }), _descriptor20$3 = _applyDecoratedDescriptor$25(_class3$16.prototype, "numReplies", [styleRule], {
+  }), _descriptor20$3 = _applyDecoratedDescriptor$26(_class3$17.prototype, "numReplies", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31616,7 +31830,7 @@ var Bundle = (function (exports) {
               textTransform: "uppercase"
           };
       }
-  }), _descriptor21$2 = _applyDecoratedDescriptor$25(_class3$16.prototype, "replies", [styleRule], {
+  }), _descriptor21$2 = _applyDecoratedDescriptor$26(_class3$17.prototype, "replies", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31624,7 +31838,7 @@ var Bundle = (function (exports) {
               color: "#444"
           };
       }
-  }), _descriptor22$1 = _applyDecoratedDescriptor$25(_class3$16.prototype, "editDeleteButtons", [styleRule], {
+  }), _descriptor22$1 = _applyDecoratedDescriptor$26(_class3$17.prototype, "editDeleteButtons", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31636,7 +31850,7 @@ var Bundle = (function (exports) {
               justifyContent: "flex-start"
           };
       }
-  }), _descriptor23$1 = _applyDecoratedDescriptor$25(_class3$16.prototype, "editButton", [styleRule], {
+  }), _descriptor23$1 = _applyDecoratedDescriptor$26(_class3$17.prototype, "editButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31658,7 +31872,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor24 = _applyDecoratedDescriptor$25(_class3$16.prototype, "deleteButton", [styleRule], {
+  }), _descriptor24 = _applyDecoratedDescriptor$26(_class3$17.prototype, "deleteButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31680,8 +31894,8 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class3$16);
-  var ButtonStyle$1 = (_class5$6 = function (_StyleSheet3) {
+  })), _class3$17);
+  var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
       inherits(ButtonStyle$$1, _StyleSheet3);
 
       function ButtonStyle$$1() {
@@ -31695,11 +31909,11 @@ var Bundle = (function (exports) {
               args[_key3] = arguments[_key3];
           }
 
-          return _ret3 = (_temp3 = (_this3 = possibleConstructorReturn(this, (_ref3 = ButtonStyle$$1.__proto__ || Object.getPrototypeOf(ButtonStyle$$1)).call.apply(_ref3, [this].concat(args))), _this3), _initDefineProp$25(_this3, "button", _descriptor25, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
+          return _ret3 = (_temp3 = (_this3 = possibleConstructorReturn(this, (_ref3 = ButtonStyle$$1.__proto__ || Object.getPrototypeOf(ButtonStyle$$1)).call.apply(_ref3, [this].concat(args))), _this3), _initDefineProp$26(_this3, "button", _descriptor25, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
       }
 
       return ButtonStyle$$1;
-  }(StyleSheet), (_descriptor25 = _applyDecoratedDescriptor$25(_class5$6.prototype, "button", [styleRule], {
+  }(StyleSheet), (_descriptor25 = _applyDecoratedDescriptor$26(_class5$5.prototype, "button", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _ref4;
@@ -31729,8 +31943,8 @@ var Bundle = (function (exports) {
               transition: ".2s"
           }), _ref4;
       }
-  })), _class5$6);
-  var ForumThreadHeaderStyle = (_class7$6 = function (_StyleSheet4) {
+  })), _class5$5);
+  var ForumThreadHeaderStyle = (_class7$5 = function (_StyleSheet4) {
       inherits(ForumThreadHeaderStyle, _StyleSheet4);
 
       function ForumThreadHeaderStyle() {
@@ -31757,19 +31971,19 @@ var Bundle = (function (exports) {
               fontWeight: "bold"
           };
 
-          _initDefineProp$25(_this4, "mainClass", _descriptor26, _this4);
+          _initDefineProp$26(_this4, "mainClass", _descriptor26, _this4);
 
-          _initDefineProp$25(_this4, "tagsTitle", _descriptor27, _this4);
+          _initDefineProp$26(_this4, "tagsTitle", _descriptor27, _this4);
 
-          _initDefineProp$25(_this4, "tagsAuthor", _descriptor28, _this4);
+          _initDefineProp$26(_this4, "tagsAuthor", _descriptor28, _this4);
 
-          _initDefineProp$25(_this4, "tagsReplies", _descriptor29, _this4);
+          _initDefineProp$26(_this4, "tagsReplies", _descriptor29, _this4);
 
-          _initDefineProp$25(_this4, "tagsViews", _descriptor30, _this4);
+          _initDefineProp$26(_this4, "tagsViews", _descriptor30, _this4);
 
-          _initDefineProp$25(_this4, "tagsVotes", _descriptor31, _this4);
+          _initDefineProp$26(_this4, "tagsVotes", _descriptor31, _this4);
 
-          _initDefineProp$25(_this4, "tagsActivity", _descriptor32, _this4);
+          _initDefineProp$26(_this4, "tagsActivity", _descriptor32, _this4);
 
           return _this4;
       }
@@ -31777,7 +31991,7 @@ var Bundle = (function (exports) {
 
 
       return ForumThreadHeaderStyle;
-  }(StyleSheet), (_descriptor26 = _applyDecoratedDescriptor$25(_class7$6.prototype, "mainClass", [styleRule], {
+  }(StyleSheet), (_descriptor26 = _applyDecoratedDescriptor$26(_class7$5.prototype, "mainClass", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _ref5;
@@ -31796,7 +32010,7 @@ var Bundle = (function (exports) {
               backgroundColor: "#eaeaea"
           }, defineProperty(_ref5, "height", this.tagsHeight + "px"), defineProperty(_ref5, "borderTop", "3px solid " + this.borderTopColor), _ref5;
       }
-  }), _descriptor27 = _applyDecoratedDescriptor$25(_class7$6.prototype, "tagsTitle", [styleRule], {
+  }), _descriptor27 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsTitle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this5 = this;
@@ -31815,7 +32029,7 @@ var Bundle = (function (exports) {
               fontSize: this.fontSize
           }];
       }
-  }), _descriptor28 = _applyDecoratedDescriptor$25(_class7$6.prototype, "tagsAuthor", [styleRule], {
+  }), _descriptor28 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsAuthor", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [this.baseStyleObject, {
@@ -31827,7 +32041,7 @@ var Bundle = (function (exports) {
               fontSize: this.fontSize
           }];
       }
-  }), _descriptor29 = _applyDecoratedDescriptor$25(_class7$6.prototype, "tagsReplies", [styleRule], {
+  }), _descriptor29 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsReplies", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _ref6;
@@ -31837,7 +32051,7 @@ var Bundle = (function (exports) {
               paddingRight: "4px"
           }, defineProperty(_ref6, "paddingLeft", "4px"), defineProperty(_ref6, "paddingRight", "4px"), defineProperty(_ref6, "flex", ".5"), defineProperty(_ref6, "textAlign", "center"), defineProperty(_ref6, "fontSize", this.fontSize), _ref6)];
       }
-  }), _descriptor30 = _applyDecoratedDescriptor$25(_class7$6.prototype, "tagsViews", [styleRule], {
+  }), _descriptor30 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsViews", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this6 = this;
@@ -31858,7 +32072,7 @@ var Bundle = (function (exports) {
               }
           }];
       }
-  }), _descriptor31 = _applyDecoratedDescriptor$25(_class7$6.prototype, "tagsVotes", [styleRule], {
+  }), _descriptor31 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsVotes", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this7 = this;
@@ -31878,7 +32092,7 @@ var Bundle = (function (exports) {
               }
           }];
       }
-  }), _descriptor32 = _applyDecoratedDescriptor$25(_class7$6.prototype, "tagsActivity", [styleRule], {
+  }), _descriptor32 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsActivity", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [this.baseStyleObject, {
@@ -31890,8 +32104,8 @@ var Bundle = (function (exports) {
               fontSize: this.fontSize
           }];
       }
-  })), _class7$6);
-  var ForumThreadPreviewStyle = (_class9$2 = function (_StyleSheet5) {
+  })), _class7$5);
+  var ForumThreadPreviewStyle = (_class9$1 = function (_StyleSheet5) {
       inherits(ForumThreadPreviewStyle, _StyleSheet5);
 
       function ForumThreadPreviewStyle() {
@@ -31905,7 +32119,7 @@ var Bundle = (function (exports) {
               args[_key4] = arguments[_key4];
           }
 
-          return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref7 = ForumThreadPreviewStyle.__proto__ || Object.getPrototypeOf(ForumThreadPreviewStyle)).call.apply(_ref7, [this].concat(args))), _this8), _this8.maxHeight = 50, _this8.lines = 2, _this8.lineHeight = _this8.maxHeight / _this8.lines, _this8.fontSize = ".88em", _this8.color = "#aaa", _initDefineProp$25(_this8, "forumThreadPreview", _descriptor33, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
+          return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref7 = ForumThreadPreviewStyle.__proto__ || Object.getPrototypeOf(ForumThreadPreviewStyle)).call.apply(_ref7, [this].concat(args))), _this8), _this8.maxHeight = 50, _this8.lines = 2, _this8.lineHeight = _this8.maxHeight / _this8.lines, _this8.fontSize = ".88em", _this8.color = "#aaa", _initDefineProp$26(_this8, "forumThreadPreview", _descriptor33, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
       }
       // functionality
 
@@ -31914,7 +32128,7 @@ var Bundle = (function (exports) {
 
 
       return ForumThreadPreviewStyle;
-  }(StyleSheet), (_descriptor33 = _applyDecoratedDescriptor$25(_class9$2.prototype, "forumThreadPreview", [styleRule], {
+  }(StyleSheet), (_descriptor33 = _applyDecoratedDescriptor$26(_class9$1.prototype, "forumThreadPreview", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31928,7 +32142,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class9$2);
+  })), _class9$1);
   var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
       inherits(ForumThreadBubbleStyle, _StyleSheet6);
 
@@ -31948,39 +32162,39 @@ var Bundle = (function (exports) {
               fontSize: _this9.fontSize
           };
 
-          _initDefineProp$25(_this9, "backgroundColorOddInstances", _descriptor34, _this9);
+          _initDefineProp$26(_this9, "backgroundColorOddInstances", _descriptor34, _this9);
 
-          _initDefineProp$25(_this9, "backgroundColorPinnedInstances", _descriptor35, _this9);
+          _initDefineProp$26(_this9, "backgroundColorPinnedInstances", _descriptor35, _this9);
 
-          _initDefineProp$25(_this9, "backgroundColorEvenInstances", _descriptor36, _this9);
+          _initDefineProp$26(_this9, "backgroundColorEvenInstances", _descriptor36, _this9);
 
-          _initDefineProp$25(_this9, "mainClass", _descriptor37, _this9);
+          _initDefineProp$26(_this9, "mainClass", _descriptor37, _this9);
 
-          _initDefineProp$25(_this9, "threadTitleAndPreview", _descriptor38, _this9);
+          _initDefineProp$26(_this9, "threadTitleAndPreview", _descriptor38, _this9);
 
-          _initDefineProp$25(_this9, "threadTitle", _descriptor39, _this9);
+          _initDefineProp$26(_this9, "threadTitle", _descriptor39, _this9);
 
-          _initDefineProp$25(_this9, "pinnedIcon", _descriptor40, _this9);
+          _initDefineProp$26(_this9, "pinnedIcon", _descriptor40, _this9);
 
-          _initDefineProp$25(_this9, "threadTitleSpan", _descriptor41, _this9);
+          _initDefineProp$26(_this9, "threadTitleSpan", _descriptor41, _this9);
 
-          _initDefineProp$25(_this9, "threadAuthor", _descriptor42, _this9);
+          _initDefineProp$26(_this9, "threadAuthor", _descriptor42, _this9);
 
-          _initDefineProp$25(_this9, "threadReplies", _descriptor43, _this9);
+          _initDefineProp$26(_this9, "threadReplies", _descriptor43, _this9);
 
-          _initDefineProp$25(_this9, "threadRepliesSpan", _descriptor44, _this9);
+          _initDefineProp$26(_this9, "threadRepliesSpan", _descriptor44, _this9);
 
-          _initDefineProp$25(_this9, "threadViews", _descriptor45, _this9);
+          _initDefineProp$26(_this9, "threadViews", _descriptor45, _this9);
 
-          _initDefineProp$25(_this9, "threadVotes", _descriptor46, _this9);
+          _initDefineProp$26(_this9, "threadVotes", _descriptor46, _this9);
 
-          _initDefineProp$25(_this9, "threadActivity", _descriptor47, _this9);
+          _initDefineProp$26(_this9, "threadActivity", _descriptor47, _this9);
 
           return _this9;
       }
 
       return ForumThreadBubbleStyle;
-  }(StyleSheet), (_descriptor34 = _applyDecoratedDescriptor$25(_class11.prototype, "backgroundColorOddInstances", [styleRule], {
+  }(StyleSheet), (_descriptor34 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorOddInstances", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -31990,7 +32204,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor35 = _applyDecoratedDescriptor$25(_class11.prototype, "backgroundColorPinnedInstances", [styleRule], {
+  }), _descriptor35 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorPinnedInstances", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32000,7 +32214,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor36 = _applyDecoratedDescriptor$25(_class11.prototype, "backgroundColorEvenInstances", [styleRule], {
+  }), _descriptor36 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorEvenInstances", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32010,7 +32224,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor37 = _applyDecoratedDescriptor$25(_class11.prototype, "mainClass", [styleRule], {
+  }), _descriptor37 = _applyDecoratedDescriptor$26(_class11.prototype, "mainClass", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32024,7 +32238,7 @@ var Bundle = (function (exports) {
               display: "flex"
           };
       }
-  }), _descriptor38 = _applyDecoratedDescriptor$25(_class11.prototype, "threadTitleAndPreview", [styleRule], {
+  }), _descriptor38 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitleAndPreview", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this10 = this;
@@ -32042,7 +32256,7 @@ var Bundle = (function (exports) {
               paddingLeft: "12px"
           };
       }
-  }), _descriptor39 = _applyDecoratedDescriptor$25(_class11.prototype, "threadTitle", [styleRule], {
+  }), _descriptor39 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [this.baseStyleObject, {
@@ -32058,7 +32272,7 @@ var Bundle = (function (exports) {
               paddingBottom: this.titlePaddingBottom
           }];
       }
-  }), _descriptor40 = _applyDecoratedDescriptor$25(_class11.prototype, "pinnedIcon", [styleRule], {
+  }), _descriptor40 = _applyDecoratedDescriptor$26(_class11.prototype, "pinnedIcon", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32070,7 +32284,7 @@ var Bundle = (function (exports) {
               paddingRight: "12px"
           };
       }
-  }), _descriptor41 = _applyDecoratedDescriptor$25(_class11.prototype, "threadTitleSpan", [styleRule], {
+  }), _descriptor41 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitleSpan", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32086,7 +32300,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor42 = _applyDecoratedDescriptor$25(_class11.prototype, "threadAuthor", [styleRule], {
+  }), _descriptor42 = _applyDecoratedDescriptor$26(_class11.prototype, "threadAuthor", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [this.baseStyleObject, {
@@ -32102,7 +32316,7 @@ var Bundle = (function (exports) {
               paddingRight: "4px"
           }];
       }
-  }), _descriptor43 = _applyDecoratedDescriptor$25(_class11.prototype, "threadReplies", [styleRule], {
+  }), _descriptor43 = _applyDecoratedDescriptor$26(_class11.prototype, "threadReplies", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [this.baseStyleObject, {
@@ -32118,7 +32332,7 @@ var Bundle = (function (exports) {
               paddingRight: "4px"
           }];
       }
-  }), _descriptor44 = _applyDecoratedDescriptor$25(_class11.prototype, "threadRepliesSpan", [styleRule], {
+  }), _descriptor44 = _applyDecoratedDescriptor$26(_class11.prototype, "threadRepliesSpan", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32129,7 +32343,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor45 = _applyDecoratedDescriptor$25(_class11.prototype, "threadViews", [styleRule], {
+  }), _descriptor45 = _applyDecoratedDescriptor$26(_class11.prototype, "threadViews", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this11 = this;
@@ -32151,7 +32365,7 @@ var Bundle = (function (exports) {
               return "inherit";
           })];
       }
-  }), _descriptor46 = _applyDecoratedDescriptor$25(_class11.prototype, "threadVotes", [styleRule], {
+  }), _descriptor46 = _applyDecoratedDescriptor$26(_class11.prototype, "threadVotes", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this12 = this;
@@ -32173,7 +32387,7 @@ var Bundle = (function (exports) {
               return "inherit";
           })];
       }
-  }), _descriptor47 = _applyDecoratedDescriptor$25(_class11.prototype, "threadActivity", [styleRule], {
+  }), _descriptor47 = _applyDecoratedDescriptor$26(_class11.prototype, "threadActivity", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [this.baseStyleObject, {
@@ -32204,18 +32418,18 @@ var Bundle = (function (exports) {
               args[_key5] = arguments[_key5];
           }
 
-          return _ret5 = (_temp5 = (_this13 = possibleConstructorReturn(this, (_ref10 = ForumPanelStyle.__proto__ || Object.getPrototypeOf(ForumPanelStyle)).call.apply(_ref10, [this].concat(args))), _this13), _this13.textColor = "#333", _this13.headerItemHeight = 50, _initDefineProp$25(_this13, "mainClass", _descriptor48, _this13), _initDefineProp$25(_this13, "title", _descriptor49, _this13), _initDefineProp$25(_this13, "buttonParent", _descriptor50, _this13), _initDefineProp$25(_this13, "button", _descriptor51, _this13), _initDefineProp$25(_this13, "header", _descriptor52, _this13), _temp5), possibleConstructorReturn(_this13, _ret5);
+          return _ret5 = (_temp5 = (_this13 = possibleConstructorReturn(this, (_ref10 = ForumPanelStyle.__proto__ || Object.getPrototypeOf(ForumPanelStyle)).call.apply(_ref10, [this].concat(args))), _this13), _this13.textColor = "#333", _this13.headerItemHeight = 50, _initDefineProp$26(_this13, "mainClass", _descriptor48, _this13), _initDefineProp$26(_this13, "title", _descriptor49, _this13), _initDefineProp$26(_this13, "buttonParent", _descriptor50, _this13), _initDefineProp$26(_this13, "button", _descriptor51, _this13), _initDefineProp$26(_this13, "header", _descriptor52, _this13), _temp5), possibleConstructorReturn(_this13, _ret5);
       }
 
       return ForumPanelStyle;
-  }(StyleSheet), (_descriptor48 = _applyDecoratedDescriptor$25(_class13.prototype, "mainClass", [styleRule], {
+  }(StyleSheet), (_descriptor48 = _applyDecoratedDescriptor$26(_class13.prototype, "mainClass", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               width: "100%"
           };
       }
-  }), _descriptor49 = _applyDecoratedDescriptor$25(_class13.prototype, "title", [styleRule], {
+  }), _descriptor49 = _applyDecoratedDescriptor$26(_class13.prototype, "title", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32229,7 +32443,7 @@ var Bundle = (function (exports) {
               alignItems: "center"
           };
       }
-  }), _descriptor50 = _applyDecoratedDescriptor$25(_class13.prototype, "buttonParent", [styleRule], {
+  }), _descriptor50 = _applyDecoratedDescriptor$26(_class13.prototype, "buttonParent", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32242,14 +32456,14 @@ var Bundle = (function (exports) {
               alignItems: "center"
           };
       }
-  }), _descriptor51 = _applyDecoratedDescriptor$25(_class13.prototype, "button", [styleRule], {
+  }), _descriptor51 = _applyDecoratedDescriptor$26(_class13.prototype, "button", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               margin: "0"
           };
       }
-  }), _descriptor52 = _applyDecoratedDescriptor$25(_class13.prototype, "header", [styleRule], {
+  }), _descriptor52 = _applyDecoratedDescriptor$26(_class13.prototype, "header", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -32259,9 +32473,9 @@ var Bundle = (function (exports) {
       }
   })), _class13);
 
-  var _dec$27, _class$55;
+  var _dec$28, _class$56;
 
-  var CreateThreadReplyButton = (_dec$27 = registerStyle(ButtonStyle$1), _dec$27(_class$55 = function (_Button) {
+  var CreateThreadReplyButton = (_dec$28 = registerStyle(ButtonStyle$1), _dec$28(_class$56 = function (_Button) {
       inherits(CreateThreadReplyButton, _Button);
 
       function CreateThreadReplyButton() {
@@ -32304,7 +32518,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return CreateThreadReplyButton;
-  }(Button)) || _class$55);
+  }(Button)) || _class$56);
 
   var CreateThreadReplyModal = function (_MarkupEditorModal) {
       inherits(CreateThreadReplyModal, _MarkupEditorModal);
@@ -32337,7 +32551,7 @@ var Bundle = (function (exports) {
       return CreateThreadReplyModal;
   }(MarkupEditorModal);
 
-  var _dec$28, _class$56, _dec2$12, _class2$12;
+  var _dec$29, _class$57, _dec2$11, _class2$12;
 
   var forumThreadPanelStyle = ForumThreadPanelStyle.getInstance();
   var buttonStyle = ButtonStyle$1.getInstance();
@@ -32407,7 +32621,7 @@ var Bundle = (function (exports) {
       return CreateForumThreadModal;
   }(MarkupEditorModal);
 
-  var CreateForumThreadButton = (_dec$28 = registerStyle(ButtonStyle$1), _dec$28(_class$56 = function (_Button) {
+  var CreateForumThreadButton = (_dec$29 = registerStyle(ButtonStyle$1), _dec$29(_class$57 = function (_Button) {
       inherits(CreateForumThreadButton, _Button);
 
       function CreateForumThreadButton() {
@@ -32454,7 +32668,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return CreateForumThreadButton;
-  }(Button)) || _class$56);
+  }(Button)) || _class$57);
 
   var DeleteForumThreadModal = function (_ActionModal) {
       inherits(DeleteForumThreadModal, _ActionModal);
@@ -32589,7 +32803,7 @@ var Bundle = (function (exports) {
       return ForumThreadReply;
   }(UI.Element);
 
-  var ForumThreadPanel = (_dec2$12 = registerStyle(ForumThreadPanelStyle), _dec2$12(_class2$12 = function (_Panel) {
+  var ForumThreadPanel = (_dec2$11 = registerStyle(ForumThreadPanelStyle), _dec2$11(_class2$12 = function (_Panel) {
       inherits(ForumThreadPanel, _Panel);
 
       function ForumThreadPanel() {
@@ -32859,9 +33073,9 @@ var Bundle = (function (exports) {
       return ForumThreadPanel;
   }(Panel)) || _class2$12);
 
-  var _dec$29, _class$57, _dec2$13, _class2$13, _dec3$4, _class3$17, _dec4$1, _class4$3;
+  var _dec$30, _class$58, _dec2$12, _class2$13, _dec3$3, _class3$18, _dec4$1, _class4$3;
 
-  var ForumThreadHeader = (_dec$29 = registerStyle(ForumThreadHeaderStyle), _dec$29(_class$57 = function (_UI$Element) {
+  var ForumThreadHeader = (_dec$30 = registerStyle(ForumThreadHeaderStyle), _dec$30(_class$58 = function (_UI$Element) {
       inherits(ForumThreadHeader, _UI$Element);
 
       function ForumThreadHeader() {
@@ -32935,9 +33149,9 @@ var Bundle = (function (exports) {
           }
       }]);
       return ForumThreadHeader;
-  }(UI.Element)) || _class$57);
+  }(UI.Element)) || _class$58);
 
-  var ForumThreadPreview = (_dec2$13 = registerStyle(ForumThreadPreviewStyle), _dec2$13(_class2$13 = function (_ChatMarkupRenderer) {
+  var ForumThreadPreview = (_dec2$12 = registerStyle(ForumThreadPreviewStyle), _dec2$12(_class2$13 = function (_ChatMarkupRenderer) {
       inherits(ForumThreadPreview, _ChatMarkupRenderer);
 
       function ForumThreadPreview() {
@@ -32954,7 +33168,7 @@ var Bundle = (function (exports) {
       return ForumThreadPreview;
   }(ChatMarkupRenderer)) || _class2$13);
 
-  var ForumThreadBubble = (_dec3$4 = registerStyle(ForumThreadBubbleStyle), _dec3$4(_class3$17 = function (_UI$Element2) {
+  var ForumThreadBubble = (_dec3$3 = registerStyle(ForumThreadBubbleStyle), _dec3$3(_class3$18 = function (_UI$Element2) {
       inherits(ForumThreadBubble, _UI$Element2);
 
       function ForumThreadBubble() {
@@ -33097,7 +33311,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return ForumThreadBubble;
-  }(UI.Element)) || _class3$17);
+  }(UI.Element)) || _class3$18);
 
   var ForumThreadList = function (_UI$Element3) {
       inherits(ForumThreadList, _UI$Element3);
@@ -33426,9 +33640,9 @@ var Bundle = (function (exports) {
       return StemApp;
   }(UI.Element);
 
-  var _class$58, _temp$9;
+  var _class$59, _temp$9;
 
-  var WebsocketStreamHandler = (_temp$9 = _class$58 = function (_Dispatcher) {
+  var WebsocketStreamHandler = (_temp$9 = _class$59 = function (_Dispatcher) {
       inherits(WebsocketStreamHandler, _Dispatcher);
 
       function WebsocketStreamHandler(websocketSubscriber, streamName) {
@@ -33608,11 +33822,11 @@ var Bundle = (function (exports) {
           }
       }]);
       return WebsocketStreamHandler;
-  }(Dispatcher), _class$58.NONE = Symbol(), _class$58.SUBSCRIBING = Symbol(), _class$58.SUBSCRIBED = Symbol(), _class$58.UNSUBSCRIBED = Symbol(), _class$58.MISSING_MESSAGE = "INVALID_MESSAGE_MISSING_FROM_ROLLING_WINDOW", _temp$9);
+  }(Dispatcher), _class$59.NONE = Symbol(), _class$59.SUBSCRIBING = Symbol(), _class$59.SUBSCRIBED = Symbol(), _class$59.UNSUBSCRIBED = Symbol(), _class$59.MISSING_MESSAGE = "INVALID_MESSAGE_MISSING_FROM_ROLLING_WINDOW", _temp$9);
 
-  var _class$59, _temp$10;
+  var _class$60, _temp$10;
 
-  var WebsocketSubscriber = (_temp$10 = _class$59 = function (_Dispatchable) {
+  var WebsocketSubscriber = (_temp$10 = _class$60 = function (_Dispatchable) {
       inherits(WebsocketSubscriber, _Dispatchable);
 
       function WebsocketSubscriber() {
@@ -33951,19 +34165,19 @@ var Bundle = (function (exports) {
           }
       }]);
       return WebsocketSubscriber;
-  }(Dispatchable), _class$59.ConnectionStatus = {
+  }(Dispatchable), _class$60.ConnectionStatus = {
       NONE: 0,
       CONNECTING: 1,
       CONNECTED: 2,
       DISCONNECTED: 3
-  }, _class$59.STREAM_SUBSCRIBE_TIMEOUT = 3000, _class$59.STREAM_SUBSCRIBE_MAX_TIMEOUT = 30000, _class$59.CONNECT_RETRY_TIMEOUT = 3000, _class$59.CONNECT_RETRY_MAX_TIMEOUT = 30000, _class$59.HEARTBEAT_MESSAGE = "-hrtbt-", _temp$10);
+  }, _class$60.STREAM_SUBSCRIBE_TIMEOUT = 3000, _class$60.STREAM_SUBSCRIBE_MAX_TIMEOUT = 30000, _class$60.CONNECT_RETRY_TIMEOUT = 3000, _class$60.CONNECT_RETRY_MAX_TIMEOUT = 30000, _class$60.HEARTBEAT_MESSAGE = "-hrtbt-", _temp$10);
 
 
   WebsocketSubscriber.Global = new WebsocketSubscriber();
 
-  var _dec$30, _dec2$14, _dec3$5, _dec4$2, _dec5$1, _dec6$1, _dec7$1, _dec8, _dec9, _class$60, _descriptor$25, _descriptor2$23, _descriptor3$21, _descriptor4$19, _descriptor5$17, _descriptor6$14, _descriptor7$12, _descriptor8$9, _descriptor9$8;
+  var _dec$31, _dec2$13, _dec3$4, _dec4$2, _dec5$1, _dec6$1, _dec7$1, _dec8, _dec9, _class$61, _descriptor$26, _descriptor2$22, _descriptor3$20, _descriptor4$18, _descriptor5$16, _descriptor6$13, _descriptor7$11, _descriptor8$9, _descriptor9$8;
 
-  function _initDefineProp$26(target, property, descriptor, context) {
+  function _initDefineProp$27(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -33973,7 +34187,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$27(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -34002,7 +34216,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var GlobalStyleSheet = (_dec$30 = styleRuleCustom({ selector: "body" }), _dec2$14 = styleRuleCustom({ selector: ".hidden" }), _dec3$5 = styleRuleCustom({ selector: "*" }), _dec4$2 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$60 = function (_StyleSheet) {
+  var GlobalStyleSheet = (_dec$31 = styleRuleCustom({ selector: "body" }), _dec2$13 = styleRuleCustom({ selector: ".hidden" }), _dec3$4 = styleRuleCustom({ selector: "*" }), _dec4$2 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$61 = function (_StyleSheet) {
       inherits(GlobalStyleSheet, _StyleSheet);
 
       function GlobalStyleSheet() {
@@ -34016,11 +34230,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = GlobalStyleSheet.__proto__ || Object.getPrototypeOf(GlobalStyleSheet)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$26(_this, "body", _descriptor$25, _this), _initDefineProp$26(_this, "hidden", _descriptor2$23, _this), _initDefineProp$26(_this, "everything", _descriptor3$21, _this), _initDefineProp$26(_this, "a", _descriptor4$19, _this), _initDefineProp$26(_this, "hr", _descriptor5$17, _this), _initDefineProp$26(_this, "codeAndPre", _descriptor6$14, _this), _initDefineProp$26(_this, "code", _descriptor7$12, _this), _initDefineProp$26(_this, "pre", _descriptor8$9, _this), _initDefineProp$26(_this, "preInCode", _descriptor9$8, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = GlobalStyleSheet.__proto__ || Object.getPrototypeOf(GlobalStyleSheet)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$27(_this, "body", _descriptor$26, _this), _initDefineProp$27(_this, "hidden", _descriptor2$22, _this), _initDefineProp$27(_this, "everything", _descriptor3$20, _this), _initDefineProp$27(_this, "a", _descriptor4$18, _this), _initDefineProp$27(_this, "hr", _descriptor5$16, _this), _initDefineProp$27(_this, "codeAndPre", _descriptor6$13, _this), _initDefineProp$27(_this, "code", _descriptor7$11, _this), _initDefineProp$27(_this, "pre", _descriptor8$9, _this), _initDefineProp$27(_this, "preInCode", _descriptor9$8, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return GlobalStyleSheet;
-  }(StyleSheet), (_descriptor$25 = _applyDecoratedDescriptor$26(_class$60.prototype, "body", [_dec$30], {
+  }(StyleSheet), (_descriptor$26 = _applyDecoratedDescriptor$27(_class$61.prototype, "body", [_dec$31], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -34029,21 +34243,21 @@ var Bundle = (function (exports) {
               fontFamily: this.themeProperties.FONT_FAMILY_DEFAULT
           };
       }
-  }), _descriptor2$23 = _applyDecoratedDescriptor$26(_class$60.prototype, "hidden", [_dec2$14], {
+  }), _descriptor2$22 = _applyDecoratedDescriptor$27(_class$61.prototype, "hidden", [_dec2$13], {
       enumerable: true,
       initializer: function initializer() {
           return {
               display: "none !important"
           };
       }
-  }), _descriptor3$21 = _applyDecoratedDescriptor$26(_class$60.prototype, "everything", [_dec3$5], {
+  }), _descriptor3$20 = _applyDecoratedDescriptor$27(_class$61.prototype, "everything", [_dec3$4], {
       enumerable: true,
       initializer: function initializer() {
           return {
               boxSizing: "border-box"
           };
       }
-  }), _descriptor4$19 = _applyDecoratedDescriptor$26(_class$60.prototype, "a", [_dec4$2], {
+  }), _descriptor4$18 = _applyDecoratedDescriptor$27(_class$61.prototype, "a", [_dec4$2], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -34051,7 +34265,7 @@ var Bundle = (function (exports) {
               color: this.themeProperties.COLOR_LINK
           };
       }
-  }), _descriptor5$17 = _applyDecoratedDescriptor$26(_class$60.prototype, "hr", [_dec5$1], {
+  }), _descriptor5$16 = _applyDecoratedDescriptor$27(_class$61.prototype, "hr", [_dec5$1], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -34063,14 +34277,14 @@ var Bundle = (function (exports) {
               boxSizing: "content-box"
           };
       }
-  }), _descriptor6$14 = _applyDecoratedDescriptor$26(_class$60.prototype, "codeAndPre", [_dec6$1], {
+  }), _descriptor6$13 = _applyDecoratedDescriptor$27(_class$61.prototype, "codeAndPre", [_dec6$1], {
       enumerable: true,
       initializer: function initializer() {
           return {
               fontFamily: this.themeProperties.FONT_FAMILY_MONOSPACE
           };
       }
-  }), _descriptor7$12 = _applyDecoratedDescriptor$26(_class$60.prototype, "code", [_dec7$1], {
+  }), _descriptor7$11 = _applyDecoratedDescriptor$27(_class$61.prototype, "code", [_dec7$1], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -34081,7 +34295,7 @@ var Bundle = (function (exports) {
               borderRadius: this.themeProperties.BUTTON_BORDER_RADIUS
           };
       }
-  }), _descriptor8$9 = _applyDecoratedDescriptor$26(_class$60.prototype, "pre", [_dec8], {
+  }), _descriptor8$9 = _applyDecoratedDescriptor$27(_class$61.prototype, "pre", [_dec8], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -34098,7 +34312,7 @@ var Bundle = (function (exports) {
               border: "1px solid #ccc"
           };
       }
-  }), _descriptor9$8 = _applyDecoratedDescriptor$26(_class$60.prototype, "preInCode", [_dec9], {
+  }), _descriptor9$8 = _applyDecoratedDescriptor$27(_class$61.prototype, "preInCode", [_dec9], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -34110,11 +34324,11 @@ var Bundle = (function (exports) {
               borderRadius: 0
           };
       }
-  })), _class$60));
+  })), _class$61));
 
-  var _class$61, _temp$11;
+  var _class$62, _temp$11;
 
-  var EstablishmentApp = (_temp$11 = _class$61 = function (_StemApp) {
+  var EstablishmentApp = (_temp$11 = _class$62 = function (_StemApp) {
       inherits(EstablishmentApp, _StemApp);
 
       function EstablishmentApp() {
@@ -34217,7 +34431,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return EstablishmentApp;
-  }(StemApp), _class$61.MIN_VIEWPORT_META_WIDTH = 375, _temp$11);
+  }(StemApp), _class$62.MIN_VIEWPORT_META_WIDTH = 375, _temp$11);
 
   Theme.Global.setProperties({
       NAV_MANAGER_NAVBAR_HEIGHT: 0,
@@ -34238,6 +34452,9 @@ var Bundle = (function (exports) {
           value: function getRoutes() {
               return MAIN_ROUTE;
           }
+      }], [{
+          key: "registerWebsocketStreams",
+          value: function registerWebsocketStreams() {}
       }]);
       return AppClass;
   }(EstablishmentApp);
