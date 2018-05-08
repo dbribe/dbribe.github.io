@@ -19437,7 +19437,6 @@ var Bundle = (function (exports) {
       enumerable: true,
       initializer: function initializer() {
           return {
-              position: "fixed",
               height: "100%",
               width: "100%",
               display: "flex",

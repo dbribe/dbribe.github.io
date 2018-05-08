@@ -7,7 +7,6 @@ import {MediumLogo, FacebookLogo, InstagramLogo, GitHubLogo, LinkedInLogo, Pinte
 class IndexPageStyle extends StyleSheet {
     @styleRule
     container = {
-        position: "fixed",
         height: "100%",
         width: "100%",
         display: "flex",
