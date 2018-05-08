@@ -19442,8 +19442,7 @@ var Bundle = (function (exports) {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              flexDirection: "column",
-              overflow: "auto"
+              flexDirection: "column"
           };
       }
   })), _class$42);

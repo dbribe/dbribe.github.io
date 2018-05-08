@@ -13,7 +13,6 @@ class IndexPageStyle extends StyleSheet {
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
-        overflow: "auto",
     };
 }
 
