@@ -19120,6 +19120,8 @@ var Bundle = (function (exports) {
           return {
               display: "inline-block",
               margin: "20px",
+              height: "80px",
+              width: "80px",
               transitionProperty: "transform",
               transitionTimingFunction: "ease",
               transform: "translateY(0) scale(1)",
@@ -19436,12 +19438,13 @@ var Bundle = (function (exports) {
       initializer: function initializer() {
           return {
               position: "fixed",
-              height: "85%",
+              height: "100%",
               width: "100%",
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              flexDirection: "column"
+              flexDirection: "column",
+              overflow: "auto"
           };
       }
   })), _class$42);

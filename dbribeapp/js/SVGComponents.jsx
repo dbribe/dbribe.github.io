@@ -51,6 +51,8 @@ class LogoStyle extends StyleSheet {
     logo = {
         display: "inline-block",
         margin: "20px",
+        height: "80px",
+        width: "80px",
         transitionProperty: "transform",
         transitionTimingFunction: "ease",
         transform: "translateY(0) scale(1)",

@@ -8,12 +8,13 @@ class IndexPageStyle extends StyleSheet {
     @styleRule
     container = {
         position: "fixed",
-        height: "85%",
+        height: "100%",
         width: "100%",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "column",
+        overflow: "auto",
     };
 }
 
