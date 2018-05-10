@@ -27,7 +27,8 @@ class ImportedSVG extends Image {
         attr.setStyle({
             opacity: 0,
             transform: "translateY(-69px)",
-            transition: "transform, opacity",
+            backdropFilter: "blur(10px)",
+            transition: "transform, opacity, backdrop-filter",
             transitionDuration: "1s",
             transitionTimingFunction: "ease",
             transitionDelay: getTransitionDelay() + "s",
@@ -40,6 +41,7 @@ class ImportedSVG extends Image {
             this.setStyle({
                 opacity: 1,
                 transform: "translateY(0)",
+                backdropFilter: "blur(0)",
             });
         });
     }

@@ -26,10 +26,9 @@ export class IndexPage extends UI.Element {
     render() {
         return [
             <div style={{flex: 1, width: "-webkit-fill-available", maxWidth: "550px", padding: "30px", paddingTop: 0}}>
-                <DBribe style={{display: "block", margin: "5vh auto", marginBottom: "5vh", width: "100%"}}/>
-                <Shadow style={{width: "100%"}}/>
+                <DBribe style={{display: "block", margin: "10vh auto", marginBottom: "5vh", width: "100%"}}/>
             </div>,
-            <div style={{ minHeight: "25vh", margin: "0 auto", textAlign: "center"}}>
+            <div style={{ minHeight: "40vh", margin: "0 auto", textAlign: "center"}}>
                 <YouTubeLogo/>
                 <LinkedInLogo/>
                 <FacebookLogo/>

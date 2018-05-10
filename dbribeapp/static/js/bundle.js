@@ -19073,7 +19073,8 @@ var Bundle = (function (exports) {
               attr.setStyle({
                   opacity: 0,
                   transform: "translateY(-69px)",
-                  transition: "transform, opacity",
+                  backdropFilter: "blur(10px)",
+                  transition: "transform, opacity, backdrop-filter",
                   transitionDuration: "1s",
                   transitionTimingFunction: "ease",
                   transitionDelay: getTransitionDelay() + "s"
@@ -19088,7 +19089,8 @@ var Bundle = (function (exports) {
               setTimeout(function () {
                   _this2.setStyle({
                       opacity: 1,
-                      transform: "translateY(0)"
+                      transform: "translateY(0)",
+                      backdropFilter: "blur(0)"
                   });
               });
           }
@@ -19466,11 +19468,10 @@ var Bundle = (function (exports) {
               return [UI.createElement(
                   "div",
                   { style: { flex: 1, width: "-webkit-fill-available", maxWidth: "550px", padding: "30px", paddingTop: 0 } },
-                  UI.createElement(DBribe, { style: { display: "block", margin: "5vh auto", marginBottom: "5vh", width: "100%" } }),
-                  UI.createElement(Shadow, { style: { width: "100%" } })
+                  UI.createElement(DBribe, { style: { display: "block", margin: "10vh auto", marginBottom: "5vh", width: "100%" } })
               ), UI.createElement(
                   "div",
-                  { style: { minHeight: "25vh", margin: "0 auto", textAlign: "center" } },
+                  { style: { minHeight: "40vh", margin: "0 auto", textAlign: "center" } },
                   UI.createElement(YouTubeLogo, null),
                   UI.createElement(LinkedInLogo, null),
                   UI.createElement(FacebookLogo, null),
