@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "description": "My contacts website",
   "main": "none",
-  "dependencies": {},
+  "dependencies": {
+    "express": "^4.16.4"
+  },
   "devDependencies": {
     "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-plugin-transform-decorators-legacy": "^1.3.4",
@@ -20,7 +22,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "rollup_watch": "cd dbribeapp/js && rollup -c --watch"
+    "rollup_watch": "cd dbribeapp/js && rollup -c --watch",
+    "run": "node server.js"
   },
   "author": "",
   "license": ""
