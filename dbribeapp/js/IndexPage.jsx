@@ -37,6 +37,7 @@ export class IndexPage extends UI.Element {
                 <MediumLogo/>
                 <PinterestLogo/>
                 <GitHubLogo/>
+                <iframe src="http://localhost:8080/iframe"></iframe>
             </div>
         ];
     }
