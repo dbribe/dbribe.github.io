@@ -1,4 +1,4 @@
-var Bundle = (function (exports) {
+var Bundle = (function (exports,BlogPanel,ForumPanel,EstablishmentApp) {
   'use strict';
 
   var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
@@ -262,59 +262,6 @@ var Bundle = (function (exports) {
       return result;
   }
 
-  function isLocalUrl(url) {
-      var host = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : self.location.host;
-      var origin = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : self.location.origin;
-
-      // Empty url is considered local
-      if (!url) {
-          return true;
-      }
-      // Protocol-relative url is local if the host matches
-      if (url.startsWith("//")) {
-          return url.startsWith("//" + host);
-      }
-      // Absolute url is local if the origin matches
-      var r = new RegExp("^(?:[a-z]+:)?//", "i");
-      if (r.test(url)) {
-          return url.startsWith(origin);
-      }
-      // Root-relative and document-relative urls are always local
-      return true;
-  }
-
-  // Trims a local url to root-relative or document-relative url.
-  // If the url is protocol-relative, removes the starting "//"+host, transforming it in a root-relative url.
-  // If the url is absolute, removes the origin, transforming it in a root-relative url.
-  // If the url is root-relative or document-relative, leaves it as is.
-  function trimLocalUrl(url) {
-      var host = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : self.location.host;
-      var origin = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : self.location.origin;
-
-      if (!isLocalUrl(url, host, origin)) {
-          throw Error("Trying to trim non-local url!");
-      }
-      if (!url) {
-          return url;
-      }
-      if (url.startsWith("//" + host)) {
-          return url.slice(("//" + host).length);
-      }
-      if (url.startsWith(origin)) {
-          return url.slice(origin.length);
-      }
-      return url;
-  }
-
-  // Split the passed in array into arrays with at most maxChunkSize elements
-  function splitInChunks(array, maxChunkSize) {
-      var chunks = [];
-      while (array.length > 0) {
-          chunks.push(array.splice(0, maxChunkSize));
-      }
-      return chunks;
-  }
-
   function defaultComparator(a, b) {
       if (a == null && b == null) {
           return 0;
@@ -340,17 +287,6 @@ var Bundle = (function (exports) {
           return 0;
       }
       return aStr < bStr ? -1 : 1;
-  }
-
-  function slugify(string) {
-      string = string.trim();
-
-      string = string.replace(/[^a-zA-Z0-9-\s]/g, ""); // remove anything non-latin alphanumeric
-      string = string.replace(/\s+/g, "-"); // replace whitespace with dashes
-      string = string.replace(/-{2,}/g, "-"); // remove consecutive dashes
-      string = string.toLowerCase();
-
-      return string;
   }
 
   // If the first argument is a number, it's returned concatenated with the suffix, otherwise it's returned unchanged
@@ -453,40 +389,6 @@ var Bundle = (function (exports) {
           }
       }
       return rez == str ? str : rez;
-  }
-
-  // TODO: have a Cookie helper file
-  function getCookie(name) {
-      var cookies = (document.cookie || "").split(";");
-      var _iteratorNormalCompletion2 = true;
-      var _didIteratorError2 = false;
-      var _iteratorError2 = undefined;
-
-      try {
-          for (var _iterator2 = cookies[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-              var cookie = _step2.value;
-
-              cookie = cookie.trim();
-              if (cookie.startsWith(name + "=")) {
-                  return decodeURIComponent(cookie.substring(name.length + 1));
-              }
-          }
-      } catch (err) {
-          _didIteratorError2 = true;
-          _iteratorError2 = err;
-      } finally {
-          try {
-              if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                  _iterator2.return();
-              }
-          } finally {
-              if (_didIteratorError2) {
-                  throw _iteratorError2;
-              }
-          }
-      }
-
-      return null;
   }
 
   function uniqueId(obj) {
@@ -1727,6 +1629,19 @@ var Bundle = (function (exports) {
   //["value"], // Value is intentionally disabled
   );
 
+  function applyDebugFlags(element) {
+      if (document.STEM_DEBUG) {
+          element.node.stemElement = element;
+          setTimeout(function () {
+              if (element.node.setAttribute) {
+                  if (element.constructor.name !== "UIElement") {
+                      element.node.setAttribute("_", element.constructor.name);
+                  }
+              }
+          }, 0);
+      }
+  }
+
   var UI = {
       renderingStack: [] //keeps track of objects that are redrawing, to know where to assign refs automatically
   };
@@ -1832,9 +1747,7 @@ var Bundle = (function (exports) {
           key: "createNode",
           value: function createNode() {
               this.node = document.createTextNode(this.getValue());
-              if (document.STEM_DEBUG) {
-                  this.node.stemElement = this;
-              }
+              applyDebugFlags(this);
               return this.node;
           }
       }, {
@@ -1950,9 +1863,7 @@ var Bundle = (function (exports) {
           key: "createNode",
           value: function createNode() {
               this.node = document.createElement(this.getNodeType());
-              if (document.STEM_DEBUG) {
-                  this.node.stemElement = this;
-              }
+              applyDebugFlags(this);
               return this.node;
           }
 
@@ -2577,12 +2488,6 @@ var Bundle = (function (exports) {
       EXTRA_LARGE: "xl"
   };
 
-  var VoteStatus = {
-      NONE: null,
-      LIKE: 1,
-      DISLIKE: 0
-  };
-
   var ActionStatus = {
       DEFAULT: 1,
       RUNNING: 2,
@@ -3098,14 +3003,6 @@ var Bundle = (function (exports) {
       getKey: getStyleRuleKey,
       inherit: true
   });
-
-  function styleRuleCustom(options) {
-      return styleRuleWithOptions(Object.assign({
-          targetMethodName: "css",
-          getKey: getStyleRuleKey,
-          inherit: false
-      }, options));
-  }
 
   var keyframesRule = styleRuleWithOptions({
       targetMethodName: "keyframes",
@@ -6940,9 +6837,7 @@ var Bundle = (function (exports) {
           key: "createNode",
           value: function createNode() {
               this.node = document.createElementNS("http://www.w3.org/2000/svg", this.getNodeType());
-              if (document.STEM_DEBUG) {
-                  this.node.stemElement = this;
-              }
+              applyDebugFlags(this);
               return this.node;
           }
       }, {
@@ -7514,9 +7409,26 @@ var Bundle = (function (exports) {
       return SVGRadialGradient;
   }(SVG.Element);
 
+  SVG.LinearGradient = function (_SVG$Element9) {
+      inherits(SVGLinearGradient, _SVG$Element9);
+
+      function SVGLinearGradient() {
+          classCallCheck(this, SVGLinearGradient);
+          return possibleConstructorReturn(this, (SVGLinearGradient.__proto__ || Object.getPrototypeOf(SVGLinearGradient)).apply(this, arguments));
+      }
+
+      createClass(SVGLinearGradient, [{
+          key: "getNodeType",
+          value: function getNodeType() {
+              return "linearGradient";
+          }
+      }]);
+      return SVGLinearGradient;
+  }(SVG.Element);
+
   //TODO Complete this class
-  SVG.Ellipse = function (_SVG$Element9) {
-      inherits(SVGEllipse, _SVG$Element9);
+  SVG.Ellipse = function (_SVG$Element10) {
+      inherits(SVGEllipse, _SVG$Element10);
 
       function SVGEllipse() {
           classCallCheck(this, SVGEllipse);
@@ -7577,8 +7489,8 @@ var Bundle = (function (exports) {
       return SVGCircleArc;
   }(SVG.Path);
 
-  SVG.Rect = function (_SVG$Element10) {
-      inherits(SVGRect, _SVG$Element10);
+  SVG.Rect = function (_SVG$Element11) {
+      inherits(SVGRect, _SVG$Element11);
 
       function SVGRect() {
           classCallCheck(this, SVGRect);
@@ -7638,8 +7550,8 @@ var Bundle = (function (exports) {
       return SVGRect;
   }(SVG.Element);
 
-  SVG.Line = function (_SVG$Element11) {
-      inherits(SVGLine, _SVG$Element11);
+  SVG.Line = function (_SVG$Element12) {
+      inherits(SVGLine, _SVG$Element12);
 
       function SVGLine() {
           classCallCheck(this, SVGLine);
@@ -8737,10 +8649,15 @@ var Bundle = (function (exports) {
       }
 
       createClass(Router, [{
-          key: "getRoutes",
-
+          key: "clearCache",
+          value: function clearCache() {
+              this.getRoutes().clearCache();
+          }
 
           // TODO: should be named getRootRoute() :)
+
+      }, {
+          key: "getRoutes",
           value: function getRoutes() {
               return this.options.routes;
           }
@@ -8752,11 +8669,16 @@ var Bundle = (function (exports) {
               return element;
           }
       }, {
+          key: "getPageToRender",
+          value: function getPageToRender(urlParts) {
+              return this.getRoutes().getPage(urlParts) || this.getPageNotFound();
+          }
+      }, {
           key: "setURL",
           value: function setURL(urlParts) {
               urlParts = unwrapArray(urlParts);
 
-              var page = this.getRoutes().getPage(urlParts) || this.getPageNotFound();
+              var page = this.getPageToRender(urlParts);
 
               var activePage = this.getActive();
 
@@ -8870,6 +8792,35 @@ var Bundle = (function (exports) {
       }
 
       createClass(Route, [{
+          key: "clearCache",
+          value: function clearCache() {
+              this.cachedPages.clear();
+              var _iteratorNormalCompletion = true;
+              var _didIteratorError = false;
+              var _iteratorError = undefined;
+
+              try {
+                  for (var _iterator = this.subroutes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                      var subroute = _step.value;
+
+                      subroute.clearCache();
+                  }
+              } catch (err) {
+                  _didIteratorError = true;
+                  _iteratorError = err;
+              } finally {
+                  try {
+                      if (!_iteratorNormalCompletion && _iterator.return) {
+                          _iterator.return();
+                      }
+                  } finally {
+                      if (_didIteratorError) {
+                          throw _iteratorError;
+                      }
+                  }
+              }
+          }
+      }, {
           key: "matches",
           value: function matches(urlParts) {
               if (urlParts.length < this.expr.length) {
@@ -8937,13 +8888,13 @@ var Bundle = (function (exports) {
               if (this.matchesOwnNode(urlParts)) {
                   return this.generatePage.apply(this, argsArray);
               }
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
+              var _iteratorNormalCompletion2 = true;
+              var _didIteratorError2 = false;
+              var _iteratorError2 = undefined;
 
               try {
-                  for (var _iterator = this.subroutes[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var subroute = _step.value;
+                  for (var _iterator2 = this.subroutes[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                      var subroute = _step2.value;
 
                       var match = subroute.matches(urlParts);
                       if (match) {
@@ -8958,16 +8909,16 @@ var Bundle = (function (exports) {
                       }
                   }
               } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
+                  _didIteratorError2 = true;
+                  _iteratorError2 = err;
               } finally {
                   try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
+                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                          _iterator2.return();
                       }
                   } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
+                      if (_didIteratorError2) {
+                          throw _iteratorError2;
                       }
                   }
               }
@@ -9614,7 +9565,7 @@ var Bundle = (function (exports) {
       return FlatTabAreaHorizontalOverflowStyle;
   }(HorizontalOverflowStyle);
 
-  var _dec$3, _class$10;
+  var _dec$3, _class$a;
 
   var BasicTabTitle = function (_Link) {
       inherits(BasicTabTitle, _Link);
@@ -9716,7 +9667,7 @@ var Bundle = (function (exports) {
       return TabTitleArea;
   }(UI.Element);
 
-  var TabArea = (_dec$3 = registerStyle(DefaultTabAreaStyle), _dec$3(_class$10 = function (_UI$Element2) {
+  var TabArea = (_dec$3 = registerStyle(DefaultTabAreaStyle), _dec$3(_class$a = function (_UI$Element2) {
       inherits(TabArea, _UI$Element2);
 
       function TabArea() {
@@ -9921,7 +9872,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return TabArea;
-  }(UI.Element)) || _class$10);
+  }(UI.Element)) || _class$a);
 
   // Contains classes to abstract some generic Font Awesome usecases.
 
@@ -10018,9 +9969,9 @@ var Bundle = (function (exports) {
       return FASortIcon;
   }(FAIcon);
 
-  var _dec$4, _class$11;
+  var _dec$4, _class$b;
 
-  var HorizontalOverflow = (_dec$4 = registerStyle(HorizontalOverflowStyle), _dec$4(_class$11 = function (_UI$Element) {
+  var HorizontalOverflow = (_dec$4 = registerStyle(HorizontalOverflowStyle), _dec$4(_class$b = function (_UI$Element) {
       inherits(HorizontalOverflow, _UI$Element);
 
       function HorizontalOverflow() {
@@ -10218,9 +10169,9 @@ var Bundle = (function (exports) {
           }
       }]);
       return HorizontalOverflow;
-  }(UI.Element)) || _class$11);
+  }(UI.Element)) || _class$b);
 
-  var _dec$5, _class$12, _dec2$2, _class2$2;
+  var _dec$5, _class$c, _dec2$2, _class2$2;
 
   var FlatTabTitle = function (_BasicTabTitle) {
       inherits(FlatTabTitle, _BasicTabTitle);
@@ -10248,13 +10199,24 @@ var Bundle = (function (exports) {
 
   // This class displays a bottom bar on the active tab, and when changing tabs it also moves the bottom bar.
 
-
-  var FlatTabTitleArea = (_dec$5 = registerStyle(FlatTabAreaStyle), _dec$5(_class$12 = function (_TabTitleArea) {
+  var FlatTabTitleArea = (_dec$5 = registerStyle(FlatTabAreaStyle), _dec$5(_class$c = function (_TabTitleArea) {
       inherits(FlatTabTitleArea, _TabTitleArea);
 
       function FlatTabTitleArea() {
+          var _ref;
+
           classCallCheck(this, FlatTabTitleArea);
-          return possibleConstructorReturn(this, (FlatTabTitleArea.__proto__ || Object.getPrototypeOf(FlatTabTitleArea)).apply(this, arguments));
+
+          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+              args[_key] = arguments[_key];
+          }
+
+          // Active bar left and width must be cached so the redraw is done seamlessly.
+          var _this3 = possibleConstructorReturn(this, (_ref = FlatTabTitleArea.__proto__ || Object.getPrototypeOf(FlatTabTitleArea)).call.apply(_ref, [this].concat(args)));
+
+          _this3.barLeft = 0;
+          _this3.barWidth = 0;
+          return _this3;
       }
 
       createClass(FlatTabTitleArea, [{
@@ -10266,32 +10228,17 @@ var Bundle = (function (exports) {
       }, {
           key: "getChildrenToRender",
           value: function getChildrenToRender() {
-              return [UI.createElement(
-                  HorizontalOverflow,
-                  { ref: "horizontalOverflow", styleSheet: FlatTabAreaHorizontalOverflowStyle },
-                  this.render(),
-                  UI.createElement("div", { ref: "bar", className: this.styleSheet.activeBar })
-              )];
-          }
-      }, {
-          key: "setActiveBar",
-          value: function setActiveBar(activeTab) {
-              var barLeft = 0;
-              var barWidth = 0;
               var _iteratorNormalCompletion = true;
               var _didIteratorError = false;
               var _iteratorError = undefined;
 
               try {
-                  for (var _iterator = unwrapArray(this.render())[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var tab = _step.value;
+                  for (var _iterator = this.render()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                      var child = _step.value;
 
-                      var tabWidth = tab.getWidth();
-                      if (tab === activeTab) {
-                          barWidth = tabWidth;
-                          break;
+                      if (child.options.active) {
+                          child.addClass(this.styleSheet.activeOnRender);
                       }
-                      barLeft += tabWidth;
                   }
               } catch (err) {
                   _didIteratorError = true;
@@ -10308,10 +10255,55 @@ var Bundle = (function (exports) {
                   }
               }
 
+              return [UI.createElement(
+                  HorizontalOverflow,
+                  { ref: "horizontalOverflow", styleSheet: FlatTabAreaHorizontalOverflowStyle },
+                  this.render(),
+                  UI.createElement("div", { ref: "bar", className: this.styleSheet.activeBar,
+                      style: { left: this.barLeft, width: this.barWidth } })
+              )];
+          }
+      }, {
+          key: "setActiveBar",
+          value: function setActiveBar(activeTab) {
+              var barLeft = 0;
+              var barWidth = 0;
+              var _iteratorNormalCompletion2 = true;
+              var _didIteratorError2 = false;
+              var _iteratorError2 = undefined;
+
+              try {
+                  for (var _iterator2 = unwrapArray(this.render())[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                      var tab = _step2.value;
+
+                      var tabWidth = tab.getWidth();
+                      if (tab === activeTab) {
+                          barWidth = tabWidth;
+                          break;
+                      }
+                      barLeft += tabWidth;
+                  }
+              } catch (err) {
+                  _didIteratorError2 = true;
+                  _iteratorError2 = err;
+              } finally {
+                  try {
+                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                          _iterator2.return();
+                      }
+                  } finally {
+                      if (_didIteratorError2) {
+                          throw _iteratorError2;
+                      }
+                  }
+              }
+
               this.bar.setStyle({
                   left: barLeft,
                   width: barWidth
               });
+              this.barLeft = barLeft;
+              this.barWidth = barWidth;
           }
       }, {
           key: "setActive",
@@ -10351,29 +10343,29 @@ var Bundle = (function (exports) {
               var _this5 = this;
 
               get(FlatTabTitleArea.prototype.__proto__ || Object.getPrototypeOf(FlatTabTitleArea.prototype), "onMount", this).call(this);
-              var _iteratorNormalCompletion2 = true;
-              var _didIteratorError2 = false;
-              var _iteratorError2 = undefined;
+              var _iteratorNormalCompletion3 = true;
+              var _didIteratorError3 = false;
+              var _iteratorError3 = undefined;
 
               try {
-                  for (var _iterator2 = this.options.children[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                      var child = _step2.value;
+                  for (var _iterator3 = this.options.children[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                      var child = _step3.value;
 
                       if (child.options.active) {
                           this.setActive(child);
                       }
                   }
               } catch (err) {
-                  _didIteratorError2 = true;
-                  _iteratorError2 = err;
+                  _didIteratorError3 = true;
+                  _iteratorError3 = err;
               } finally {
                   try {
-                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                          _iterator2.return();
+                      if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                          _iterator3.return();
                       }
                   } finally {
-                      if (_didIteratorError2) {
-                          throw _iteratorError2;
+                      if (_didIteratorError3) {
+                          throw _iteratorError3;
                       }
                   }
               }
@@ -10387,23 +10379,23 @@ var Bundle = (function (exports) {
           }
       }]);
       return FlatTabTitleArea;
-  }(TabTitleArea)) || _class$12);
+  }(TabTitleArea)) || _class$c);
 
   var FlatTabArea = (_dec2$2 = registerStyle(FlatTabAreaStyle), _dec2$2(_class2$2 = function (_TabArea) {
       inherits(FlatTabArea, _TabArea);
 
       function FlatTabArea() {
-          var _ref;
+          var _ref2;
 
           var _temp, _this6, _ret;
 
           classCallCheck(this, FlatTabArea);
 
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
+          for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+              args[_key2] = arguments[_key2];
           }
 
-          return _ret = (_temp = (_this6 = possibleConstructorReturn(this, (_ref = FlatTabArea.__proto__ || Object.getPrototypeOf(FlatTabArea)).call.apply(_ref, [this].concat(args))), _this6), _this6.activeTabTitleDispatcher = new SingleActiveElementDispatcher(), _temp), possibleConstructorReturn(_this6, _ret);
+          return _ret = (_temp = (_this6 = possibleConstructorReturn(this, (_ref2 = FlatTabArea.__proto__ || Object.getPrototypeOf(FlatTabArea)).call.apply(_ref2, [this].concat(args))), _this6), _this6.activeTabTitleDispatcher = new SingleActiveElementDispatcher(), _temp), possibleConstructorReturn(_this6, _ret);
       }
 
       createClass(FlatTabArea, [{
@@ -10678,11 +10670,11 @@ var Bundle = (function (exports) {
       return MultiMap;
   }();
 
-  var _class$13, _temp$3;
+  var _class$d, _temp$3;
 
   // This class currently mirrors the functionality of Headers on Chrome at the time of implementation
   // TODO: It is specified that the function get() should return the result of getAll() and getAll() deprecated
-  var Headers$1 = (_temp$3 = _class$13 = function (_MultiMap) {
+  var Headers$1 = (_temp$3 = _class$d = function (_MultiMap) {
       inherits(Headers, _MultiMap);
 
       function Headers(obj) {
@@ -10767,16 +10759,16 @@ var Bundle = (function (exports) {
           }
       }]);
       return Headers;
-  }(MultiMap), _class$13.polyfill = true, _temp$3);
+  }(MultiMap), _class$d.polyfill = true, _temp$3);
 
 
   function polyfillHeaders(global) {
       global.Headers = global.Headers || Headers$1;
   }
 
-  var _class$14, _temp$4;
+  var _class$e, _temp$4;
 
-  var URLSearchParams$1 = (_temp$4 = _class$14 = function (_MultiMap) {
+  var URLSearchParams$1 = (_temp$4 = _class$e = function (_MultiMap) {
       inherits(URLSearchParams, _MultiMap);
 
       function URLSearchParams() {
@@ -10912,7 +10904,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return URLSearchParams;
-  }(MultiMap), _class$14.polyfill = true, _temp$4);
+  }(MultiMap), _class$e.polyfill = true, _temp$4);
 
 
   function polyfillURLSearchParams(global) {
@@ -11112,9 +11104,9 @@ var Bundle = (function (exports) {
       return Body;
   }();
 
-  var _class$15, _temp$5;
+  var _class$f, _temp$5;
 
-  var Request$1 = (_temp$5 = _class$15 = function (_Body) {
+  var Request$1 = (_temp$5 = _class$f = function (_Body) {
       inherits(Request, _Body);
 
       function Request(input) {
@@ -11171,16 +11163,16 @@ var Bundle = (function (exports) {
           }
       }]);
       return Request;
-  }(Body), _class$15.methods = ["DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT"], _temp$5);
+  }(Body), _class$f.methods = ["DELETE", "GET", "HEAD", "OPTIONS", "POST", "PUT"], _temp$5);
 
 
   function polyfillRequest(global) {
       global.Request = global.Request || Request$1;
   }
 
-  var _class$16, _temp$6;
+  var _class$g, _temp$6;
 
-  var Response$1 = (_temp$6 = _class$16 = function (_Body) {
+  var Response$1 = (_temp$6 = _class$g = function (_Body) {
       inherits(Response, _Body);
 
       function Response(bodyInit, options) {
@@ -11235,7 +11227,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return Response;
-  }(Body), _class$16.redirectStatuses = [301, 302, 303, 307, 308], _temp$6);
+  }(Body), _class$g.redirectStatuses = [301, 302, 303, 307, 308], _temp$6);
 
 
   function polyfillResponse(global) {
@@ -11957,7 +11949,7 @@ var Bundle = (function (exports) {
 
   var Ajax = new AjaxHandler();
 
-  var _class$17, _descriptor$5, _descriptor2$5, _descriptor3$5, _descriptor4$4, _descriptor5$4, _descriptor6$4, _class3$3, _descriptor7$3, _descriptor8$3, _class5$2, _descriptor9$3;
+  var _class$h, _descriptor$5, _descriptor2$5, _descriptor3$5, _descriptor4$4, _descriptor5$4, _descriptor6$4, _class3$3, _descriptor7$3, _descriptor8$3, _class5$2, _descriptor9$3;
 
   function _initDefineProp$6(target, property, descriptor, context) {
       if (!descriptor) return;
@@ -12026,7 +12018,7 @@ var Bundle = (function (exports) {
       });
   };
 
-  var ButtonStyle = (_class$17 = function (_BasicLevelStyleSheet) {
+  var ButtonStyle = (_class$h = function (_BasicLevelStyleSheet) {
       inherits(ButtonStyle, _BasicLevelStyleSheet);
 
       function ButtonStyle() {
@@ -12070,14 +12062,14 @@ var Bundle = (function (exports) {
           }
       }]);
       return ButtonStyle;
-  }(BasicLevelStyleSheet(buttonColorToStyle)), (_descriptor$5 = _applyDecoratedDescriptor$6(_class$17.prototype, "DEFAULT", [styleRule], {
+  }(BasicLevelStyleSheet(buttonColorToStyle)), (_descriptor$5 = _applyDecoratedDescriptor$6(_class$h.prototype, "DEFAULT", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [this.base, {
               fontSize: "14px"
           }, this.colorStyleRule(this.themeProperties.COLOR_BACKGROUND)];
       }
-  }), _descriptor2$5 = _applyDecoratedDescriptor$6(_class$17.prototype, "EXTRA_SMALL", [styleRule], {
+  }), _descriptor2$5 = _applyDecoratedDescriptor$6(_class$h.prototype, "EXTRA_SMALL", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12086,26 +12078,26 @@ var Bundle = (function (exports) {
               borderWidth: "0.05em"
           };
       }
-  }), _descriptor3$5 = _applyDecoratedDescriptor$6(_class$17.prototype, "SMALL", [styleRule], {
+  }), _descriptor3$5 = _applyDecoratedDescriptor$6(_class$h.prototype, "SMALL", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               fontSize: "12px"
           };
       }
-  }), _descriptor4$4 = _applyDecoratedDescriptor$6(_class$17.prototype, "MEDIUM", [styleRule], {
+  }), _descriptor4$4 = _applyDecoratedDescriptor$6(_class$h.prototype, "MEDIUM", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {};
       }
-  }), _descriptor5$4 = _applyDecoratedDescriptor$6(_class$17.prototype, "LARGE", [styleRule], {
+  }), _descriptor5$4 = _applyDecoratedDescriptor$6(_class$h.prototype, "LARGE", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               fontSize: "17px"
           };
       }
-  }), _descriptor6$4 = _applyDecoratedDescriptor$6(_class$17.prototype, "EXTRA_LARGE", [styleRule], {
+  }), _descriptor6$4 = _applyDecoratedDescriptor$6(_class$h.prototype, "EXTRA_LARGE", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12113,7 +12105,7 @@ var Bundle = (function (exports) {
               padding: "0.2em 0.4em"
           };
       }
-  })), _class$17);
+  })), _class$h);
 
   var ButtonGroupStyle = (_class3$3 = function (_StyleSheet) {
       inherits(ButtonGroupStyle, _StyleSheet);
@@ -12235,9 +12227,9 @@ var Bundle = (function (exports) {
       }
   })), _class5$2);
 
-  var _dec$6, _class$18;
+  var _dec$6, _class$i;
 
-  var Button = (_dec$6 = registerStyle(ButtonStyle), _dec$6(_class$18 = function (_UI$Primitive) {
+  var Button = (_dec$6 = registerStyle(ButtonStyle), _dec$6(_class$i = function (_UI$Primitive) {
       inherits(Button, _UI$Primitive);
 
       function Button() {
@@ -12278,7 +12270,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return Button;
-  }(UI.Primitive(IconableInterface, "button"))) || _class$18);
+  }(UI.Primitive(IconableInterface, "button"))) || _class$i);
 
   var StateButton = function (_Button) {
       inherits(StateButton, _Button);
@@ -12424,9 +12416,9 @@ var Bundle = (function (exports) {
       _loop();
   }
 
-  var _dec$7, _class$19, _dec2$3, _class2$3;
+  var _dec$7, _class$j, _dec2$3, _class2$3;
 
-  var ButtonGroup = (_dec$7 = registerStyle(ButtonGroupStyle), _dec$7(_class$19 = function (_SimpleStyledElement) {
+  var ButtonGroup = (_dec$7 = registerStyle(ButtonGroupStyle), _dec$7(_class$j = function (_SimpleStyledElement) {
       inherits(ButtonGroup, _SimpleStyledElement);
 
       function ButtonGroup() {
@@ -12448,7 +12440,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return ButtonGroup;
-  }(SimpleStyledElement)) || _class$19);
+  }(SimpleStyledElement)) || _class$j);
   var RadioButtonGroup = (_dec2$3 = registerStyle(RadioButtonGroupStyle), _dec2$3(_class2$3 = function (_SimpleStyledElement2) {
       inherits(RadioButtonGroup, _SimpleStyledElement2);
 
@@ -12515,7 +12507,7 @@ var Bundle = (function (exports) {
       return RadioButtonGroup;
   }(SimpleStyledElement)) || _class2$3);
 
-  var _class$20, _descriptor$6, _descriptor2$6, _descriptor3$6, _descriptor4$5, _descriptor5$5, _dec$8, _class3$4;
+  var _class$k, _descriptor$6, _descriptor2$6, _descriptor3$6, _descriptor4$5, _descriptor5$5, _dec$8, _class3$4;
 
   function _initDefineProp$7(target, property, descriptor, context) {
       if (!descriptor) return;
@@ -12563,7 +12555,7 @@ var Bundle = (function (exports) {
       };
   }
 
-  var CardPanelStyle = (_class$20 = function (_BasicLevelStyleSheet) {
+  var CardPanelStyle = (_class$k = function (_BasicLevelStyleSheet) {
       inherits(CardPanelStyle, _BasicLevelStyleSheet);
 
       function CardPanelStyle() {
@@ -12581,7 +12573,7 @@ var Bundle = (function (exports) {
       }
 
       return CardPanelStyle;
-  }(BasicLevelStyleSheet(cardPanelColorToStyle)), (_descriptor$6 = _applyDecoratedDescriptor$7(_class$20.prototype, "DEFAULT", [styleRule], {
+  }(BasicLevelStyleSheet(cardPanelColorToStyle)), (_descriptor$6 = _applyDecoratedDescriptor$7(_class$k.prototype, "DEFAULT", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [{
@@ -12596,7 +12588,7 @@ var Bundle = (function (exports) {
               paddingRight: this.themeProperties.CARD_PANEL_HEADING_PADDING
           }, cardPanelHeaderColorToStyle(this.themeProperties.COLOR_BACKGROUND)];
       }
-  }), _descriptor2$6 = _applyDecoratedDescriptor$7(_class$20.prototype, "LARGE", [styleRule], {
+  }), _descriptor2$6 = _applyDecoratedDescriptor$7(_class$k.prototype, "LARGE", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12605,12 +12597,12 @@ var Bundle = (function (exports) {
               paddingRight: this.themeProperties.CARD_PANEL_HEADING_PADDING_LARGE
           };
       }
-  }), _descriptor3$6 = _applyDecoratedDescriptor$7(_class$20.prototype, "body", [styleRule], {
+  }), _descriptor3$6 = _applyDecoratedDescriptor$7(_class$k.prototype, "body", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {};
       }
-  }), _descriptor4$5 = _applyDecoratedDescriptor$7(_class$20.prototype, "panel", [styleRule], {
+  }), _descriptor4$5 = _applyDecoratedDescriptor$7(_class$k.prototype, "panel", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return [{
@@ -12621,7 +12613,7 @@ var Bundle = (function (exports) {
               backgroundColor: this.themeProperties.COLOR_BACKGROUND
           }, cardPanelColorToStyle(this.themeProperties.COLOR_BACKGROUND)];
       }
-  }), _descriptor5$5 = _applyDecoratedDescriptor$7(_class$20.prototype, "centered", [styleRule], {
+  }), _descriptor5$5 = _applyDecoratedDescriptor$7(_class$k.prototype, "centered", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12629,7 +12621,7 @@ var Bundle = (function (exports) {
               justifyContent: "center"
           };
       }
-  })), _class$20);
+  })), _class$k);
 
   function cardPanelHeaderColorToStyle(color) {
       var colors = buildColors(color);
@@ -12734,7 +12726,7 @@ var Bundle = (function (exports) {
       return CardPanel;
   }(SimpleStyledElement)) || _class3$4);
 
-  var _class$21, _descriptor$7, _descriptor2$7, _descriptor3$7, _descriptor4$6, _descriptor5$6, _dec$9, _class3$5;
+  var _class$l, _descriptor$7, _descriptor2$7, _descriptor3$7, _descriptor4$6, _descriptor5$6, _dec$9, _class3$5;
 
   function _initDefineProp$8(target, property, descriptor, context) {
       if (!descriptor) return;
@@ -12775,7 +12767,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var RowListStyle = (_class$21 = function (_BasicLevelSizeStyleS) {
+  var RowListStyle = (_class$l = function (_BasicLevelSizeStyleS) {
       inherits(RowListStyle, _BasicLevelSizeStyleS);
 
       function RowListStyle() {
@@ -12793,14 +12785,14 @@ var Bundle = (function (exports) {
       }
 
       return RowListStyle;
-  }(BasicLevelSizeStyleSheet), (_descriptor$7 = _applyDecoratedDescriptor$8(_class$21.prototype, "rowList", [styleRule], {
+  }(BasicLevelSizeStyleSheet), (_descriptor$7 = _applyDecoratedDescriptor$8(_class$l.prototype, "rowList", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               width: "100%"
           };
       }
-  }), _descriptor2$7 = _applyDecoratedDescriptor$8(_class$21.prototype, "DEFAULT", [styleRule], {
+  }), _descriptor2$7 = _applyDecoratedDescriptor$8(_class$l.prototype, "DEFAULT", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12815,7 +12807,7 @@ var Bundle = (function (exports) {
               backgroundColor: this.themeProperties.COLOR_BACKGROUND
           };
       }
-  }), _descriptor3$7 = _applyDecoratedDescriptor$8(_class$21.prototype, "LARGE", [styleRule], {
+  }), _descriptor3$7 = _applyDecoratedDescriptor$8(_class$l.prototype, "LARGE", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12824,14 +12816,14 @@ var Bundle = (function (exports) {
               paddingRight: this.themeProperties.ROW_LIST_ROW_PADDING_LARGE
           };
       }
-  }), _descriptor4$6 = _applyDecoratedDescriptor$8(_class$21.prototype, "alternativeColorsOddRow", [styleRule], {
+  }), _descriptor4$6 = _applyDecoratedDescriptor$8(_class$l.prototype, "alternativeColorsOddRow", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               backgroundColor: this.themeProperties.COLOR_BACKGROUND_ALTERNATIVE
           };
       }
-  }), _descriptor5$6 = _applyDecoratedDescriptor$8(_class$21.prototype, "noAlternativeColors", [styleRule], {
+  }), _descriptor5$6 = _applyDecoratedDescriptor$8(_class$l.prototype, "noAlternativeColors", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12840,17 +12832,17 @@ var Bundle = (function (exports) {
               borderTopColor: this.themeProperties.BASE_BORDER_COLOR
           };
       }
-  })), _class$21);
+  })), _class$l);
 
-  var RowList$$1 = (_dec$9 = registerStyle(RowListStyle), _dec$9(_class3$5 = function (_SimpleStyledElement) {
-      inherits(RowList$$1, _SimpleStyledElement);
+  var RowList = (_dec$9 = registerStyle(RowListStyle), _dec$9(_class3$5 = function (_SimpleStyledElement) {
+      inherits(RowList, _SimpleStyledElement);
 
-      function RowList$$1() {
-          classCallCheck(this, RowList$$1);
-          return possibleConstructorReturn(this, (RowList$$1.__proto__ || Object.getPrototypeOf(RowList$$1)).apply(this, arguments));
+      function RowList() {
+          classCallCheck(this, RowList);
+          return possibleConstructorReturn(this, (RowList.__proto__ || Object.getPrototypeOf(RowList)).apply(this, arguments));
       }
 
-      createClass(RowList$$1, [{
+      createClass(RowList, [{
           key: "extraNodeAttributes",
           value: function extraNodeAttributes(attr) {
               attr.addClass(this.styleSheet.rowList);
@@ -12900,10 +12892,10 @@ var Bundle = (function (exports) {
               });
           }
       }]);
-      return RowList$$1;
+      return RowList;
   }(SimpleStyledElement)) || _class3$5);
 
-  var _class$22, _descriptor$8, _descriptor2$8, _class3$6, _descriptor3$8, _descriptor4$7, _descriptor5$7, _descriptor6$5;
+  var _class$m, _descriptor$8, _descriptor2$8, _class3$6, _descriptor3$8, _descriptor4$7, _descriptor5$7, _descriptor6$5;
 
   function _initDefineProp$9(target, property, descriptor, context) {
       if (!descriptor) return;
@@ -12944,7 +12936,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var CollapsibleStyle = (_class$22 = function (_StyleSheet) {
+  var CollapsibleStyle = (_class$m = function (_StyleSheet) {
       inherits(CollapsibleStyle, _StyleSheet);
 
       function CollapsibleStyle() {
@@ -12962,7 +12954,7 @@ var Bundle = (function (exports) {
       }
 
       return CollapsibleStyle;
-  }(StyleSheet), (_descriptor$8 = _applyDecoratedDescriptor$9(_class$22.prototype, "collapsing", [styleRule], {
+  }(StyleSheet), (_descriptor$8 = _applyDecoratedDescriptor$9(_class$m.prototype, "collapsing", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12973,7 +12965,7 @@ var Bundle = (function (exports) {
               transitionDelay: "-0.15s"
           };
       }
-  }), _descriptor2$8 = _applyDecoratedDescriptor$9(_class$22.prototype, "collapsed", [styleRule], {
+  }), _descriptor2$8 = _applyDecoratedDescriptor$9(_class$m.prototype, "collapsed", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -12981,7 +12973,7 @@ var Bundle = (function (exports) {
               transitionDelay: "0s !important"
           };
       }
-  })), _class$22);
+  })), _class$m);
   var CollapsiblePanelStyle = (_class3$6 = function (_CardPanelStyle) {
       inherits(CollapsiblePanelStyle, _CardPanelStyle);
 
@@ -13125,9 +13117,9 @@ var Bundle = (function (exports) {
       return CollapsibleElement;
   }
 
-  var _dec$10, _class$23;
+  var _dec$a, _class$n;
 
-  var CollapsiblePanel = (_dec$10 = registerStyle(CollapsiblePanelStyle), _dec$10(_class$23 = function (_CollapsibleMixin) {
+  var CollapsiblePanel = (_dec$a = registerStyle(CollapsiblePanelStyle), _dec$a(_class$n = function (_CollapsibleMixin) {
       inherits(CollapsiblePanel, _CollapsibleMixin);
 
       function CollapsiblePanel() {
@@ -13207,7 +13199,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return CollapsiblePanel;
-  }(CollapsibleMixin(CardPanel))) || _class$23);
+  }(CollapsibleMixin(CardPanel))) || _class$n);
 
   var DelayedCollapsiblePanel = function (_CollapsiblePanel) {
       inherits(DelayedCollapsiblePanel, _CollapsiblePanel);
@@ -13242,9 +13234,9 @@ var Bundle = (function (exports) {
       return DelayedCollapsiblePanel;
   }(CollapsiblePanel);
 
-  var _class$24, _descriptor$9, _descriptor2$9, _class3$7, _descriptor3$9, _descriptor4$8, _descriptor5$8, _descriptor6$6, _descriptor7$4;
+  var _class$o, _descriptor$9, _descriptor2$9, _class3$7, _descriptor3$9, _descriptor4$8, _descriptor5$8, _descriptor6$6, _descriptor7$4;
 
-  function _initDefineProp$10(target, property, descriptor, context) {
+  function _initDefineProp$a(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -13254,7 +13246,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$a(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -13283,7 +13275,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var FloatingWindowStyle = (_class$24 = function (_StyleSheet) {
+  var FloatingWindowStyle = (_class$o = function (_StyleSheet) {
       inherits(FloatingWindowStyle, _StyleSheet);
 
       function FloatingWindowStyle() {
@@ -13297,11 +13289,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FloatingWindowStyle.__proto__ || Object.getPrototypeOf(FloatingWindowStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$10(_this, "hiddenAnimated", _descriptor$9, _this), _initDefineProp$10(_this, "visibleAnimated", _descriptor2$9, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = FloatingWindowStyle.__proto__ || Object.getPrototypeOf(FloatingWindowStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$a(_this, "hiddenAnimated", _descriptor$9, _this), _initDefineProp$a(_this, "visibleAnimated", _descriptor2$9, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return FloatingWindowStyle;
-  }(StyleSheet), (_descriptor$9 = _applyDecoratedDescriptor$10(_class$24.prototype, "hiddenAnimated", [styleRule], {
+  }(StyleSheet), (_descriptor$9 = _applyDecoratedDescriptor$a(_class$o.prototype, "hiddenAnimated", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13310,7 +13302,7 @@ var Bundle = (function (exports) {
               transition: "opacity 0.1s linear"
           };
       }
-  }), _descriptor2$9 = _applyDecoratedDescriptor$10(_class$24.prototype, "visibleAnimated", [styleRule], {
+  }), _descriptor2$9 = _applyDecoratedDescriptor$a(_class$o.prototype, "visibleAnimated", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13319,7 +13311,7 @@ var Bundle = (function (exports) {
               transition: "opacity 0.1s linear"
           };
       }
-  })), _class$24);
+  })), _class$o);
   var ModalStyle = (_class3$7 = function (_FloatingWindowStyle) {
       inherits(ModalStyle, _FloatingWindowStyle);
 
@@ -13334,11 +13326,11 @@ var Bundle = (function (exports) {
               args[_key2] = arguments[_key2];
           }
 
-          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ModalStyle.__proto__ || Object.getPrototypeOf(ModalStyle)).call.apply(_ref2, [this].concat(args))), _this2), _initDefineProp$10(_this2, "container", _descriptor3$9, _this2), _initDefineProp$10(_this2, "background", _descriptor4$8, _this2), _initDefineProp$10(_this2, "header", _descriptor5$8, _this2), _initDefineProp$10(_this2, "body", _descriptor6$6, _this2), _initDefineProp$10(_this2, "footer", _descriptor7$4, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ModalStyle.__proto__ || Object.getPrototypeOf(ModalStyle)).call.apply(_ref2, [this].concat(args))), _this2), _initDefineProp$a(_this2, "container", _descriptor3$9, _this2), _initDefineProp$a(_this2, "background", _descriptor4$8, _this2), _initDefineProp$a(_this2, "header", _descriptor5$8, _this2), _initDefineProp$a(_this2, "body", _descriptor6$6, _this2), _initDefineProp$a(_this2, "footer", _descriptor7$4, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
       }
 
       return ModalStyle;
-  }(FloatingWindowStyle), (_descriptor3$9 = _applyDecoratedDescriptor$10(_class3$7.prototype, "container", [styleRule], {
+  }(FloatingWindowStyle), (_descriptor3$9 = _applyDecoratedDescriptor$a(_class3$7.prototype, "container", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13352,7 +13344,7 @@ var Bundle = (function (exports) {
               zIndex: "9999"
           };
       }
-  }), _descriptor4$8 = _applyDecoratedDescriptor$10(_class3$7.prototype, "background", [styleRule], {
+  }), _descriptor4$8 = _applyDecoratedDescriptor$a(_class3$7.prototype, "background", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13362,7 +13354,7 @@ var Bundle = (function (exports) {
               background: "rgba(0,0,0,0.5)"
           };
       }
-  }), _descriptor5$8 = _applyDecoratedDescriptor$10(_class3$7.prototype, "header", [styleRule], {
+  }), _descriptor5$8 = _applyDecoratedDescriptor$a(_class3$7.prototype, "header", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13370,7 +13362,7 @@ var Bundle = (function (exports) {
               borderBottom: "1px solid #e5e5e5"
           };
       }
-  }), _descriptor6$6 = _applyDecoratedDescriptor$10(_class3$7.prototype, "body", [styleRule], {
+  }), _descriptor6$6 = _applyDecoratedDescriptor$a(_class3$7.prototype, "body", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13378,7 +13370,7 @@ var Bundle = (function (exports) {
               padding: "15px"
           };
       }
-  }), _descriptor7$4 = _applyDecoratedDescriptor$10(_class3$7.prototype, "footer", [styleRule], {
+  }), _descriptor7$4 = _applyDecoratedDescriptor$a(_class3$7.prototype, "footer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13389,9 +13381,9 @@ var Bundle = (function (exports) {
       }
   })), _class3$7);
 
-  var _dec$11, _class$25;
+  var _dec$b, _class$p;
 
-  var FloatingWindow = (_dec$11 = registerStyle(FloatingWindowStyle), _dec$11(_class$25 = function (_UI$Element) {
+  var FloatingWindow = (_dec$b = registerStyle(FloatingWindowStyle), _dec$b(_class$p = function (_UI$Element) {
       inherits(FloatingWindow, _UI$Element);
 
       function FloatingWindow() {
@@ -13473,7 +13465,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return FloatingWindow;
-  }(UI.Element)) || _class$25);
+  }(UI.Element)) || _class$p);
 
   var VolatileFloatingWindow = function (_FloatingWindow) {
       inherits(VolatileFloatingWindow, _FloatingWindow);
@@ -13492,11 +13484,6 @@ var Bundle = (function (exports) {
                   _this5.hide();
               };
               window.addEventListener("click", this.hideListener);
-          }
-      }, {
-          key: "unbindWindowListeners",
-          value: function unbindWindowListeners() {
-              window.removeEventListener("click", this.hideListener);
           }
       }, {
           key: "toggle",
@@ -13519,9 +13506,14 @@ var Bundle = (function (exports) {
           key: "hide",
           value: function hide() {
               if (this.isInDocument()) {
-                  this.unbindWindowListeners();
                   get(VolatileFloatingWindow.prototype.__proto__ || Object.getPrototypeOf(VolatileFloatingWindow.prototype), "hide", this).call(this);
               }
+          }
+      }, {
+          key: "onUnmount",
+          value: function onUnmount() {
+              get(VolatileFloatingWindow.prototype.__proto__ || Object.getPrototypeOf(VolatileFloatingWindow.prototype), "onUnmount", this).call(this);
+              window.removeEventListener("click", this.hideListener);
           }
       }, {
           key: "onMount",
@@ -13544,9 +13536,9 @@ var Bundle = (function (exports) {
       return VolatileFloatingWindow;
   }(FloatingWindow);
 
-  var _dec$12, _class$26;
+  var _dec$c, _class$q;
 
-  var Modal = (_dec$12 = registerStyle(ModalStyle), _dec$12(_class$26 = function (_UI$Element) {
+  var Modal = (_dec$c = registerStyle(ModalStyle), _dec$c(_class$q = function (_UI$Element) {
       inherits(Modal, _UI$Element);
 
       function Modal() {
@@ -13690,7 +13682,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return Modal;
-  }(UI.Element)) || _class$26);
+  }(UI.Element)) || _class$q);
 
   var ActionModal = function (_Modal) {
       inherits(ActionModal, _Modal);
@@ -13763,9 +13755,10 @@ var Bundle = (function (exports) {
           value: function getActionButton() {
               var _this7 = this;
 
-              return UI.createElement(Button, { level: this.getActionLevel(), label: this.getActionName(), onClick: function onClick() {
+              return UI.createElement(Button, { level: this.getActionLevel(), label: this.getActionName(),
+                  onClick: function onClick() {
                       return _this7.action();
-                  } });
+                  }, ref: "actionButton" });
           }
       }, {
           key: "getFooter",
@@ -13787,40 +13780,6 @@ var Bundle = (function (exports) {
       }]);
       return ActionModal;
   }(Modal);
-
-  var ActionModalButton = function ActionModalButton(ActionModal) {
-      return function (_Button) {
-          inherits(ActionModalButton, _Button);
-
-          function ActionModalButton() {
-              classCallCheck(this, ActionModalButton);
-              return possibleConstructorReturn(this, (ActionModalButton.__proto__ || Object.getPrototypeOf(ActionModalButton)).apply(this, arguments));
-          }
-
-          createClass(ActionModalButton, [{
-              key: "getModalOptions",
-              value: function getModalOptions() {
-                  var modalOptions = {
-                      actionName: this.options.label,
-                      level: this.options.level
-                  };
-
-                  Object.assign(modalOptions, this.options.modalOptions);
-                  return modalOptions;
-              }
-          }, {
-              key: "onMount",
-              value: function onMount() {
-                  var _this10 = this;
-
-                  this.addClickListener(function () {
-                      ActionModal.show(_this10.getModalOptions());
-                  });
-              }
-          }]);
-          return ActionModalButton;
-      }(Button);
-  };
 
   var ErrorModal = function (_ActionModal) {
       inherits(ErrorModal, _ActionModal);
@@ -13853,9 +13812,9 @@ var Bundle = (function (exports) {
       return ErrorModal;
   }(ActionModal);
 
-  var _class$27, _descriptor$10;
+  var _class$r, _descriptor$a;
 
-  function _initDefineProp$11(target, property, descriptor, context) {
+  function _initDefineProp$b(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -13865,7 +13824,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$b(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -13894,7 +13853,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var GlobalContainerStyle = (_class$27 = function (_StyleSheet) {
+  var GlobalContainerStyle = (_class$r = function (_StyleSheet) {
       inherits(GlobalContainerStyle, _StyleSheet);
 
       function GlobalContainerStyle() {
@@ -13902,13 +13861,13 @@ var Bundle = (function (exports) {
 
           var _this = possibleConstructorReturn(this, (GlobalContainerStyle.__proto__ || Object.getPrototypeOf(GlobalContainerStyle)).call(this, { updateOnResize: Device.isMobileDevice() }));
 
-          _initDefineProp$11(_this, "default", _descriptor$10, _this);
+          _initDefineProp$b(_this, "default", _descriptor$a, _this);
 
           return _this;
       }
 
       return GlobalContainerStyle;
-  }(StyleSheet), (_descriptor$10 = _applyDecoratedDescriptor$11(_class$27.prototype, "default", [styleRule], {
+  }(StyleSheet), (_descriptor$a = _applyDecoratedDescriptor$b(_class$r.prototype, "default", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -13927,11 +13886,11 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class$27);
+  })), _class$r);
 
-  var _dec$13, _class$28;
+  var _dec$d, _class$s;
 
-  var GlobalContainer = (_dec$13 = registerStyle(GlobalContainerStyle), _dec$13(_class$28 = function (_UI$Element) {
+  var GlobalContainer = (_dec$d = registerStyle(GlobalContainerStyle), _dec$d(_class$s = function (_UI$Element) {
       inherits(GlobalContainer, _UI$Element);
 
       function GlobalContainer() {
@@ -13956,7 +13915,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return GlobalContainer;
-  }(UI.Element)) || _class$28);
+  }(UI.Element)) || _class$s);
 
   var Divider = function (_UI$Element) {
       inherits(Divider, _UI$Element);
@@ -14023,9 +13982,9 @@ var Bundle = (function (exports) {
       return Divider;
   }(UI.Element);
 
-  var _class$29, _descriptor$11, _class3$8, _descriptor2$10, _descriptor3$10, _descriptor4$9, _descriptor5$9, _class5$3, _descriptor6$7, _descriptor7$5, _descriptor8$4, _descriptor9$4, _class7$3, _descriptor10$3, _descriptor11$3, _descriptor12$3, _descriptor13$3, _descriptor14$3, _descriptor15$3, _descriptor16$3, _descriptor17$3, _descriptor18$1, _descriptor19$1, _descriptor20$1;
+  var _class$t, _descriptor$b, _class3$8, _descriptor2$a, _descriptor3$a, _descriptor4$9, _descriptor5$9, _class5$3, _descriptor6$7, _descriptor7$5, _descriptor8$4, _descriptor9$4, _class7$3, _descriptor10$3, _descriptor11$3, _descriptor12$3, _descriptor13$3, _descriptor14$3, _descriptor15$3, _descriptor16$3, _descriptor17$3, _descriptor18$1, _descriptor19$1, _descriptor20$1;
 
-  function _initDefineProp$12(target, property, descriptor, context) {
+  function _initDefineProp$c(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -14035,7 +13994,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$c(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -14064,7 +14023,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var DividerStyle = (_class$29 = function (_StyleSheet) {
+  var DividerStyle = (_class$t = function (_StyleSheet) {
       inherits(DividerStyle, _StyleSheet);
 
       function DividerStyle() {
@@ -14078,11 +14037,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = DividerStyle.__proto__ || Object.getPrototypeOf(DividerStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$12(_this, "noTextSelection", _descriptor$11, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = DividerStyle.__proto__ || Object.getPrototypeOf(DividerStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$c(_this, "noTextSelection", _descriptor$b, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return DividerStyle;
-  }(StyleSheet), (_descriptor$11 = _applyDecoratedDescriptor$12(_class$29.prototype, "noTextSelection", [styleRule], {
+  }(StyleSheet), (_descriptor$b = _applyDecoratedDescriptor$c(_class$t.prototype, "noTextSelection", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14093,7 +14052,7 @@ var Bundle = (function (exports) {
               userSelect: "none"
           };
       }
-  })), _class$29);
+  })), _class$t);
   var AccordionStyle = (_class3$8 = function (_DividerStyle) {
       inherits(AccordionStyle, _DividerStyle);
 
@@ -14108,11 +14067,11 @@ var Bundle = (function (exports) {
               args[_key2] = arguments[_key2];
           }
 
-          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = AccordionStyle.__proto__ || Object.getPrototypeOf(AccordionStyle)).call.apply(_ref2, [this].concat(args))), _this2), _initDefineProp$12(_this2, "accordion", _descriptor2$10, _this2), _initDefineProp$12(_this2, "grab", _descriptor3$10, _this2), _initDefineProp$12(_this2, "grabbing", _descriptor4$9, _this2), _initDefineProp$12(_this2, "collapseIcon", _descriptor5$9, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = AccordionStyle.__proto__ || Object.getPrototypeOf(AccordionStyle)).call.apply(_ref2, [this].concat(args))), _this2), _initDefineProp$c(_this2, "accordion", _descriptor2$a, _this2), _initDefineProp$c(_this2, "grab", _descriptor3$a, _this2), _initDefineProp$c(_this2, "grabbing", _descriptor4$9, _this2), _initDefineProp$c(_this2, "collapseIcon", _descriptor5$9, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
       }
 
       return AccordionStyle;
-  }(DividerStyle), (_descriptor2$10 = _applyDecoratedDescriptor$12(_class3$8.prototype, "accordion", [styleRule], {
+  }(DividerStyle), (_descriptor2$a = _applyDecoratedDescriptor$c(_class3$8.prototype, "accordion", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14132,7 +14091,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor3$10 = _applyDecoratedDescriptor$12(_class3$8.prototype, "grab", [styleRule], {
+  }), _descriptor3$a = _applyDecoratedDescriptor$c(_class3$8.prototype, "grab", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _ref3;
@@ -14141,7 +14100,7 @@ var Bundle = (function (exports) {
               cursor: "grab"
           }, defineProperty(_ref3, "cursor", "-moz-grab"), defineProperty(_ref3, "cursor", "-webkit-grab"), _ref3;
       }
-  }), _descriptor4$9 = _applyDecoratedDescriptor$12(_class3$8.prototype, "grabbing", [styleRule], {
+  }), _descriptor4$9 = _applyDecoratedDescriptor$c(_class3$8.prototype, "grabbing", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _ref4;
@@ -14150,7 +14109,7 @@ var Bundle = (function (exports) {
               cursor: "grabbing"
           }, defineProperty(_ref4, "cursor", "-moz-grabbing"), defineProperty(_ref4, "cursor", "-webkit-grabbing"), _ref4;
       }
-  }), _descriptor5$9 = _applyDecoratedDescriptor$12(_class3$8.prototype, "collapseIcon", [styleRule], {
+  }), _descriptor5$9 = _applyDecoratedDescriptor$c(_class3$8.prototype, "collapseIcon", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14178,11 +14137,11 @@ var Bundle = (function (exports) {
 
           return _ret3 = (_temp3 = (_this3 = possibleConstructorReturn(this, (_ref5 = SectionDividerStyle.__proto__ || Object.getPrototypeOf(SectionDividerStyle)).call.apply(_ref5, [this].concat(args))), _this3), _this3.barThickness = 2, _this3.barPadding = 3, _this3.dividerColor = function () {
               return "#DDD";
-          }, _initDefineProp$12(_this3, "horizontalDivider", _descriptor6$7, _this3), _initDefineProp$12(_this3, "verticalDivider", _descriptor7$5, _this3), _initDefineProp$12(_this3, "horizontalSection", _descriptor8$4, _this3), _initDefineProp$12(_this3, "verticalSection", _descriptor9$4, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
+          }, _initDefineProp$c(_this3, "horizontalDivider", _descriptor6$7, _this3), _initDefineProp$c(_this3, "verticalDivider", _descriptor7$5, _this3), _initDefineProp$c(_this3, "horizontalSection", _descriptor8$4, _this3), _initDefineProp$c(_this3, "verticalSection", _descriptor9$4, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
       }
 
       return SectionDividerStyle;
-  }(DividerStyle), (_descriptor6$7 = _applyDecoratedDescriptor$12(_class5$3.prototype, "horizontalDivider", [styleRule], {
+  }(DividerStyle), (_descriptor6$7 = _applyDecoratedDescriptor$c(_class5$3.prototype, "horizontalDivider", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this4 = this;
@@ -14204,7 +14163,7 @@ var Bundle = (function (exports) {
               display: "inline-block"
           };
       }
-  }), _descriptor7$5 = _applyDecoratedDescriptor$12(_class5$3.prototype, "verticalDivider", [styleRule], {
+  }), _descriptor7$5 = _applyDecoratedDescriptor$c(_class5$3.prototype, "verticalDivider", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           var _this5 = this;
@@ -14225,7 +14184,7 @@ var Bundle = (function (exports) {
               marginTop: -this.barThickness / 2 - this.barPadding + "px"
           };
       }
-  }), _descriptor8$4 = _applyDecoratedDescriptor$12(_class5$3.prototype, "horizontalSection", [styleRule], {
+  }), _descriptor8$4 = _applyDecoratedDescriptor$c(_class5$3.prototype, "horizontalSection", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14251,7 +14210,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor9$4 = _applyDecoratedDescriptor$12(_class5$3.prototype, "verticalSection", [styleRule], {
+  }), _descriptor9$4 = _applyDecoratedDescriptor$c(_class5$3.prototype, "verticalSection", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14289,11 +14248,11 @@ var Bundle = (function (exports) {
           return _ret4 = (_temp4 = (_this6 = possibleConstructorReturn(this, (_ref6 = TitledDividerStyle.__proto__ || Object.getPrototypeOf(TitledDividerStyle)).call.apply(_ref6, [this].concat(args))), _this6), _this6.barThickness = 16, _this6.barPadding = 1, _this6.transitionTime = .3, _this6.dividerStyle = {
               backgroundColor: "white",
               borderColor: "#DDD !important"
-          }, _initDefineProp$12(_this6, "horizontalDivider", _descriptor10$3, _this6), _initDefineProp$12(_this6, "horizontalDots", _descriptor11$3, _this6), _initDefineProp$12(_this6, "verticalDivider", _descriptor12$3, _this6), _initDefineProp$12(_this6, "verticalDots", _descriptor13$3, _this6), _initDefineProp$12(_this6, "arrowButton", _descriptor14$3, _this6), _initDefineProp$12(_this6, "buttonsDisabled", _descriptor15$3, _this6), _initDefineProp$12(_this6, "barCollapsePanel", _descriptor16$3, _this6), _initDefineProp$12(_this6, "hiddenContent", _descriptor17$3, _this6), _initDefineProp$12(_this6, "collapsedBarTitle", _descriptor18$1, _this6), _initDefineProp$12(_this6, "animatedSectionDivider", _descriptor19$1, _this6), _initDefineProp$12(_this6, "paddingRemoved", _descriptor20$1, _this6), _temp4), possibleConstructorReturn(_this6, _ret4);
+          }, _initDefineProp$c(_this6, "horizontalDivider", _descriptor10$3, _this6), _initDefineProp$c(_this6, "horizontalDots", _descriptor11$3, _this6), _initDefineProp$c(_this6, "verticalDivider", _descriptor12$3, _this6), _initDefineProp$c(_this6, "verticalDots", _descriptor13$3, _this6), _initDefineProp$c(_this6, "arrowButton", _descriptor14$3, _this6), _initDefineProp$c(_this6, "buttonsDisabled", _descriptor15$3, _this6), _initDefineProp$c(_this6, "barCollapsePanel", _descriptor16$3, _this6), _initDefineProp$c(_this6, "hiddenContent", _descriptor17$3, _this6), _initDefineProp$c(_this6, "collapsedBarTitle", _descriptor18$1, _this6), _initDefineProp$c(_this6, "animatedSectionDivider", _descriptor19$1, _this6), _initDefineProp$c(_this6, "paddingRemoved", _descriptor20$1, _this6), _temp4), possibleConstructorReturn(_this6, _ret4);
       }
 
       return TitledDividerStyle;
-  }(SectionDividerStyle), (_descriptor10$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "horizontalDivider", [styleRuleInherit], {
+  }(SectionDividerStyle), (_descriptor10$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "horizontalDivider", [styleRuleInherit], {
       enumerable: true,
       initializer: function initializer() {
           return Object.assign(this.dividerStyle, {
@@ -14317,14 +14276,14 @@ var Bundle = (function (exports) {
               }
           });
       }
-  }), _descriptor11$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "horizontalDots", [styleRule], {
+  }), _descriptor11$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "horizontalDots", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               transform: "rotate(90deg) scaleX(5)"
           };
       }
-  }), _descriptor12$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "verticalDivider", [styleRuleInherit], {
+  }), _descriptor12$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "verticalDivider", [styleRuleInherit], {
       enumerable: true,
       initializer: function initializer() {
           return Object.assign(this.dividerStyle, {
@@ -14332,7 +14291,7 @@ var Bundle = (function (exports) {
               alignItems: "center"
           });
       }
-  }), _descriptor13$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "verticalDots", [styleRule], {
+  }), _descriptor13$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "verticalDots", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14343,7 +14302,7 @@ var Bundle = (function (exports) {
               transform: "scaleX(10) translateY(-.4em)"
           };
       }
-  }), _descriptor14$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "arrowButton", [styleRule], {
+  }), _descriptor14$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "arrowButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14356,7 +14315,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor15$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "buttonsDisabled", [styleRule], {
+  }), _descriptor15$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "buttonsDisabled", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14368,7 +14327,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor16$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "barCollapsePanel", [styleRule], {
+  }), _descriptor16$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "barCollapsePanel", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14384,7 +14343,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor17$3 = _applyDecoratedDescriptor$12(_class7$3.prototype, "hiddenContent", [styleRule], {
+  }), _descriptor17$3 = _applyDecoratedDescriptor$c(_class7$3.prototype, "hiddenContent", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14396,7 +14355,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor18$1 = _applyDecoratedDescriptor$12(_class7$3.prototype, "collapsedBarTitle", [styleRule], {
+  }), _descriptor18$1 = _applyDecoratedDescriptor$c(_class7$3.prototype, "collapsedBarTitle", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14442,7 +14401,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor19$1 = _applyDecoratedDescriptor$12(_class7$3.prototype, "animatedSectionDivider", [styleRule], {
+  }), _descriptor19$1 = _applyDecoratedDescriptor$c(_class7$3.prototype, "animatedSectionDivider", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14451,7 +14410,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor20$1 = _applyDecoratedDescriptor$12(_class7$3.prototype, "paddingRemoved", [styleRule], {
+  }), _descriptor20$1 = _applyDecoratedDescriptor$c(_class7$3.prototype, "paddingRemoved", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -14466,22 +14425,22 @@ var Bundle = (function (exports) {
       }
   })), _class7$3);
 
-  var _dec$14, _class$30, _dec2$4, _class2$4;
+  var _dec$e, _class$u, _dec2$4, _class2$4;
 
   // options.orientation is the orientation of the divided elements
 
-  var DividerBar$$1 = (_dec$14 = registerStyle(SectionDividerStyle), _dec$14(_class$30 = function (_Divider) {
-      inherits(DividerBar$$1, _Divider);
+  var DividerBar = (_dec$e = registerStyle(SectionDividerStyle), _dec$e(_class$u = function (_Divider) {
+      inherits(DividerBar, _Divider);
 
-      function DividerBar$$1() {
-          classCallCheck(this, DividerBar$$1);
-          return possibleConstructorReturn(this, (DividerBar$$1.__proto__ || Object.getPrototypeOf(DividerBar$$1)).apply(this, arguments));
+      function DividerBar() {
+          classCallCheck(this, DividerBar);
+          return possibleConstructorReturn(this, (DividerBar.__proto__ || Object.getPrototypeOf(DividerBar)).apply(this, arguments));
       }
 
-      createClass(DividerBar$$1, [{
+      createClass(DividerBar, [{
           key: "getDefaultOptions",
           value: function getDefaultOptions() {
-              return Object.assign({}, get(DividerBar$$1.prototype.__proto__ || Object.getPrototypeOf(DividerBar$$1.prototype), "getDefaultOptions", this).call(this), {
+              return Object.assign({}, get(DividerBar.prototype.__proto__ || Object.getPrototypeOf(DividerBar.prototype), "getDefaultOptions", this).call(this), {
                   orientation: Orientation.HORIZONTAL
               });
           }
@@ -14498,7 +14457,7 @@ var Bundle = (function (exports) {
       }, {
           key: "extraNodeAttributes",
           value: function extraNodeAttributes(attr) {
-              get(DividerBar$$1.prototype.__proto__ || Object.getPrototypeOf(DividerBar$$1.prototype), "extraNodeAttributes", this).call(this, attr);
+              get(DividerBar.prototype.__proto__ || Object.getPrototypeOf(DividerBar.prototype), "extraNodeAttributes", this).call(this, attr);
               if (this.options.orientation === Orientation.VERTICAL) {
                   attr.addClass(this.styleSheet.verticalDivider);
               } else {
@@ -14506,8 +14465,8 @@ var Bundle = (function (exports) {
               }
           }
       }]);
-      return DividerBar$$1;
-  }(Divider)) || _class$30);
+      return DividerBar;
+  }(Divider)) || _class$u);
 
   /* SectionDivider class should take in:
       - Vertical or horizontal separation
@@ -14515,30 +14474,30 @@ var Bundle = (function (exports) {
       - An option on how to redivide the sizes of the children
    */
 
-  var SectionDivider$$1 = (_dec2$4 = registerStyle(SectionDividerStyle), _dec2$4(_class2$4 = function (_UI$Element) {
-      inherits(SectionDivider$$1, _UI$Element);
-      createClass(SectionDivider$$1, [{
+  var SectionDivider = (_dec2$4 = registerStyle(SectionDividerStyle), _dec2$4(_class2$4 = function (_UI$Element) {
+      inherits(SectionDivider, _UI$Element);
+      createClass(SectionDivider, [{
           key: "getDefaultOptions",
           value: function getDefaultOptions() {
               return Object.assign({
                   autoCollapse: false
-              }, get(SectionDivider$$1.prototype.__proto__ || Object.getPrototypeOf(SectionDivider$$1.prototype), "getDefaultOptions", this).call(this));
+              }, get(SectionDivider.prototype.__proto__ || Object.getPrototypeOf(SectionDivider.prototype), "getDefaultOptions", this).call(this));
           }
       }]);
 
-      function SectionDivider$$1(options) {
-          classCallCheck(this, SectionDivider$$1);
+      function SectionDivider(options) {
+          classCallCheck(this, SectionDivider);
 
-          var _this2 = possibleConstructorReturn(this, (SectionDivider$$1.__proto__ || Object.getPrototypeOf(SectionDivider$$1)).call(this, options));
+          var _this2 = possibleConstructorReturn(this, (SectionDivider.__proto__ || Object.getPrototypeOf(SectionDivider)).call(this, options));
 
           _this2.uncollapsedSizes = new WeakMap();
           return _this2;
       }
 
-      createClass(SectionDivider$$1, [{
+      createClass(SectionDivider, [{
           key: "getDividerBarClass",
           value: function getDividerBarClass() {
-              return DividerBar$$1;
+              return DividerBar;
           }
       }, {
           key: "extraNodeAttributes",
@@ -15035,12 +14994,12 @@ var Bundle = (function (exports) {
               return children;
           }
       }]);
-      return SectionDivider$$1;
+      return SectionDivider;
   }(UI.Element)) || _class2$4);
 
-  var _dec$15, _class$31, _dec2$5, _class2$5, _dec3$1, _class3$9;
+  var _dec$f, _class$v, _dec2$5, _class2$5, _dec3$1, _class3$9;
 
-  var TitledSectionDividerBar = (_dec$15 = registerStyle(TitledDividerStyle), _dec$15(_class$31 = function (_DividerBar) {
+  var TitledSectionDividerBar = (_dec$f = registerStyle(TitledDividerStyle), _dec$f(_class$v = function (_DividerBar) {
       inherits(TitledSectionDividerBar, _DividerBar);
 
       function TitledSectionDividerBar() {
@@ -15090,7 +15049,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return TitledSectionDividerBar;
-  }(DividerBar$$1)) || _class$31);
+  }(DividerBar)) || _class$v);
   var BarCollapsePanel = (_dec2$5 = registerStyle(TitledDividerStyle), _dec2$5(_class2$5 = function (_UI$Element) {
       inherits(BarCollapsePanel, _UI$Element);
 
@@ -15483,11 +15442,11 @@ var Bundle = (function (exports) {
           }
       }]);
       return TitledSectionDivider;
-  }(SectionDivider$$1)) || _class3$9);
+  }(SectionDivider)) || _class3$9);
 
-  var _dec$16, _class$32, _dec2$6, _class2$6;
+  var _dec$g, _class$w, _dec2$6, _class2$6;
 
-  var AccordionDivider = (_dec$16 = registerStyle(AccordionStyle), _dec$16(_class$32 = function (_Divider) {
+  var AccordionDivider = (_dec$g = registerStyle(AccordionStyle), _dec$g(_class$w = function (_Divider) {
       inherits(AccordionDivider, _Divider);
 
       function AccordionDivider() {
@@ -15535,16 +15494,16 @@ var Bundle = (function (exports) {
           }
       }]);
       return AccordionDivider;
-  }(Divider)) || _class$32);
-  var Accordion$$1 = (_dec2$6 = registerStyle(AccordionStyle), _dec2$6(_class2$6 = function (_UI$Element) {
-      inherits(Accordion$$1, _UI$Element);
+  }(Divider)) || _class$w);
+  var Accordion = (_dec2$6 = registerStyle(AccordionStyle), _dec2$6(_class2$6 = function (_UI$Element) {
+      inherits(Accordion, _UI$Element);
 
-      function Accordion$$1() {
-          classCallCheck(this, Accordion$$1);
-          return possibleConstructorReturn(this, (Accordion$$1.__proto__ || Object.getPrototypeOf(Accordion$$1)).apply(this, arguments));
+      function Accordion() {
+          classCallCheck(this, Accordion);
+          return possibleConstructorReturn(this, (Accordion.__proto__ || Object.getPrototypeOf(Accordion)).apply(this, arguments));
       }
 
-      createClass(Accordion$$1, [{
+      createClass(Accordion, [{
           key: "extraNodeAttributes",
           value: function extraNodeAttributes(attr) {
               attr.addClass(this.styleSheet.accordion);
@@ -15866,12 +15825,12 @@ var Bundle = (function (exports) {
               });
           }
       }]);
-      return Accordion$$1;
+      return Accordion;
   }(UI.Element)) || _class2$6);
 
-  var _class$33, _descriptor$12, _descriptor2$11, _descriptor3$11, _descriptor4$10, _dec$17, _class3$10;
+  var _class$x, _descriptor$c, _descriptor2$b, _descriptor3$b, _descriptor4$a, _dec$h, _class3$a;
 
-  function _initDefineProp$13(target, property, descriptor, context) {
+  function _initDefineProp$d(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -15881,7 +15840,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$13(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$d(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -15910,32 +15869,32 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var CarouselStyle$$1 = (_class$33 = function (_StyleSheet) {
-      inherits(CarouselStyle$$1, _StyleSheet);
+  var CarouselStyle = (_class$x = function (_StyleSheet) {
+      inherits(CarouselStyle, _StyleSheet);
 
-      function CarouselStyle$$1() {
+      function CarouselStyle() {
           var _ref;
 
           var _temp, _this, _ret;
 
-          classCallCheck(this, CarouselStyle$$1);
+          classCallCheck(this, CarouselStyle);
 
           for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = CarouselStyle$$1.__proto__ || Object.getPrototypeOf(CarouselStyle$$1)).call.apply(_ref, [this].concat(args))), _this), _this.navigatorHeight = "35px", _this.hoverColor = "#364251", _this.transitionTime = "0.3", _this.textColor = "inherit", _this.navigatorTransitionTime = "0s", _initDefineProp$13(_this, "carousel", _descriptor$12, _this), _initDefineProp$13(_this, "container", _descriptor2$11, _this), _initDefineProp$13(_this, "navigator", _descriptor3$11, _this), _initDefineProp$13(_this, "navigatorIcon", _descriptor4$10, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = CarouselStyle.__proto__ || Object.getPrototypeOf(CarouselStyle)).call.apply(_ref, [this].concat(args))), _this), _this.navigatorHeight = "35px", _this.hoverColor = "#364251", _this.transitionTime = "0.3", _this.textColor = "inherit", _this.navigatorTransitionTime = "0s", _initDefineProp$d(_this, "carousel", _descriptor$c, _this), _initDefineProp$d(_this, "container", _descriptor2$b, _this), _initDefineProp$d(_this, "navigator", _descriptor3$b, _this), _initDefineProp$d(_this, "navigatorIcon", _descriptor4$a, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
-      return CarouselStyle$$1;
-  }(StyleSheet), (_descriptor$12 = _applyDecoratedDescriptor$13(_class$33.prototype, "carousel", [styleRule], {
+      return CarouselStyle;
+  }(StyleSheet), (_descriptor$c = _applyDecoratedDescriptor$d(_class$x.prototype, "carousel", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               overflow: "hidden"
           };
       }
-  }), _descriptor2$11 = _applyDecoratedDescriptor$13(_class$33.prototype, "container", [styleRule], {
+  }), _descriptor2$b = _applyDecoratedDescriptor$d(_class$x.prototype, "container", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -15953,7 +15912,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor3$11 = _applyDecoratedDescriptor$13(_class$33.prototype, "navigator", [styleRule], {
+  }), _descriptor3$b = _applyDecoratedDescriptor$d(_class$x.prototype, "navigator", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -15962,7 +15921,7 @@ var Bundle = (function (exports) {
               display: "flex"
           };
       }
-  }), _descriptor4$10 = _applyDecoratedDescriptor$13(_class$33.prototype, "navigatorIcon", [styleRule], {
+  }), _descriptor4$a = _applyDecoratedDescriptor$d(_class$x.prototype, "navigatorIcon", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -15979,7 +15938,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class$33);
+  })), _class$x);
 
   var CarouselNavigator = function (_UI$Element) {
       inherits(CarouselNavigator, _UI$Element);
@@ -16014,15 +15973,15 @@ var Bundle = (function (exports) {
       return CarouselNavigator;
   }(UI.Element);
 
-  var Carousel$$1 = (_dec$17 = registerStyle(CarouselStyle$$1), _dec$17(_class3$10 = function (_UI$Element2) {
-      inherits(Carousel$$1, _UI$Element2);
+  var Carousel = (_dec$h = registerStyle(CarouselStyle), _dec$h(_class3$a = function (_UI$Element2) {
+      inherits(Carousel, _UI$Element2);
 
-      function Carousel$$1() {
-          classCallCheck(this, Carousel$$1);
-          return possibleConstructorReturn(this, (Carousel$$1.__proto__ || Object.getPrototypeOf(Carousel$$1)).apply(this, arguments));
+      function Carousel() {
+          classCallCheck(this, Carousel);
+          return possibleConstructorReturn(this, (Carousel.__proto__ || Object.getPrototypeOf(Carousel)).apply(this, arguments));
       }
 
-      createClass(Carousel$$1, [{
+      createClass(Carousel, [{
           key: "extraNodeAttributes",
           value: function extraNodeAttributes(attr) {
               attr.addClass(this.styleSheet.carousel);
@@ -16100,12 +16059,12 @@ var Bundle = (function (exports) {
               return this.options.orientation || Orientation.VERTICAL;
           }
       }]);
-      return Carousel$$1;
-  }(UI.Element)) || _class3$10);
+      return Carousel;
+  }(UI.Element)) || _class3$a);
 
-  var _class$34, _descriptor$13, _descriptor2$12, _descriptor3$12, _descriptor4$11, _descriptor5$10, _descriptor6$8, _descriptor7$6;
+  var _class$y, _descriptor$d, _descriptor2$c, _descriptor3$c, _descriptor4$b, _descriptor5$a, _descriptor6$8, _descriptor7$6;
 
-  function _initDefineProp$14(target, property, descriptor, context) {
+  function _initDefineProp$e(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -16115,7 +16074,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$14(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$e(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -16144,7 +16103,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var RangePanelStyle = (_class$34 = function (_StyleSheet) {
+  var RangePanelStyle = (_class$y = function (_StyleSheet) {
       inherits(RangePanelStyle, _StyleSheet);
 
       function RangePanelStyle() {
@@ -16158,11 +16117,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = RangePanelStyle.__proto__ || Object.getPrototypeOf(RangePanelStyle)).call.apply(_ref, [this].concat(args))), _this), _this.rowHeight = 52, _initDefineProp$14(_this, "default", _descriptor$13, _this), _initDefineProp$14(_this, "tableContainer", _descriptor2$12, _this), _initDefineProp$14(_this, "scrollablePanel", _descriptor3$12, _this), _initDefineProp$14(_this, "fakePanel", _descriptor4$11, _this), _initDefineProp$14(_this, "footer", _descriptor5$10, _this), _initDefineProp$14(_this, "jumpToButton", _descriptor6$8, _this), _initDefineProp$14(_this, "table", _descriptor7$6, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = RangePanelStyle.__proto__ || Object.getPrototypeOf(RangePanelStyle)).call.apply(_ref, [this].concat(args))), _this), _this.rowHeight = 52, _initDefineProp$e(_this, "default", _descriptor$d, _this), _initDefineProp$e(_this, "tableContainer", _descriptor2$c, _this), _initDefineProp$e(_this, "scrollablePanel", _descriptor3$c, _this), _initDefineProp$e(_this, "fakePanel", _descriptor4$b, _this), _initDefineProp$e(_this, "footer", _descriptor5$a, _this), _initDefineProp$e(_this, "jumpToButton", _descriptor6$8, _this), _initDefineProp$e(_this, "table", _descriptor7$6, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return RangePanelStyle;
-  }(StyleSheet), (_descriptor$13 = _applyDecoratedDescriptor$14(_class$34.prototype, "default", [styleRule], {
+  }(StyleSheet), (_descriptor$d = _applyDecoratedDescriptor$e(_class$y.prototype, "default", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16175,7 +16134,7 @@ var Bundle = (function (exports) {
               overflowY: "hidden"
           };
       }
-  }), _descriptor2$12 = _applyDecoratedDescriptor$14(_class$34.prototype, "tableContainer", [styleRule], {
+  }), _descriptor2$c = _applyDecoratedDescriptor$e(_class$y.prototype, "tableContainer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16185,7 +16144,7 @@ var Bundle = (function (exports) {
               position: "relative"
           };
       }
-  }), _descriptor3$12 = _applyDecoratedDescriptor$14(_class$34.prototype, "scrollablePanel", [styleRule], {
+  }), _descriptor3$c = _applyDecoratedDescriptor$e(_class$y.prototype, "scrollablePanel", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16194,14 +16153,14 @@ var Bundle = (function (exports) {
               width: "100%"
           };
       }
-  }), _descriptor4$11 = _applyDecoratedDescriptor$14(_class$34.prototype, "fakePanel", [styleRule], {
+  }), _descriptor4$b = _applyDecoratedDescriptor$e(_class$y.prototype, "fakePanel", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
               width: "100%"
           };
       }
-  }), _descriptor5$10 = _applyDecoratedDescriptor$14(_class$34.prototype, "footer", [styleRule], {
+  }), _descriptor5$a = _applyDecoratedDescriptor$e(_class$y.prototype, "footer", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16215,7 +16174,7 @@ var Bundle = (function (exports) {
               paddingTop: "3px"
           };
       }
-  }), _descriptor6$8 = _applyDecoratedDescriptor$14(_class$34.prototype, "jumpToButton", [styleRule], {
+  }), _descriptor6$8 = _applyDecoratedDescriptor$e(_class$y.prototype, "jumpToButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16224,7 +16183,7 @@ var Bundle = (function (exports) {
               verticalAlign: "bottom"
           };
       }
-  }), _descriptor7$6 = _applyDecoratedDescriptor$14(_class$34.prototype, "table", [styleRule], {
+  }), _descriptor7$6 = _applyDecoratedDescriptor$e(_class$y.prototype, "table", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16239,16 +16198,16 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class$34);
+  })), _class$y);
 
-  var EntriesManager$$1 = function (_Dispatchable) {
-      inherits(EntriesManager$$1, _Dispatchable);
+  var EntriesManager = function (_Dispatchable) {
+      inherits(EntriesManager, _Dispatchable);
 
-      function EntriesManager$$1(entries) {
+      function EntriesManager(entries) {
           var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-          classCallCheck(this, EntriesManager$$1);
+          classCallCheck(this, EntriesManager);
 
-          var _this2 = possibleConstructorReturn(this, (EntriesManager$$1.__proto__ || Object.getPrototypeOf(EntriesManager$$1)).call(this));
+          var _this2 = possibleConstructorReturn(this, (EntriesManager.__proto__ || Object.getPrototypeOf(EntriesManager)).call(this));
 
           _this2.rawEntries = entries;
           _this2.options = options;
@@ -16256,7 +16215,7 @@ var Bundle = (function (exports) {
           return _this2;
       }
 
-      createClass(EntriesManager$$1, [{
+      createClass(EntriesManager, [{
           key: "getRawEntries",
           value: function getRawEntries() {
               return this.rawEntries;
@@ -16322,12 +16281,12 @@ var Bundle = (function (exports) {
               this.cacheEntries();
           }
       }]);
-      return EntriesManager$$1;
+      return EntriesManager;
   }(Dispatchable);
 
-  var _class$35, _descriptor$14, _descriptor2$13, _class3$11, _descriptor3$13, _descriptor4$12;
+  var _class$z, _descriptor$e, _descriptor2$d, _class3$b, _descriptor3$d, _descriptor4$c;
 
-  function _initDefineProp$15(target, property, descriptor, context) {
+  function _initDefineProp$f(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -16337,7 +16296,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$15(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$f(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -16366,7 +16325,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var TableStyle = (_class$35 = function (_StyleSheet) {
+  var TableStyle = (_class$z = function (_StyleSheet) {
       inherits(TableStyle, _StyleSheet);
 
       function TableStyle() {
@@ -16388,11 +16347,11 @@ var Bundle = (function (exports) {
           }, _this.theadCellStyle = {
               borderBottom: "2px solid #ddd",
               borderTop: "0"
-          }, _initDefineProp$15(_this, "table", _descriptor$14, _this), _initDefineProp$15(_this, "tableStripped", _descriptor2$13, _this), _temp), possibleConstructorReturn(_this, _ret);
+          }, _initDefineProp$f(_this, "table", _descriptor$e, _this), _initDefineProp$f(_this, "tableStripped", _descriptor2$d, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return TableStyle;
-  }(StyleSheet), (_descriptor$14 = _applyDecoratedDescriptor$15(_class$35.prototype, "table", [styleRule], {
+  }(StyleSheet), (_descriptor$e = _applyDecoratedDescriptor$f(_class$z.prototype, "table", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16406,7 +16365,7 @@ var Bundle = (function (exports) {
               ">*>thead>*>*": this.theadCellStyle
           };
       }
-  }), _descriptor2$13 = _applyDecoratedDescriptor$15(_class$35.prototype, "tableStripped", [styleRule], {
+  }), _descriptor2$d = _applyDecoratedDescriptor$f(_class$z.prototype, "tableStripped", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16415,8 +16374,8 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class$35);
-  var SortableTableStyle = (_class3$11 = function (_TableStyle) {
+  })), _class$z);
+  var SortableTableStyle = (_class3$b = function (_TableStyle) {
       inherits(SortableTableStyle, _TableStyle);
 
       function SortableTableStyle() {
@@ -16430,11 +16389,11 @@ var Bundle = (function (exports) {
               args[_key2] = arguments[_key2];
           }
 
-          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = SortableTableStyle.__proto__ || Object.getPrototypeOf(SortableTableStyle)).call.apply(_ref2, [this].concat(args))), _this2), _initDefineProp$15(_this2, "sortIcon", _descriptor3$13, _this2), _initDefineProp$15(_this2, "table", _descriptor4$12, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
+          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = SortableTableStyle.__proto__ || Object.getPrototypeOf(SortableTableStyle)).call.apply(_ref2, [this].concat(args))), _this2), _initDefineProp$f(_this2, "sortIcon", _descriptor3$d, _this2), _initDefineProp$f(_this2, "table", _descriptor4$c, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
       }
 
       return SortableTableStyle;
-  }(TableStyle), (_descriptor3$13 = _applyDecoratedDescriptor$15(_class3$11.prototype, "sortIcon", [styleRule], {
+  }(TableStyle), (_descriptor3$d = _applyDecoratedDescriptor$f(_class3$b.prototype, "sortIcon", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16445,7 +16404,7 @@ var Bundle = (function (exports) {
               float: "right"
           };
       }
-  }), _descriptor4$12 = _applyDecoratedDescriptor$15(_class3$11.prototype, "table", [styleRuleInherit], {
+  }), _descriptor4$c = _applyDecoratedDescriptor$f(_class3$b.prototype, "table", [styleRuleInherit], {
       enumerable: true,
       initializer: function initializer() {
           var _ref3;
@@ -16456,9 +16415,9 @@ var Bundle = (function (exports) {
               cursor: "pointer"
           }), _ref3;
       }
-  })), _class3$11);
+  })), _class3$b);
 
-  var _dec$18, _class$36;
+  var _dec$i, _class$A;
 
   // TODO: the whole table architecture probably needs a rethinking
 
@@ -16515,7 +16474,7 @@ var Bundle = (function (exports) {
       return TableRow;
   }(UI.Primitive("tr"));
 
-  var Table = (_dec$18 = registerStyle(TableStyle), _dec$18(_class$36 = function (_UI$Primitive2) {
+  var Table = (_dec$i = registerStyle(TableStyle), _dec$i(_class$A = function (_UI$Primitive2) {
       inherits(Table, _UI$Primitive2);
 
       function Table() {
@@ -16635,11 +16594,11 @@ var Bundle = (function (exports) {
           }
       }]);
       return Table;
-  }(UI.Primitive("table"))) || _class$36);
+  }(UI.Primitive("table"))) || _class$A);
 
-  var _class$37, _descriptor$15, _descriptor2$14, _descriptor3$14;
+  var _class$B, _descriptor$f, _descriptor2$e, _descriptor3$e;
 
-  function _initDefineProp$16(target, property, descriptor, context) {
+  function _initDefineProp$g(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -16649,7 +16608,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$16(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$g(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -16704,7 +16663,7 @@ var Bundle = (function (exports) {
       return TableRowInCollapsibleTable;
   }(TableRow);
 
-  var CollapsibleTableStyle = (_class$37 = function (_StyleSheet) {
+  var CollapsibleTableStyle = (_class$B = function (_StyleSheet) {
       inherits(CollapsibleTableStyle, _StyleSheet);
 
       function CollapsibleTableStyle() {
@@ -16718,11 +16677,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this2 = possibleConstructorReturn(this, (_ref = CollapsibleTableStyle.__proto__ || Object.getPrototypeOf(CollapsibleTableStyle)).call.apply(_ref, [this].concat(args))), _this2), _initDefineProp$16(_this2, "button", _descriptor$15, _this2), _initDefineProp$16(_this2, "collapsedButton", _descriptor2$14, _this2), _initDefineProp$16(_this2, "heading", _descriptor3$14, _this2), _temp), possibleConstructorReturn(_this2, _ret);
+          return _ret = (_temp = (_this2 = possibleConstructorReturn(this, (_ref = CollapsibleTableStyle.__proto__ || Object.getPrototypeOf(CollapsibleTableStyle)).call.apply(_ref, [this].concat(args))), _this2), _initDefineProp$g(_this2, "button", _descriptor$f, _this2), _initDefineProp$g(_this2, "collapsedButton", _descriptor2$e, _this2), _initDefineProp$g(_this2, "heading", _descriptor3$e, _this2), _temp), possibleConstructorReturn(_this2, _ret);
       }
 
       return CollapsibleTableStyle;
-  }(StyleSheet), (_descriptor$15 = _applyDecoratedDescriptor$16(_class$37.prototype, "button", [styleRule], {
+  }(StyleSheet), (_descriptor$f = _applyDecoratedDescriptor$g(_class$B.prototype, "button", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16749,7 +16708,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor2$14 = _applyDecoratedDescriptor$16(_class$37.prototype, "collapsedButton", [styleRule], {
+  }), _descriptor2$e = _applyDecoratedDescriptor$g(_class$B.prototype, "collapsedButton", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16758,7 +16717,7 @@ var Bundle = (function (exports) {
               }
           };
       }
-  }), _descriptor3$14 = _applyDecoratedDescriptor$16(_class$37.prototype, "heading", [styleRule], {
+  }), _descriptor3$e = _applyDecoratedDescriptor$g(_class$B.prototype, "heading", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -16766,7 +16725,7 @@ var Bundle = (function (exports) {
               backgroundColor: "initial !important"
           };
       }
-  })), _class$37);
+  })), _class$B);
 
 
   var collapsibleTableStyle = new CollapsibleTableStyle();
@@ -17149,9 +17108,9 @@ var Bundle = (function (exports) {
 
   var SortableTable = SortableTableInterface(Table);
 
-  var _class$38, _temp$7;
+  var _class$C, _temp$7;
 
-  var TimeUnit = (_temp$7 = _class$38 = function () {
+  var TimeUnit = (_temp$7 = _class$C = function () {
       function TimeUnit(name, baseUnit, multiplier) {
           var options = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
           classCallCheck(this, TimeUnit);
@@ -17211,7 +17170,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return TimeUnit;
-  }(), _class$38.CANONICAL = {}, _class$38.ALL = [], _class$38.FIXED_DURATION = [], _class$38.VARIABLE_DURATION = [], _temp$7);
+  }(), _class$C.CANONICAL = {}, _class$C.ALL = [], _class$C.FIXED_DURATION = [], _class$C.VARIABLE_DURATION = [], _temp$7);
 
   TimeUnit.MILLISECOND = new TimeUnit("millisecond", null, 1);
   TimeUnit.SECOND = new TimeUnit("second", TimeUnit.MILLISECOND, 1000);
@@ -17471,7 +17430,7 @@ var Bundle = (function (exports) {
 
   addCanonicalTimeUnits();
 
-  var _class$39;
+  var _class$D;
 
   // MAX_UNIX_TIME is either ~Feb 2106 in unix seconds or ~Feb 1970 in unix milliseconds
   // Any value less than this is interpreted as a unix time in seconds
@@ -17481,7 +17440,7 @@ var Bundle = (function (exports) {
 
   var BaseDate = self.Date;
 
-  var StemDate = extendsNative(_class$39 = function (_BaseDate) {
+  var StemDate = extendsNative(_class$D = function (_BaseDate) {
       inherits(StemDate, _BaseDate);
 
       function StemDate() {
@@ -17888,7 +17847,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return StemDate;
-  }(BaseDate)) || _class$39;
+  }(BaseDate)) || _class$D;
 
   Duration.prototype.format = function (pattern) {
       return StemDate.fromUnixMilliseconds(this.toMilliseconds()).utc().format(pattern);
@@ -17993,46 +17952,8 @@ var Bundle = (function (exports) {
       return date.format("MMMM Do, YYYY");
   }]]);
 
-  // File meant to handle server time/client time differences
-  var ServerTime = {
-      now: function now() {
-          return StemDate().subtract(this.getOffset());
-      },
-      getOffset: function getOffset() {
-          return this.offset;
-      },
-      set: function set(date) {
-          var onlyIfMissing = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
-          if (!onlyIfMissing || this.offset == null) {
-              this.offset = Date.now() - new StemDate(date);
-          }
-      },
-      setPageLoadTime: function setPageLoadTime(unixTime) {
-
-          this.serverPageLoad = unixTime;
-          this.offset = performance.timing.responseStart - unixTime * 1000;
-      }
-  };
-
   // TODO: should use +TimeUnit.DAY
   var DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
-
-  // TODO: should have a generic method time1.isSame("x", time);
-  function isDifferentDay(timeA, timeB) {
-      // return !StemDate(timeA).same(TimeUnit.DAY, timeB);
-      timeA = StemDate(timeA);
-      timeB = StemDate(timeB);
-
-      // First check if difference is gre
-      if (timeA.diff(timeB) > +TimeUnit.DAY) {
-          return true;
-      }
-      // Check if different day of the month, when difference is less than a day
-      return timeA.getDate() !== timeB.getDate();
-  }
-
-  // import {Button} from "./button/Button";
 
   var DatePickerTable = function (_UI$Element) {
       inherits(DatePickerTable, _UI$Element);
@@ -18197,19 +18118,19 @@ var Bundle = (function (exports) {
       return DateTimeWindow;
   }(VolatileFloatingWindow);
 
-  var DateTimePicker$$1 = function (_UI$Element3) {
-      inherits(DateTimePicker$$1, _UI$Element3);
+  var DateTimePicker = function (_UI$Element3) {
+      inherits(DateTimePicker, _UI$Element3);
 
-      function DateTimePicker$$1() {
-          classCallCheck(this, DateTimePicker$$1);
-          return possibleConstructorReturn(this, (DateTimePicker$$1.__proto__ || Object.getPrototypeOf(DateTimePicker$$1)).apply(this, arguments));
+      function DateTimePicker() {
+          classCallCheck(this, DateTimePicker);
+          return possibleConstructorReturn(this, (DateTimePicker.__proto__ || Object.getPrototypeOf(DateTimePicker)).apply(this, arguments));
       }
 
-      createClass(DateTimePicker$$1, [{
+      createClass(DateTimePicker, [{
           key: "setOptions",
           value: function setOptions(options) {
               options.format = options.format || "DD/MM/YYYY HH:mm:ss";
-              get(DateTimePicker$$1.prototype.__proto__ || Object.getPrototypeOf(DateTimePicker$$1.prototype), "setOptions", this).call(this, options);
+              get(DateTimePicker.prototype.__proto__ || Object.getPrototypeOf(DateTimePicker.prototype), "setOptions", this).call(this, options);
               if (this.options.date) {
                   this.setDate(this.options.date);
               }
@@ -18315,7 +18236,7 @@ var Bundle = (function (exports) {
           // }
 
       }]);
-      return DateTimePicker$$1;
+      return DateTimePicker;
   }(UI.Element);
 
   function enqueueIfNotLoaded(target, key, descriptor) {
@@ -18392,9 +18313,9 @@ var Bundle = (function (exports) {
       }(BaseClass);
   };
 
-  var _class$40, _class2$7, _descriptor$16, _dec$19, _class4$1;
+  var _class$E, _class2$7, _descriptor$g, _dec$j, _class4$1;
 
-  function _initDefineProp$17(target, property, descriptor, context) {
+  function _initDefineProp$h(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -18404,7 +18325,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$17(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$h(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -18433,7 +18354,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var CodeEditor = (_class$40 = function (_EnqueueableMethodMix) {
+  var CodeEditor = (_class$E = function (_EnqueueableMethodMix) {
       inherits(CodeEditor, _EnqueueableMethodMix);
 
       function CodeEditor() {
@@ -18932,7 +18853,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return CodeEditor;
-  }(EnqueueableMethodMixin(UI.Element)), (_applyDecoratedDescriptor$17(_class$40.prototype, "applyAceOptions", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "applyAceOptions"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "aceResize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "aceResize"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setValue", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setValue"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceOptions", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceOptions"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setReadOnly", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setReadOnly"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceMode", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceMode"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceKeyboardHandler", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceKeyboardHandler"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceTheme", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceTheme"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceFontSize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceFontSize"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceTabSize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceTabSize"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceLineNumberVisible", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceLineNumberVisible"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAcePrintMarginVisible", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAcePrintMarginVisible"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAcePrintMarginSize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAcePrintMarginSize"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setBasicAutocompletion", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setBasicAutocompletion"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setLiveAutocompletion", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setLiveAutocompletion"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setSnippets", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setSnippets"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAnnotations", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAnnotations"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setUseWrapMode", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setUseWrapMode"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setIndentedSoftWrap", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setIndentedSoftWrap"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "blockScroll", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "blockScroll"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setFoldStyle", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setFoldStyle"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setHighlightActiveLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setHighlightActiveLine"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setHighlightGutterLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setHighlightGutterLine"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setShowGutter", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setShowGutter"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setScrollTop", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setScrollTop"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "addMarker", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "addMarker"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "removeMarker", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "removeMarker"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setTextRange", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setTextRange"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "removeLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "removeLine"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "insertAtLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "insertAtLine"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "replaceLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "replaceLine"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "addAceSessionEventListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "addAceSessionEventListener"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "addAceSessionChangeListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "addAceSessionChangeListener"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "addAceChangeListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "addAceChangeListener"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "addAceEventListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "addAceEventListener"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "focus", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "focus"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "gotoEnd", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "gotoEnd"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setUndoManager", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setUndoManager"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "setAceRendererOption", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "setAceRendererOption"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "insert", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "insert"), _class$40.prototype), _applyDecoratedDescriptor$17(_class$40.prototype, "append", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$40.prototype, "append"), _class$40.prototype)), _class$40);
+  }(EnqueueableMethodMixin(UI.Element)), (_applyDecoratedDescriptor$h(_class$E.prototype, "applyAceOptions", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "applyAceOptions"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "aceResize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "aceResize"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setValue", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setValue"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceOptions", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceOptions"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setReadOnly", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setReadOnly"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceMode", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceMode"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceKeyboardHandler", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceKeyboardHandler"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceTheme", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceTheme"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceFontSize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceFontSize"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceTabSize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceTabSize"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceLineNumberVisible", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceLineNumberVisible"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAcePrintMarginVisible", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAcePrintMarginVisible"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAcePrintMarginSize", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAcePrintMarginSize"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setBasicAutocompletion", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setBasicAutocompletion"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setLiveAutocompletion", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setLiveAutocompletion"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setSnippets", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setSnippets"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAnnotations", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAnnotations"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setUseWrapMode", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setUseWrapMode"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setIndentedSoftWrap", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setIndentedSoftWrap"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "blockScroll", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "blockScroll"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setFoldStyle", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setFoldStyle"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setHighlightActiveLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setHighlightActiveLine"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setHighlightGutterLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setHighlightGutterLine"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setShowGutter", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setShowGutter"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setScrollTop", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setScrollTop"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "addMarker", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "addMarker"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "removeMarker", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "removeMarker"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setTextRange", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setTextRange"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "removeLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "removeLine"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "insertAtLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "insertAtLine"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "replaceLine", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "replaceLine"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "addAceSessionEventListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "addAceSessionEventListener"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "addAceSessionChangeListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "addAceSessionChangeListener"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "addAceChangeListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "addAceChangeListener"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "addAceEventListener", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "addAceEventListener"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "focus", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "focus"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "gotoEnd", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "gotoEnd"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setUndoManager", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setUndoManager"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "setAceRendererOption", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "setAceRendererOption"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "insert", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "insert"), _class$E.prototype), _applyDecoratedDescriptor$h(_class$E.prototype, "append", [enqueueIfNotLoaded], Object.getOwnPropertyDescriptor(_class$E.prototype, "append"), _class$E.prototype)), _class$E);
   var StaticCodeHighlighterStyle = (_class2$7 = function (_StyleSheet) {
       inherits(StaticCodeHighlighterStyle, _StyleSheet);
 
@@ -18947,11 +18868,11 @@ var Bundle = (function (exports) {
               args[_key2] = arguments[_key2];
           }
 
-          return _ret = (_temp = (_this5 = possibleConstructorReturn(this, (_ref = StaticCodeHighlighterStyle.__proto__ || Object.getPrototypeOf(StaticCodeHighlighterStyle)).call.apply(_ref, [this].concat(args))), _this5), _initDefineProp$17(_this5, "hideActive", _descriptor$16, _this5), _temp), possibleConstructorReturn(_this5, _ret);
+          return _ret = (_temp = (_this5 = possibleConstructorReturn(this, (_ref = StaticCodeHighlighterStyle.__proto__ || Object.getPrototypeOf(StaticCodeHighlighterStyle)).call.apply(_ref, [this].concat(args))), _this5), _initDefineProp$h(_this5, "hideActive", _descriptor$g, _this5), _temp), possibleConstructorReturn(_this5, _ret);
       }
 
       return StaticCodeHighlighterStyle;
-  }(StyleSheet), (_descriptor$16 = _applyDecoratedDescriptor$17(_class2$7.prototype, "hideActive", [styleRule], {
+  }(StyleSheet), (_descriptor$g = _applyDecoratedDescriptor$h(_class2$7.prototype, "hideActive", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -18967,7 +18888,7 @@ var Bundle = (function (exports) {
           };
       }
   })), _class2$7);
-  var StaticCodeHighlighter = (_dec$19 = registerStyle(StaticCodeHighlighterStyle), _dec$19(_class4$1 = function (_CodeEditor) {
+  var StaticCodeHighlighter = (_dec$j = registerStyle(StaticCodeHighlighterStyle), _dec$j(_class4$1 = function (_CodeEditor) {
       inherits(StaticCodeHighlighter, _CodeEditor);
 
       function StaticCodeHighlighter() {
@@ -18994,9 +18915,9 @@ var Bundle = (function (exports) {
       return StaticCodeHighlighter;
   }(CodeEditor)) || _class4$1);
 
-  var _class$41, _descriptor$17, _dec$20, _class3$12;
+  var _class$F, _descriptor$h, _dec$k, _class3$c;
 
-  function _initDefineProp$18(target, property, descriptor, context) {
+  function _initDefineProp$i(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -19006,7 +18927,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$18(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$i(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -19098,7 +19019,7 @@ var Bundle = (function (exports) {
       return ImportedSVG;
   }(Image);
 
-  var LogoStyle = (_class$41 = function (_StyleSheet) {
+  var LogoStyle = (_class$F = function (_StyleSheet) {
       inherits(LogoStyle, _StyleSheet);
 
       function LogoStyle() {
@@ -19112,11 +19033,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this3 = possibleConstructorReturn(this, (_ref = LogoStyle.__proto__ || Object.getPrototypeOf(LogoStyle)).call.apply(_ref, [this].concat(args))), _this3), _initDefineProp$18(_this3, "logo", _descriptor$17, _this3), _temp), possibleConstructorReturn(_this3, _ret);
+          return _ret = (_temp = (_this3 = possibleConstructorReturn(this, (_ref = LogoStyle.__proto__ || Object.getPrototypeOf(LogoStyle)).call.apply(_ref, [this].concat(args))), _this3), _initDefineProp$i(_this3, "logo", _descriptor$h, _this3), _temp), possibleConstructorReturn(_this3, _ret);
       }
 
       return LogoStyle;
-  }(StyleSheet), (_descriptor$17 = _applyDecoratedDescriptor$18(_class$41.prototype, "logo", [styleRule], {
+  }(StyleSheet), (_descriptor$h = _applyDecoratedDescriptor$i(_class$F.prototype, "logo", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -19133,9 +19054,9 @@ var Bundle = (function (exports) {
               }
           };
       }
-  })), _class$41);
+  })), _class$F);
 
-  var Logo = (_dec$20 = registerStyle(LogoStyle), _dec$20(_class3$12 = function (_Link) {
+  var Logo = (_dec$k = registerStyle(LogoStyle), _dec$k(_class3$c = function (_Link) {
       inherits(Logo, _Link);
 
       function Logo() {
@@ -19164,7 +19085,7 @@ var Bundle = (function (exports) {
           }
       }]);
       return Logo;
-  }(Link)) || _class3$12);
+  }(Link)) || _class3$c);
 
   var MediumLogo = function (_Logo) {
       inherits(MediumLogo, _Logo);
@@ -19376,9 +19297,9 @@ var Bundle = (function (exports) {
       return DBribe;
   }(ImportedSVG);
 
-  var _class$42, _descriptor$18, _dec$21, _class3$13;
+  var _class$G, _descriptor$i, _dec$l, _class3$d;
 
-  function _initDefineProp$19(target, property, descriptor, context) {
+  function _initDefineProp$j(target, property, descriptor, context) {
       if (!descriptor) return;
       Object.defineProperty(target, property, {
           enumerable: descriptor.enumerable,
@@ -19388,7 +19309,7 @@ var Bundle = (function (exports) {
       });
   }
 
-  function _applyDecoratedDescriptor$19(target, property, decorators, descriptor, context) {
+  function _applyDecoratedDescriptor$j(target, property, decorators, descriptor, context) {
       var desc = {};
       Object['ke' + 'ys'](descriptor).forEach(function (key) {
           desc[key] = descriptor[key];
@@ -19417,7 +19338,7 @@ var Bundle = (function (exports) {
       return desc;
   }
 
-  var IndexPageStyle = (_class$42 = function (_StyleSheet) {
+  var IndexPageStyle = (_class$G = function (_StyleSheet) {
       inherits(IndexPageStyle, _StyleSheet);
 
       function IndexPageStyle() {
@@ -19431,11 +19352,11 @@ var Bundle = (function (exports) {
               args[_key] = arguments[_key];
           }
 
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = IndexPageStyle.__proto__ || Object.getPrototypeOf(IndexPageStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$19(_this, "container", _descriptor$18, _this), _temp), possibleConstructorReturn(_this, _ret);
+          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = IndexPageStyle.__proto__ || Object.getPrototypeOf(IndexPageStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$j(_this, "container", _descriptor$i, _this), _temp), possibleConstructorReturn(_this, _ret);
       }
 
       return IndexPageStyle;
-  }(StyleSheet), (_descriptor$18 = _applyDecoratedDescriptor$19(_class$42.prototype, "container", [styleRule], {
+  }(StyleSheet), (_descriptor$i = _applyDecoratedDescriptor$j(_class$G.prototype, "container", [styleRule], {
       enumerable: true,
       initializer: function initializer() {
           return {
@@ -19447,9 +19368,9 @@ var Bundle = (function (exports) {
               flexDirection: "column"
           };
       }
-  })), _class$42);
+  })), _class$G);
 
-  var IndexPage = (_dec$21 = registerStyle(IndexPageStyle), _dec$21(_class3$13 = function (_UI$Element) {
+  var IndexPage = (_dec$l = registerStyle(IndexPageStyle), _dec$l(_class3$d = function (_UI$Element) {
       inherits(IndexPage, _UI$Element);
 
       function IndexPage() {
@@ -19479,12 +19400,41 @@ var Bundle = (function (exports) {
                   UI.createElement(TwitterLogo, null),
                   UI.createElement(MediumLogo, null),
                   UI.createElement(PinterestLogo, null),
-                  UI.createElement(GitHubLogo, null)
+                  UI.createElement(GitHubLogo, null),
+                  UI.createElement("iframe", { src: "http://localhost:8080/iframe" })
               )];
           }
       }]);
       return IndexPage;
-  }(UI.Element)) || _class3$13);
+  }(UI.Element)) || _class3$d);
+
+  var MAIN_ROUTE = new Route("", IndexPage, []);
+
+  Theme.Global.setProperties({
+      NAV_MANAGER_NAVBAR_HEIGHT: 0,
+      COLOR_BACKGROUND: "#fff",
+      COLOR_BACKGROUND_BODY: "#fff"
+  });
+
+  var AppClass = function (_EstablishmentApp) {
+      inherits(AppClass, _EstablishmentApp);
+
+      function AppClass() {
+          classCallCheck(this, AppClass);
+          return possibleConstructorReturn(this, (AppClass.__proto__ || Object.getPrototypeOf(AppClass)).apply(this, arguments));
+      }
+
+      createClass(AppClass, [{
+          key: "getRoutes",
+          value: function getRoutes() {
+              return MAIN_ROUTE;
+          }
+      }], [{
+          key: "registerWebsocketStreams",
+          value: function registerWebsocketStreams() {}
+      }]);
+      return AppClass;
+  }(EstablishmentApp.EstablishmentApp);
 
   var State = function (_Dispatchable) {
       inherits(State, _Dispatchable);
@@ -19684,14783 +19634,6 @@ var Bundle = (function (exports) {
 
   self.GlobalState = GlobalState;
 
-  // The store information is kept in a symbol, to not interfere with serialization/deserialization
-  var StoreSymbol = Symbol("Store");
-
-  var StoreObject = function (_Dispatchable) {
-      inherits(StoreObject, _Dispatchable);
-
-      function StoreObject(obj, event, store) {
-          classCallCheck(this, StoreObject);
-
-          var _this = possibleConstructorReturn(this, (StoreObject.__proto__ || Object.getPrototypeOf(StoreObject)).call(this));
-
-          Object.assign(_this, obj);
-          _this.setStore(store);
-          return _this;
-      }
-
-      createClass(StoreObject, [{
-          key: "setStore",
-          value: function setStore(store) {
-              this[StoreSymbol] = store;
-          }
-      }, {
-          key: "getStore",
-          value: function getStore() {
-              return this[StoreSymbol];
-          }
-
-          // By default, applying an event just shallow copies the fields from event.data
-
-      }, {
-          key: "applyEvent",
-          value: function applyEvent(event) {
-              Object.assign(this, event.data);
-          }
-      }, {
-          key: "addUpdateListener",
-
-
-          // Add a listener for all updates, callback will receive the events after they were applied
-          value: function addUpdateListener(callback) {
-              return this.addListener("update", callback);
-          }
-      }, {
-          key: "addDeleteListener",
-          value: function addDeleteListener(callback) {
-              return this.addListener("delete", callback);
-          }
-
-          // Add a listener on updates from events with this specific type.
-          // Can accept an array as eventType
-          // Returns an object that implements the Cleanup interface.
-
-      }, {
-          key: "addEventListener",
-          value: function addEventListener(eventType, callback) {
-              var _this2 = this;
-
-              if (Array.isArray(eventType)) {
-                  var handlers = eventType.map(function (e) {
-                      return _this2.addEventListener(e, callback);
-                  });
-                  return new CleanupJobs(handlers);
-              }
-              // Ensure the private event dispatcher exists
-              if (!this._eventDispatcher) {
-                  this._eventDispatcher = new Dispatchable();
-                  this.addUpdateListener(function (event) {
-                      _this2._eventDispatcher.dispatch(event.type, event, _this2);
-                  });
-              }
-              return this._eventDispatcher.addListener(eventType, callback);
-          }
-      }, {
-          key: "getStreamName",
-          value: function getStreamName() {
-              throw "getStreamName not implemented";
-          }
-      }, {
-          key: "registerToStream",
-          value: function registerToStream() {
-              this.getStore().getState().registerStream(this.getStreamName());
-          }
-      }], [{
-          key: "getStoreName",
-          value: function getStoreName() {
-              return this.name;
-          }
-      }]);
-      return StoreObject;
-  }(Dispatchable);
-
-  var BaseStore = function (_Dispatchable2) {
-      inherits(BaseStore, _Dispatchable2);
-
-      function BaseStore(objectType) {
-          var ObjectWrapper = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : StoreObject;
-          var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-          classCallCheck(this, BaseStore);
-
-          var _this3 = possibleConstructorReturn(this, (BaseStore.__proto__ || Object.getPrototypeOf(BaseStore)).call(this));
-
-          _this3.options = options;
-          _this3.objectType = objectType.toLowerCase();
-          _this3.ObjectWrapper = ObjectWrapper;
-          _this3.attachToState();
-          return _this3;
-      }
-
-      createClass(BaseStore, [{
-          key: "attachToState",
-          value: function attachToState() {
-              if (this.getState()) {
-                  this.getState().addStore(this);
-              }
-          }
-      }, {
-          key: "getState",
-          value: function getState() {
-              // Allow explicit no state
-              if (this.options.hasOwnProperty("state")) {
-                  return this.options.state;
-              } else {
-                  return DefaultState;
-              }
-          }
-
-          // Is used by the state object to see which stores need to be loaded first
-
-      }, {
-          key: "getDependencies",
-          value: function getDependencies() {
-              return this.options.dependencies || [];
-          }
-      }]);
-      return BaseStore;
-  }(Dispatchable);
-
-  // Store type primarily intended to store objects that come from a server DB, and have a unique numeric .id field
-
-
-  var GenericObjectStore = function (_BaseStore) {
-      inherits(GenericObjectStore, _BaseStore);
-
-      function GenericObjectStore(objectType) {
-          classCallCheck(this, GenericObjectStore);
-
-          var _this4 = possibleConstructorReturn(this, (GenericObjectStore.__proto__ || Object.getPrototypeOf(GenericObjectStore)).apply(this, arguments));
-
-          _this4.objects = new Map();
-          return _this4;
-      }
-
-      createClass(GenericObjectStore, [{
-          key: "has",
-          value: function has(id) {
-              return !!this.get(id);
-          }
-      }, {
-          key: "get",
-          value: function get$$1(id) {
-              if (id == null) {
-                  return null;
-              }
-              return this.objects.get(parseInt(id));
-          }
-      }, {
-          key: "getObjectIdForEvent",
-          value: function getObjectIdForEvent(event) {
-              return event.objectId || event.data.id;
-          }
-      }, {
-          key: "getObjectForEvent",
-          value: function getObjectForEvent(event) {
-              var objectId = this.getObjectIdForEvent(event);
-              return this.get(objectId);
-          }
-
-          // TODO: should this default to iterable?
-
-      }, {
-          key: "all",
-          value: function all(asIterable) {
-              var values = this.objects.values();
-              if (!asIterable) {
-                  values = Array.from(values);
-              }
-              return values;
-          }
-      }, {
-          key: "createObject",
-          value: function createObject(event) {
-              var obj = new this.ObjectWrapper(event.data, event, this);
-              obj.setStore(this);
-              return obj;
-          }
-      }, {
-          key: "applyCreateEvent",
-          value: function applyCreateEvent(event) {
-              var sendDispatch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-              var existingObject = this.getObjectForEvent(event);
-
-              if (existingObject) {
-                  var refreshEvent = Object.assign({}, event);
-                  refreshEvent.type = "refresh";
-                  existingObject.applyEvent(refreshEvent);
-                  existingObject.dispatch("update", event);
-                  return existingObject;
-              } else {
-                  var newObject = this.createObject(event);
-                  this.objects.set(this.getObjectIdForEvent(event), newObject);
-
-                  if (sendDispatch) {
-                      this.dispatch("create", newObject, event);
-                  }
-                  return newObject;
-              }
-          }
-      }, {
-          key: "applyUpdateOrCreateEvent",
-          value: function applyUpdateOrCreateEvent(event) {
-              var obj = this.getObjectForEvent(event);
-              if (!obj) {
-                  obj = this.applyCreateEvent(event, false);
-                  this.dispatch("create", obj, event);
-              } else {
-                  this.applyEventToObject(obj, event);
-              }
-              this.dispatch("updateOrCreate", obj, event);
-              return obj;
-          }
-      }, {
-          key: "applyDeleteEvent",
-          value: function applyDeleteEvent(event) {
-              var objDeleted = this.getObjectForEvent(event);
-              if (objDeleted) {
-                  this.objects.delete(this.getObjectIdForEvent(event));
-                  objDeleted.dispatch("delete", event, objDeleted);
-                  this.dispatch("delete", objDeleted, event);
-              }
-              return objDeleted;
-          }
-      }, {
-          key: "applyEventToObject",
-          value: function applyEventToObject(obj, event) {
-              obj.applyEvent(event);
-              obj.dispatch("update", event);
-              this.dispatch("update", obj, event);
-              return obj;
-          }
-      }, {
-          key: "applyEvent",
-          value: function applyEvent(event) {
-              event.data = event.data || {};
-
-              if (event.type === "create") {
-                  return this.applyCreateEvent(event);
-              } else if (event.type === "delete") {
-                  return this.applyDeleteEvent(event);
-              } else if (event.type === "updateOrCreate") {
-                  return this.applyUpdateOrCreateEvent(event);
-              } else {
-                  var obj = this.getObjectForEvent(event);
-                  if (!obj) {
-                      console.error("I don't have object of type ", this.objectType, " ", event.objectId);
-                      return;
-                  }
-                  return this.applyEventToObject(obj, event);
-              }
-          }
-      }, {
-          key: "importState",
-          value: function importState(objects) {
-              objects = objects || [];
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = objects[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var obj = _step.value;
-
-                      this.fakeCreate(obj);
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-          }
-
-          // Create a fake creation event, to insert the raw object
-
-      }, {
-          key: "fakeCreate",
-          value: function fakeCreate(obj) {
-              var eventType = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "fakeCreate";
-
-              if (!obj) {
-                  return;
-              }
-              var event = {
-                  objectType: this.objectType,
-                  objectId: obj.id,
-                  type: eventType,
-                  data: obj
-              };
-              return this.applyCreateEvent(event);
-          }
-
-          // Add a listener on all object creation events
-          // If fakeExisting, will also pass existing objects to your callback
-
-      }, {
-          key: "addCreateListener",
-          value: function addCreateListener(callback, fakeExisting) {
-              if (fakeExisting) {
-                  var _iteratorNormalCompletion2 = true;
-                  var _didIteratorError2 = false;
-                  var _iteratorError2 = undefined;
-
-                  try {
-                      for (var _iterator2 = this.objects.values()[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                          var object = _step2.value;
-
-                          var _event = {
-                              objectType: this.objectType,
-                              objectId: object.id,
-                              type: "fakeCreate",
-                              data: object
-                          };
-                          callback(object, _event);
-                      }
-                  } catch (err) {
-                      _didIteratorError2 = true;
-                      _iteratorError2 = err;
-                  } finally {
-                      try {
-                          if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                              _iterator2.return();
-                          }
-                      } finally {
-                          if (_didIteratorError2) {
-                              throw _iteratorError2;
-                          }
-                      }
-                  }
-              }
-
-              return this.addListener("create", callback);
-          }
-
-          // Add a listener for any updates to objects in store
-          // The callback will receive the object and the event
-
-      }, {
-          key: "addUpdateListener",
-          value: function addUpdateListener(callback) {
-              return this.addListener("update", callback);
-          }
-
-          // Add a listener for any object deletions
-
-      }, {
-          key: "addDeleteListener",
-          value: function addDeleteListener(callback) {
-              return this.addListener("delete", callback);
-          }
-      }]);
-      return GenericObjectStore;
-  }(BaseStore);
-
-  var SingletonStore = function (_BaseStore2) {
-      inherits(SingletonStore, _BaseStore2);
-
-      function SingletonStore(objectType) {
-          var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-          classCallCheck(this, SingletonStore);
-          return possibleConstructorReturn(this, (SingletonStore.__proto__ || Object.getPrototypeOf(SingletonStore)).call(this, objectType, SingletonStore, options));
-      }
-
-      createClass(SingletonStore, [{
-          key: "get",
-          value: function get$$1() {
-              return this;
-          }
-      }, {
-          key: "all",
-          value: function all() {
-              return [this];
-          }
-      }, {
-          key: "applyEvent",
-          value: function applyEvent(event) {
-              Object.assign(this, event.data);
-              this.dispatch("update", event, this);
-          }
-      }, {
-          key: "importState",
-          value: function importState(obj) {
-              Object.assign(this, obj);
-              this.dispatch("update", event, this);
-          }
-      }, {
-          key: "addUpdateListener",
-          value: function addUpdateListener(callback) {
-              return this.addListener("update", callback);
-          }
-      }]);
-      return SingletonStore;
-  }(BaseStore);
-
-  // Use the same logic as StoreObject when listening to events
-
-
-  SingletonStore.prototype.addEventListener = StoreObject.prototype.addEventListener;
-
-  // TODO: this file should be called StoreExtenders
-
-  var AjaxFetchMixin = function AjaxFetchMixin(BaseStoreClass) {
-      return function (_BaseStoreClass) {
-          inherits(AjaxFetchMixin, _BaseStoreClass);
-
-          function AjaxFetchMixin() {
-              classCallCheck(this, AjaxFetchMixin);
-              return possibleConstructorReturn(this, (AjaxFetchMixin.__proto__ || Object.getPrototypeOf(AjaxFetchMixin)).apply(this, arguments));
-          }
-
-          createClass(AjaxFetchMixin, [{
-              key: "fetch",
-              value: function fetch(id, successCallback, errorCallback) {
-                  var _this2 = this;
-
-                  var forceFetch = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-
-                  if (!forceFetch) {
-                      var obj = this.get(id);
-                      if (obj) {
-                          successCallback(obj);
-                          return;
-                      }
-                  }
-                  if (!this.fetchJobs) {
-                      this.fetchJobs = [];
-                  }
-                  this.fetchJobs.push({ id: id, success: successCallback, error: errorCallback });
-                  if (!this.fetchTimeout) {
-                      this.fetchTimeout = setTimeout(function () {
-                          _this2.executeAjaxFetch();
-                      }, this.options.fetchTimeoutDuration || 0);
-                  }
-              }
-          }, {
-              key: "getFetchRequestData",
-              value: function getFetchRequestData(ids, fetchJobs) {
-                  return {
-                      ids: ids
-                  };
-              }
-          }, {
-              key: "getFetchRequestObject",
-              value: function getFetchRequestObject(ids, fetchJobs) {
-                  var _this3 = this;
-
-                  var requestData = this.getFetchRequestData(ids, fetchJobs);
-
-                  // TODO: options.fetchURL should also support a function(ids, fetchJobs), do it when needed
-                  return {
-                      url: this.options.fetchURL,
-                      type: this.options.fetchType || "GET",
-                      dataType: "json",
-                      data: requestData,
-                      cache: false,
-                      success: function success(data) {
-                          GlobalState.importState(data.state || {});
-                          var _iteratorNormalCompletion = true;
-                          var _didIteratorError = false;
-                          var _iteratorError = undefined;
-
-                          try {
-                              for (var _iterator = fetchJobs[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                                  var fetchJob = _step.value;
-
-                                  var obj = _this3.get(fetchJob.id);
-                                  if (obj) {
-                                      fetchJob.success(obj);
-                                  } else {
-                                      console.error("Failed to fetch object ", fetchJob.id, " of type ", _this3.objectType);
-                                      if (fetchJob.error) {
-                                          fetchJob.error();
-                                      }
-                                  }
-                              }
-                          } catch (err) {
-                              _didIteratorError = true;
-                              _iteratorError = err;
-                          } finally {
-                              try {
-                                  if (!_iteratorNormalCompletion && _iterator.return) {
-                                      _iterator.return();
-                                  }
-                              } finally {
-                                  if (_didIteratorError) {
-                                      throw _iteratorError;
-                                  }
-                              }
-                          }
-                      },
-                      error: function error(_error) {
-                          console.error("Failed to fetch objects of type ", _this3.objectType, ":\n", _error);
-                          var _iteratorNormalCompletion2 = true;
-                          var _didIteratorError2 = false;
-                          var _iteratorError2 = undefined;
-
-                          try {
-                              for (var _iterator2 = fetchJobs[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                                  var fetchJob = _step2.value;
-
-                                  if (fetchJob.error) {
-                                      fetchJob.error(_error);
-                                  }
-                              }
-                          } catch (err) {
-                              _didIteratorError2 = true;
-                              _iteratorError2 = err;
-                          } finally {
-                              try {
-                                  if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                                      _iterator2.return();
-                                  }
-                              } finally {
-                                  if (_didIteratorError2) {
-                                      throw _iteratorError2;
-                                  }
-                              }
-                          }
-                      }
-                  };
-              }
-
-              //returns an array of ajax requests that have to be executed
-
-          }, {
-              key: "getFetchRequests",
-              value: function getFetchRequests(fetchJobs) {
-                  var idFetchJobs = new Map();
-
-                  var _iteratorNormalCompletion3 = true;
-                  var _didIteratorError3 = false;
-                  var _iteratorError3 = undefined;
-
-                  try {
-                      for (var _iterator3 = fetchJobs[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                          var fetchJob = _step3.value;
-
-                          var objectId = fetchJob.id;
-                          if (!idFetchJobs.has(objectId)) {
-                              idFetchJobs.set(objectId, new Array());
-                          }
-                          idFetchJobs.get(objectId).push(fetchJob);
-                      }
-                  } catch (err) {
-                      _didIteratorError3 = true;
-                      _iteratorError3 = err;
-                  } finally {
-                      try {
-                          if (!_iteratorNormalCompletion3 && _iterator3.return) {
-                              _iterator3.return();
-                          }
-                      } finally {
-                          if (_didIteratorError3) {
-                              throw _iteratorError3;
-                          }
-                      }
-                  }
-
-                  var maxChunkSize = this.options.maxFetchObjectCount || 256;
-
-                  var idChunks = splitInChunks(Array.from(idFetchJobs.keys()), maxChunkSize);
-                  var fetchJobsChunks = splitInChunks(Array.from(idFetchJobs.values()), maxChunkSize);
-
-                  var requests = [];
-                  for (var i = 0; i < idChunks.length; i += 1) {
-                      requests.push(this.getFetchRequestObject(idChunks[i], unwrapArray(fetchJobsChunks[i])));
-                  }
-
-                  return requests;
-              }
-          }, {
-              key: "executeAjaxFetch",
-              value: function executeAjaxFetch() {
-                  var fetchJobs = this.fetchJobs;
-                  this.fetchJobs = null;
-
-                  var requests = this.getFetchRequests(fetchJobs);
-
-                  var _iteratorNormalCompletion4 = true;
-                  var _didIteratorError4 = false;
-                  var _iteratorError4 = undefined;
-
-                  try {
-                      for (var _iterator4 = requests[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                          var requestObject = _step4.value;
-
-                          Ajax.fetch(requestObject);
-                      }
-                  } catch (err) {
-                      _didIteratorError4 = true;
-                      _iteratorError4 = err;
-                  } finally {
-                      try {
-                          if (!_iteratorNormalCompletion4 && _iterator4.return) {
-                              _iterator4.return();
-                          }
-                      } finally {
-                          if (_didIteratorError4) {
-                              throw _iteratorError4;
-                          }
-                      }
-                  }
-
-                  clearTimeout(this.fetchTimeout);
-                  this.fetchTimeout = null;
-              }
-          }]);
-          return AjaxFetchMixin;
-      }(BaseStoreClass);
-  };
-
-  var VirtualStoreObjectMixin = function VirtualStoreObjectMixin(BaseStoreObjectClass) {
-      return function (_BaseStoreObjectClass) {
-          inherits(VirtualStoreObjectMixin, _BaseStoreObjectClass);
-
-          function VirtualStoreObjectMixin() {
-              classCallCheck(this, VirtualStoreObjectMixin);
-              return possibleConstructorReturn(this, (VirtualStoreObjectMixin.__proto__ || Object.getPrototypeOf(VirtualStoreObjectMixin)).apply(this, arguments));
-          }
-
-          createClass(VirtualStoreObjectMixin, [{
-              key: "hasTemporaryId",
-              value: function hasTemporaryId() {
-                  return (typeof this.id === "string" || this.id instanceof String) && this.id.startsWith("temp-");
-              }
-
-              // Meant for updating temporary objects that need to exist before being properly created
-
-          }, {
-              key: "updateId",
-              value: function updateId(newId) {
-                  if (this.id == newId) {
-                      return;
-                  }
-                  var oldId = this.id;
-                  if (!this.hasTemporaryId()) {
-                      console.error("This is only meant to replace temporary ids!");
-                  }
-                  this.id = newId;
-                  this.dispatch("updateId", { oldId: oldId });
-              }
-          }]);
-          return VirtualStoreObjectMixin;
-      }(BaseStoreObjectClass);
-  };
-
-  // TODO: there's still a bug in this class when not properly matching virtual obj sometimes I think
-  var VirtualStoreMixin = function VirtualStoreMixin(BaseStoreClass) {
-      return function (_BaseStoreClass2) {
-          inherits(VirtualStoreMixin, _BaseStoreClass2);
-
-          function VirtualStoreMixin() {
-              classCallCheck(this, VirtualStoreMixin);
-              return possibleConstructorReturn(this, (VirtualStoreMixin.__proto__ || Object.getPrototypeOf(VirtualStoreMixin)).apply(this, arguments));
-          }
-
-          createClass(VirtualStoreMixin, [{
-              key: "generateVirtualId",
-              value: function generateVirtualId() {
-                  return this.constructor.generateVirtualId();
-              }
-
-              // TODO: we probably shouldn't have getVirtualObject take in an event
-
-          }, {
-              key: "getVirtualObject",
-              value: function getVirtualObject(event) {
-                  return this.objects.get("temp-" + event.virtualId);
-              }
-          }, {
-              key: "get",
-              value: function get$$1(id) {
-                  return this.objects.get(id);
-              }
-          }, {
-              key: "applyUpdateObjectId",
-              value: function applyUpdateObjectId(object, id) {
-                  if (object.id === id) {
-                      return;
-                  }
-                  var oldId = object.id;
-                  object.updateId(id);
-                  this.objects.delete(oldId);
-                  this.objects.set(object.id, object);
-                  this.dispatch("updateObjectId", object, oldId);
-              }
-          }, {
-              key: "applyCreateEvent",
-              value: function applyCreateEvent(event) {
-
-                  if (event.virtualId) {
-                      var existingVirtualObject = this.getVirtualObject(event);
-                      if (existingVirtualObject) {
-                          this.applyUpdateObjectId(existingVirtualObject, event.objectId);
-                      }
-                  }
-
-                  return get(VirtualStoreMixin.prototype.__proto__ || Object.getPrototypeOf(VirtualStoreMixin.prototype), "applyCreateEvent", this).apply(this, arguments);
-              }
-          }], [{
-              key: "generateVirtualId",
-              value: function generateVirtualId() {
-                  if (!this.virtualIdCounter) {
-                      this.virtualIdCounter = 0;
-                  }
-                  this.virtualIdCounter += 1;
-                  return this.virtualIdCounter;
-              }
-          }]);
-          return VirtualStoreMixin;
-      }(BaseStoreClass);
-  };
-
-  // A basic store that can be used to keep objects that map to ISO-code backed languages
-
-  var LanguageObject = function (_StoreObject) {
-      inherits(LanguageObject, _StoreObject);
-
-      function LanguageObject(obj) {
-          classCallCheck(this, LanguageObject);
-
-          var _this = possibleConstructorReturn(this, (LanguageObject.__proto__ || Object.getPrototypeOf(LanguageObject)).call(this, obj));
-
-          _this.translationMap = new Map();
-          return _this;
-      }
-
-      createClass(LanguageObject, [{
-          key: "toString",
-          value: function toString() {
-              var name = this.name;
-              if (this.localName && this.localName != this.name) {
-                  name += " (" + this.localName + ")";
-              }
-              return name;
-          }
-      }, {
-          key: "buildTranslation",
-          value: function buildTranslation(callback) {
-              Language.dispatch("buildTranslationMap", this);
-              callback(this.translationMap);
-          }
-      }]);
-      return LanguageObject;
-  }(StoreObject);
-
-  var LanguageStoreClass = function (_GenericObjectStore) {
-      inherits(LanguageStoreClass, _GenericObjectStore);
-
-      function LanguageStoreClass() {
-          classCallCheck(this, LanguageStoreClass);
-          return possibleConstructorReturn(this, (LanguageStoreClass.__proto__ || Object.getPrototypeOf(LanguageStoreClass)).call(this, "Language", LanguageObject));
-      }
-
-      createClass(LanguageStoreClass, [{
-          key: "getLanguageForCode",
-          value: function getLanguageForCode(isoCode) {
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = this.all()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var language = _step.value;
-
-                      if (language.isoCode === isoCode) {
-                          return language;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-          }
-      }, {
-          key: "setLocale",
-          value: function setLocale(language) {
-              if (this.Locale == language) {
-                  return;
-              }
-              this.Locale = language;
-              this.dispatch("localeChange", language);
-          }
-      }, {
-          key: "getLocale",
-          value: function getLocale() {
-              return this.Locale;
-          }
-      }]);
-      return LanguageStoreClass;
-  }(GenericObjectStore);
-
-  var Language = new LanguageStoreClass();
-
-  var Article = function (_StoreObject) {
-      inherits(Article, _StoreObject);
-
-      function Article(obj) {
-          classCallCheck(this, Article);
-
-          var _this = possibleConstructorReturn(this, (Article.__proto__ || Object.getPrototypeOf(Article)).call(this, obj));
-
-          _this.edits = new Map();
-          return _this;
-      }
-
-      createClass(Article, [{
-          key: "canBeEditedByUser",
-          value: function canBeEditedByUser() {
-              var user = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : USER;
-
-              return user.isSuperUser || this.userCreatedId == user.id;
-          }
-      }, {
-          key: "addEdit",
-          value: function addEdit(articleEdit) {
-              this.edits.set(articleEdit.id, articleEdit);
-          }
-      }, {
-          key: "getEdits",
-          value: function getEdits() {
-              return Array.from(this.edits.values());
-          }
-      }, {
-          key: "getTranslation",
-          value: function getTranslation() {
-              var language = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : Language.Locale;
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = ArticleStore.all()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var article = _step.value;
-
-                      if (article.baseArticleId === this.id && article.languageId === language.id) {
-                          return article;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              return this;
-          }
-      }, {
-          key: "getBaseArticle",
-          value: function getBaseArticle() {
-              return ArticleStore.get(this.baseArticleId) || this;
-          }
-      }]);
-      return Article;
-  }(StoreObject);
-
-  var ArticleEdit = function (_StoreObject2) {
-      inherits(ArticleEdit, _StoreObject2);
-
-      function ArticleEdit() {
-          classCallCheck(this, ArticleEdit);
-          return possibleConstructorReturn(this, (ArticleEdit.__proto__ || Object.getPrototypeOf(ArticleEdit)).apply(this, arguments));
-      }
-
-      createClass(ArticleEdit, [{
-          key: "getArticle",
-          value: function getArticle() {
-              return ArticleStore.get(this.articleId);
-          }
-      }]);
-      return ArticleEdit;
-  }(StoreObject);
-
-  var ArticleStoreClass = function (_AjaxFetchMixin) {
-      inherits(ArticleStoreClass, _AjaxFetchMixin);
-
-      function ArticleStoreClass() {
-          classCallCheck(this, ArticleStoreClass);
-          return possibleConstructorReturn(this, (ArticleStoreClass.__proto__ || Object.getPrototypeOf(ArticleStoreClass)).apply(this, arguments));
-      }
-
-      createClass(ArticleStoreClass, [{
-          key: "getTranslation",
-          value: function getTranslation(id) {
-              var language = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Language.Locale;
-
-              var baseArticle = this.get(id);
-              if (baseArticle) {
-                  baseArticle = baseArticle.getTranslation(language);
-              }
-              return baseArticle;
-          }
-      }]);
-      return ArticleStoreClass;
-  }(AjaxFetchMixin(GenericObjectStore));
-
-  var ArticleStore = new ArticleStoreClass("article", Article, {
-      fetchURL: "/fetch_article/",
-      maxFetchObjectCount: 32
-  });
-
-  var ArticleEditStore = new GenericObjectStore("articleedit", ArticleEdit, {
-      dependencies: ["article"]
-  });
-
-  ArticleEditStore.addCreateListener(function (articleEdit) {
-      var article = articleEdit.getArticle();
-      article.addEdit(articleEdit);
-  });
-
-  var BlogEntry = function (_StoreObject) {
-      inherits(BlogEntry, _StoreObject);
-
-      function BlogEntry() {
-          classCallCheck(this, BlogEntry);
-          return possibleConstructorReturn(this, (BlogEntry.__proto__ || Object.getPrototypeOf(BlogEntry)).apply(this, arguments));
-      }
-
-      createClass(BlogEntry, [{
-          key: "getArticle",
-          value: function getArticle() {
-              return ArticleStore.get(this.articleId);
-          }
-      }]);
-      return BlogEntry;
-  }(StoreObject);
-
-  var BlogEntryStoreClass = function (_GenericObjectStore) {
-      inherits(BlogEntryStoreClass, _GenericObjectStore);
-
-      function BlogEntryStoreClass() {
-          var objectType = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "BlogEntry";
-          var ObjectWrapper = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : BlogEntry;
-          classCallCheck(this, BlogEntryStoreClass);
-          return possibleConstructorReturn(this, (BlogEntryStoreClass.__proto__ || Object.getPrototypeOf(BlogEntryStoreClass)).call(this, objectType, ObjectWrapper, {
-              dependencies: ["Article"]
-          }));
-      }
-
-      createClass(BlogEntryStoreClass, [{
-          key: "getEntryForURL",
-          value: function getEntryForURL(urlName) {
-              return this.all().find(function (blogEntry) {
-                  return blogEntry.urlName === urlName;
-              });
-          }
-      }]);
-      return BlogEntryStoreClass;
-  }(GenericObjectStore);
-
-  var BlogEntryStore = new BlogEntryStoreClass();
-
-  // TODO: this file is in dire need of a rewrite
-  var StringStream = function () {
-      function StringStream(string, options) {
-          classCallCheck(this, StringStream);
-
-          this.string = string;
-          this.pointer = 0;
-      }
-
-      createClass(StringStream, [{
-          key: "done",
-          value: function done() {
-              return this.pointer >= this.string.length;
-          }
-      }, {
-          key: "advance",
-          value: function advance() {
-              var steps = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1;
-
-              this.pointer += steps;
-          }
-      }, {
-          key: "char",
-          value: function char() {
-              var ch = this.string.charAt(this.pointer);
-              this.pointer += 1;
-              return ch;
-          }
-      }, {
-          key: "whitespace",
-          value: function whitespace() {
-              var whitespaceChar = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : /\s/;
-
-              var whitespaceStart = this.pointer;
-
-              while (!this.done() && whitespaceChar.test(this.at(0))) {
-                  this.pointer += 1;
-              }
-
-              // Return the actual whitespace in case it is needed
-              return this.string.substring(whitespaceStart, this.pointer);
-          }
-
-          // Gets first encountered non-whitespace substring
-
-      }, {
-          key: "word",
-          value: function word() {
-              var validChars = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : /\S/;
-              var skipWhitespace = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-              if (skipWhitespace) {
-                  this.whitespace();
-              }
-
-              var wordStart = this.pointer;
-              while (!this.done() && validChars.test(this.at(0))) {
-                  this.pointer += 1;
-              }
-              return this.string.substring(wordStart, this.pointer);
-          }
-      }, {
-          key: "number",
-          value: function number() {
-              var skipWhitespace = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
-
-              if (skipWhitespace) {
-                  this.whitespace();
-              }
-
-              var nanString = "NaN";
-              if (this.startsWith(nanString)) {
-                  this.advance(nanString.length);
-                  return NaN;
-              }
-
-              var sign = "+";
-              if (this.at(0) === "-" || this.at(0) === "+") {
-                  sign = this.char();
-              }
-
-              var infinityString = "Infinity";
-              if (this.startsWith(infinityString)) {
-                  this.advance(infinityString.length);
-                  return sign === "+" ? Infinity : -Infinity;
-              }
-
-              var isDigit = function isDigit(char) {
-                  return char >= "0" || char <= "9";
-              };
-
-              if (this.at(0) === "0" && (this.at(1) === "X" || this.at(1) === "x")) {
-                  // hexadecimal number
-                  this.advance(2);
-
-                  var isHexDigit = function isHexDigit(char) {
-                      return isDigit(char) || char >= "A" && char <= "F" || char >= "a" && char <= "f";
-                  };
-
-                  var _numberStart = this.pointer;
-                  while (!this.done() && isHexDigit(this.at(0))) {
-                      this.pointer += 1;
-                  }
-
-                  return parseInt(sign + this.string.substring(_numberStart), 16);
-              }
-
-              var numberStart = this.pointer;
-              while (!this.done() && isDigit(this.at(1))) {
-                  this.pointer += 1;
-                  if (this.peek === ".") {
-                      this.advance(1);
-                      while (!this.done() && isDigit(this.at(1))) {
-                          this.pointer += 1;
-                      }
-                      break;
-                  }
-              }
-              return parseFloat(sign + this.string.substring(numberStart, this.pointer));
-          }
-
-          // Gets everything up to delimiter, usually end of line, limited to maxLength
-
-      }, {
-          key: "line",
-          value: function line() {
-              var delimiter = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : /\r*\n/;
-              var maxLength = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Infinity;
-
-              if (delimiter instanceof RegExp) {
-                  // Treat regex differently. It will probably be slower.
-                  var str = this.string.substring(this.pointer);
-                  var delimiterMatch = str.match(delimiter);
-
-                  var _delimiterIndex = void 0,
-                      delimiterLength = void 0;
-                  if (delimiterMatch === null) {
-                      // End of string encountered
-                      _delimiterIndex = str.length;
-                      delimiterLength = 0;
-                  } else {
-                      _delimiterIndex = delimiterMatch.index;
-                      delimiterLength = delimiterMatch[0].length;
-                  }
-
-                  if (_delimiterIndex >= maxLength) {
-                      this.pointer += maxLength;
-                      return str.substring(0, maxLength);
-                  }
-
-                  this.advance(_delimiterIndex + delimiterLength);
-                  return str.substring(0, _delimiterIndex);
-              }
-
-              var delimiterIndex = this.string.indexOf(delimiter, this.pointer);
-
-              if (delimiterIndex === -1) {
-                  delimiterIndex = this.string.length;
-              }
-
-              if (delimiterIndex - this.pointer > maxLength) {
-                  var _result = this.string.substring(this.pointer, this.pointer + maxLength);
-                  this.advance(maxLength);
-                  return _result;
-              }
-
-              var result = this.string.substring(this.pointer, delimiterIndex);
-              this.pointer = delimiterIndex + delimiter.length;
-              return result;
-          }
-
-          // The following methods have no side effects
-
-          // Access char at offset position, relative to current pointer
-
-      }, {
-          key: "at",
-          value: function at(index) {
-              return this.string.charAt(this.pointer + index);
-          }
-      }, {
-          key: "peek",
-          value: function peek() {
-              var length = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1;
-
-              return this.string.substring(this.pointer, this.pointer + length);
-          }
-      }, {
-          key: "startsWith",
-          value: function startsWith(prefix) {
-              if (prefix instanceof RegExp) {
-                  // we modify the regex to only check for the beginning of the string
-                  prefix = new RegExp("^" + prefix.toString().slice(1, -1));
-                  return prefix.test(this.string.substring(this.pointer));
-              }
-              return this.peek(prefix.length) === prefix;
-          }
-
-          // Returns first position of match
-
-      }, {
-          key: "search",
-          value: function search(pattern) {
-              var position = void 0;
-              if (pattern instanceof RegExp) {
-                  position = this.string.substring(this.pointer).search(pattern);
-              } else {
-                  position = this.string.indexOf(pattern, this.pointer) - this.pointer;
-              }
-              return position < 0 ? -1 : position;
-          }
-      }, {
-          key: "clone",
-          value: function clone() {
-              var newStream = new this.constructor(this.string);
-              newStream.pointer = this.pointer;
-              return newStream;
-          }
-      }]);
-      return StringStream;
-  }();
-
-  function kmp(input) {
-      if (input.length === 0) {
-          return [];
-      }
-
-      var prefix = [0];
-      var prefixLength = 0;
-
-      for (var i = 1; i < input.length; i += 1) {
-          while (prefixLength > 0 && input[i] !== input[prefixLength]) {
-              prefixLength = prefix[prefixLength];
-          }
-
-          if (input[i] === input[prefixLength]) {
-              prefixLength += 1;
-          }
-
-          prefix.push(prefixLength);
-      }
-      return prefix;
-  }
-
-  var ModifierAutomation = function () {
-      // build automaton from string
-      function ModifierAutomation(options) {
-          var _this = this;
-
-          classCallCheck(this, ModifierAutomation);
-
-          this.options = options;
-          this.steps = 0;
-          this.startNode = {
-              value: null,
-              startNode: true
-          };
-          this.node = this.startNode;
-
-          var lastNode = this.startNode;
-
-          var char = options.pattern.charAt(0);
-          var startPatternNode = {
-              value: char,
-              startNode: true
-          };
-
-          var patternPrefix = kmp(options.pattern);
-          var patternNode = [startPatternNode];
-
-          if (options.leftWhitespace) {
-              // We don't want to match if the first char is not preceeded by whitespace
-              var whitespaceNode = {
-                  value: " ",
-                  whitespaceNode: true
-              };
-              whitespaceNode.next = function (input) {
-                  if (input === char) return startPatternNode;
-                  return (/\s/.test(input) ? whitespaceNode : _this.startNode
-                  );
-              };
-              lastNode.next = function (input) {
-                  return (/\s/.test(input) ? whitespaceNode : _this.startNode
-                  );
-              };
-              this.node = whitespaceNode;
-          } else {
-              lastNode.next = function (input) {
-                  return input === char ? startPatternNode : _this.startNode;
-              };
-          }
-          lastNode = startPatternNode;
-
-          var _loop = function _loop(i) {
-              var char = options.pattern[i];
-              var newNode = {
-                  value: char
-              };
-              patternNode.push(newNode);
-
-              var backNode = patternPrefix[i - 1] === 0 ? _this.startNode : patternNode[patternPrefix[i - 1] - 1];
-
-              lastNode.next = function (input) {
-                  if (input === char) {
-                      return newNode;
-                  }
-
-                  return backNode.next(input);
-              };
-              lastNode = newNode;
-          };
-
-          for (var i = 1; i < options.pattern.length; i += 1) {
-              _loop(i);
-          }
-          lastNode.patternLastNode = true;
-
-          if (options.captureContent) {
-              this.capture = [];
-              var captureNode = {
-                  value: "",
-                  captureNode: true
-              };
-
-              // We treat the first character separately in order to support empty capture
-              var _char = options.endPattern.charAt(0);
-              var endCaptureNode = {
-                  value: _char
-              };
-
-              var endPatternPrefix = kmp(options.endPattern);
-              var endPatternNodes = [endCaptureNode];
-
-              lastNode.next = captureNode.next = function (input) {
-                  return input === _char ? endCaptureNode : captureNode;
-              };
-
-              lastNode = endCaptureNode;
-
-              var _loop2 = function _loop2(i) {
-                  var char = options.endPattern[i];
-                  var newNode = {
-                      value: char
-                  };
-                  endPatternNodes.push(newNode);
-
-                  var backNode = endPatternPrefix[i - 1] === 0 ? captureNode : endPatternNodes[endPatternPrefix[i - 1] - 1];
-
-                  lastNode.next = function (input) {
-                      if (input === char) {
-                          return newNode;
-                      }
-                      return backNode.next(input);
-                  };
-                  lastNode = newNode;
-              };
-
-              for (var i = 1; i < options.endPattern.length; i += 1) {
-                  _loop2(i);
-              }
-
-              lastNode.endPatternLastNode = true;
-          }
-
-          lastNode.endNode = true;
-          lastNode.next = function (input) {
-              return _this.startNode.next(input);
-          };
-      }
-
-      createClass(ModifierAutomation, [{
-          key: "nextState",
-          value: function nextState(input) {
-              this.steps += 1;
-
-              this.node = this.node.next(input);
-
-              if (this.node.startNode) {
-                  this.steps = 0;
-                  delete this.patternStep;
-                  delete this.endPatternStep;
-              }
-
-              if (this.node.patternLastNode) {
-                  this.patternStep = this.steps - this.options.pattern.length + 1;
-              }
-              if (this.node.endPatternLastNode) {
-                  // TODO(@all): Shouldn't it be this.options.endPattern.length instead of this.options.pattern.length?
-                  this.endPatternStep = this.steps - this.options.pattern.length + 1;
-              }
-
-              return this.node;
-          }
-      }, {
-          key: "done",
-          value: function done() {
-              return this.node.endNode;
-          }
-      }]);
-      return ModifierAutomation;
-  }();
-
-  var Modifier$1 = function () {
-      function Modifier(options) {
-          classCallCheck(this, Modifier);
-      }
-
-      createClass(Modifier, [{
-          key: "modify",
-          value: function modify(currentArray, originalString) {
-              var matcher = new ModifierAutomation({
-                  pattern: this.pattern,
-                  captureContent: this.captureContent, // TODO: some elements should not wrap
-                  endPattern: this.endPattern,
-                  leftWhitespace: this.leftWhitespace
-              });
-
-              var arrayLocation = 0;
-              var currentElement = currentArray[arrayLocation];
-              var newArray = [];
-
-              for (var i = 0; i < originalString.length; i += 1) {
-                  var char = originalString[i];
-
-                  if (i >= currentElement.end) {
-                      newArray.push(currentElement);
-
-                      arrayLocation += 1;
-                      currentElement = currentArray[arrayLocation];
-                  }
-
-                  if (currentElement.isJSX) {
-                      matcher.nextState("\\" + char); // prevent char from advancing automata
-                      continue;
-                  }
-
-                  matcher.nextState(char);
-
-                  if (matcher.done()) {
-                      var modifierStart = i - (matcher.steps - matcher.patternStep);
-                      var modifierEnd = i - (matcher.steps - matcher.endPatternStep) + this.endPattern.length;
-
-                      var modifierCapture = [];
-
-                      while (newArray.length > 0 && modifierStart <= newArray[newArray.length - 1].start) {
-                          var element = newArray.pop();
-
-                          modifierCapture.push(element);
-                      }
-
-                      if (newArray.length > 0 && modifierStart < newArray[newArray.length - 1].end) {
-                          var _element = newArray.pop();
-                          newArray.push({
-                              isString: true,
-                              start: _element.start,
-                              end: modifierStart
-                          });
-                          modifierCapture.push({
-                              isString: true,
-                              start: modifierStart,
-                              end: _element.end
-                          });
-                      }
-
-                      if (currentElement.start < modifierStart) {
-                          newArray.push({
-                              isString: true,
-                              start: currentElement.start,
-                              end: modifierStart
-                          });
-                      }
-                      modifierCapture.reverse();
-
-                      // this is the end of the capture
-                      modifierCapture.push({
-                          isString: true,
-                          start: Math.max(currentElement.start, modifierStart),
-                          end: modifierEnd
-                      });
-
-                      newArray.push({
-                          content: this.wrap(this.processChildren(modifierCapture, originalString)),
-                          start: modifierStart,
-                          end: modifierEnd
-                      });
-
-                      // We split the current element to in two(one will be captured, one replaces the current element
-                      currentElement = {
-                          isString: true,
-                          start: modifierEnd,
-                          end: currentElement.end
-                      };
-                  }
-              }
-
-              if (currentElement.start < originalString.length) {
-                  newArray.push(currentElement);
-              }
-
-              return newArray;
-          }
-      }, {
-          key: "processChildren",
-          value: function processChildren(capture, originalString) {
-              var _this2 = this;
-
-              return capture.map(function (element) {
-                  return _this2.processChild(element, originalString);
-              });
-          }
-      }, {
-          key: "processChild",
-          value: function processChild(element, originalString) {
-              if (element.isDummy) {
-                  return "";
-              }if (element.isString) {
-                  return originalString.substring(element.start, element.end);
-              } else {
-                  return element.content;
-              }
-          }
-      }]);
-      return Modifier;
-  }();
-
-  function InlineModifierMixin(BaseModifierClass) {
-      return function (_BaseModifierClass) {
-          inherits(InlineModifier, _BaseModifierClass);
-
-          function InlineModifier(options) {
-              classCallCheck(this, InlineModifier);
-
-              var _this3 = possibleConstructorReturn(this, (InlineModifier.__proto__ || Object.getPrototypeOf(InlineModifier)).call(this, options));
-
-              _this3.captureContent = true;
-              return _this3;
-          }
-
-          createClass(InlineModifier, [{
-              key: "wrap",
-              value: function wrap(content) {
-                  if (content.length > 0) {
-                      content[0] = content[0].substring(content[0].indexOf(this.pattern) + this.pattern.length);
-
-                      var lastElement = content.pop();
-                      lastElement = lastElement.substring(0, lastElement.lastIndexOf(this.endPattern));
-                      content.push(lastElement);
-
-                      return {
-                          tag: this.tag,
-                          children: content
-                      };
-                  }
-              }
-          }]);
-          return InlineModifier;
-      }(BaseModifierClass);
-  }
-
-  function LineStartModifierMixin(BaseModifierClass) {
-      return function (_BaseModifierClass2) {
-          inherits(LineStartModifier, _BaseModifierClass2);
-
-          function LineStartModifier(options) {
-              classCallCheck(this, LineStartModifier);
-
-              var _this4 = possibleConstructorReturn(this, (LineStartModifier.__proto__ || Object.getPrototypeOf(LineStartModifier)).call(this, options));
-
-              _this4.groupConsecutive = false;
-              return _this4;
-          }
-
-          createClass(LineStartModifier, [{
-              key: "isValidElement",
-              value: function isValidElement(element) {
-                  return element.content && element.content.tag === "p" && element.content.children.length > 0 && !element.content.children[0].tag && // child is text string
-                  element.content.children[0].startsWith(this.pattern);
-              }
-          }, {
-              key: "modify",
-              value: function modify(currentArray, originalString) {
-                  var newArray = [];
-
-                  for (var i = 0; i < currentArray.length; i += 1) {
-                      var element = currentArray[i];
-                      if (this.isValidElement(element)) {
-                          if (this.groupConsecutive) {
-                              var elements = [];
-
-                              var start = void 0,
-                                  end = void 0;
-                              start = currentArray[i].start;
-                              while (i < currentArray.length && this.isValidElement(currentArray[i])) {
-                                  elements.push(this.wrapItem(currentArray[i].content.children));
-
-                                  i += 1;
-                              }
-                              // we make sure no elements are skipped
-                              i -= 1;
-
-                              end = currentArray[i].end;
-
-                              newArray.push({
-                                  start: start,
-                                  end: end,
-                                  content: this.wrap(elements)
-                              });
-                          } else {
-                              // We use object assign here to keep the start and end properties. (Maybe along with others)
-                              var newElement = Object.assign({}, element, {
-                                  content: this.wrap(element.content.children)
-                              });
-                              newArray.push(newElement);
-                          }
-                      } else {
-                          newArray.push(element);
-                      }
-                  }
-                  return newArray;
-              }
-          }, {
-              key: "wrapItem",
-              value: function wrapItem(content) {
-                  var firstChild = content[0];
-
-                  var patternIndex = firstChild.indexOf(this.pattern);
-                  var patternEnd = patternIndex + this.pattern.length;
-
-                  content[0] = firstChild.substring(patternEnd);
-
-                  return {
-                      tag: this.itemTag,
-                      children: content
-                  };
-              }
-          }, {
-              key: "wrap",
-              value: function wrap(content) {
-                  return {
-                      tag: this.tag,
-                      children: content
-                  };
-              }
-          }]);
-          return LineStartModifier;
-      }(BaseModifierClass);
-  }
-
-  function RawContentModifierMixin(BaseModifierClass) {
-      return function (_BaseModifierClass3) {
-          inherits(RawContentModifier, _BaseModifierClass3);
-
-          function RawContentModifier() {
-              classCallCheck(this, RawContentModifier);
-              return possibleConstructorReturn(this, (RawContentModifier.__proto__ || Object.getPrototypeOf(RawContentModifier)).apply(this, arguments));
-          }
-
-          createClass(RawContentModifier, [{
-              key: "processChildren",
-              value: function processChildren(children, originalString) {
-                  if (children.length === 0) {
-                      return [];
-                  }
-
-                  return [originalString.substring(children[0].start, children[children.length - 1].end)];
-              }
-          }]);
-          return RawContentModifier;
-      }(BaseModifierClass);
-  }
-
-  var BlockCodeModifier = function (_Modifier) {
-      inherits(BlockCodeModifier, _Modifier);
-
-      function BlockCodeModifier(options) {
-          classCallCheck(this, BlockCodeModifier);
-
-          var _this6 = possibleConstructorReturn(this, (BlockCodeModifier.__proto__ || Object.getPrototypeOf(BlockCodeModifier)).call(this, options));
-
-          _this6.pattern = "```";
-          _this6.endPattern = "\n```";
-          _this6.leftWhitespace = true;
-          _this6.captureContent = true;
-          return _this6;
-      }
-
-      createClass(BlockCodeModifier, [{
-          key: "processChildren",
-          value: function processChildren(capture, originalString) {
-              this.codeOptions = null;
-              if (capture.length > 0) {
-                  var codeBlock = originalString.substring(capture[0].start, capture[capture.length - 1].end);
-
-                  codeBlock = codeBlock.substring(codeBlock.indexOf(this.pattern) + this.pattern.length);
-                  codeBlock = codeBlock.substring(0, codeBlock.lastIndexOf(this.endPattern));
-
-                  var firstLineEnd = codeBlock.indexOf("\n") + 1;
-                  var firstLine = codeBlock.substring(0, firstLineEnd).trim();
-                  codeBlock = codeBlock.substring(firstLineEnd);
-
-                  if (firstLine.length > 0) {
-                      this.codeOptions = {};
-                      var lineStream = new StringStream(firstLine);
-                      this.codeOptions.aceMode = lineStream.word();
-
-                      Object.assign(this.codeOptions, MarkupParser.parseOptions(lineStream));
-                  }
-
-                  return codeBlock;
-              }
-              return "";
-          }
-      }, {
-          key: "getElement",
-          value: function getElement(content) {
-              return {
-                  tag: this.constructor.tag || "pre",
-                  children: [content]
-              };
-          }
-      }, {
-          key: "wrap",
-          value: function wrap(content, options) {
-              var codeHighlighter = this.getElement(content);
-
-              // TODO: this code should not be here
-              var codeOptions = {
-                  aceMode: "c_cpp",
-                  maxLines: 32
-              };
-
-              if (this.codeOptions) {
-                  Object.assign(codeOptions, this.codeOptions);
-                  delete this.codeOptions;
-              }
-
-              Object.assign(codeOptions, codeHighlighter);
-              return codeOptions;
-          }
-      }]);
-      return BlockCodeModifier;
-  }(Modifier$1);
-
-  var HeaderModifier = function (_LineStartModifierMix) {
-      inherits(HeaderModifier, _LineStartModifierMix);
-
-      function HeaderModifier(options) {
-          classCallCheck(this, HeaderModifier);
-
-          var _this7 = possibleConstructorReturn(this, (HeaderModifier.__proto__ || Object.getPrototypeOf(HeaderModifier)).call(this, options));
-
-          _this7.pattern = "#";
-          return _this7;
-      }
-
-      createClass(HeaderModifier, [{
-          key: "wrap",
-          value: function wrap(content) {
-              var firstChild = content[0];
-
-              var hashtagIndex = firstChild.indexOf("#");
-              var hashtagEnd = hashtagIndex + 1;
-              var headerLevel = 1;
-
-              var nextChar = firstChild.charAt(hashtagEnd);
-              if (nextChar >= "1" && nextChar <= "6") {
-                  headerLevel = parseInt(nextChar);
-                  hashtagEnd += 1;
-              } else if (nextChar === "#") {
-                  while (headerLevel < 6 && firstChild.charAt(hashtagEnd) === "#") {
-                      headerLevel += 1;
-                      hashtagEnd += 1;
-                  }
-              }
-
-              content[0] = firstChild.substring(hashtagEnd);
-              return {
-                  tag: "h" + headerLevel,
-                  children: content
-              };
-          }
-      }]);
-      return HeaderModifier;
-  }(LineStartModifierMixin(Modifier$1));
-
-  var HorizontalRuleModifier = function (_LineStartModifierMix2) {
-      inherits(HorizontalRuleModifier, _LineStartModifierMix2);
-
-      function HorizontalRuleModifier(options) {
-          classCallCheck(this, HorizontalRuleModifier);
-
-          var _this8 = possibleConstructorReturn(this, (HorizontalRuleModifier.__proto__ || Object.getPrototypeOf(HorizontalRuleModifier)).call(this, options));
-
-          _this8.pattern = "---";
-          return _this8;
-      }
-
-      createClass(HorizontalRuleModifier, [{
-          key: "wrap",
-          value: function wrap(content) {
-              return {
-                  tag: "hr"
-              };
-          }
-      }]);
-      return HorizontalRuleModifier;
-  }(LineStartModifierMixin(Modifier$1));
-
-  var UnorderedListModifier = function (_LineStartModifierMix3) {
-      inherits(UnorderedListModifier, _LineStartModifierMix3);
-
-      function UnorderedListModifier(options) {
-          classCallCheck(this, UnorderedListModifier);
-
-          var _this9 = possibleConstructorReturn(this, (UnorderedListModifier.__proto__ || Object.getPrototypeOf(UnorderedListModifier)).call(this, options));
-
-          _this9.tag = "ul";
-          _this9.itemTag = "li";
-          _this9.pattern = "- ";
-          _this9.groupConsecutive = true;
-          return _this9;
-      }
-
-      return UnorderedListModifier;
-  }(LineStartModifierMixin(Modifier$1));
-
-  var OrderedListModifier = function (_LineStartModifierMix4) {
-      inherits(OrderedListModifier, _LineStartModifierMix4);
-
-      function OrderedListModifier(options) {
-          classCallCheck(this, OrderedListModifier);
-
-          var _this10 = possibleConstructorReturn(this, (OrderedListModifier.__proto__ || Object.getPrototypeOf(OrderedListModifier)).call(this, options));
-
-          _this10.tag = "ol";
-          _this10.itemTag = "li";
-          _this10.pattern = "1. ";
-          _this10.groupConsecutive = true;
-          return _this10;
-      }
-
-      return OrderedListModifier;
-  }(LineStartModifierMixin(Modifier$1));
-
-  var ParagraphModifier = function (_Modifier2) {
-      inherits(ParagraphModifier, _Modifier2);
-
-      function ParagraphModifier() {
-          classCallCheck(this, ParagraphModifier);
-          return possibleConstructorReturn(this, (ParagraphModifier.__proto__ || Object.getPrototypeOf(ParagraphModifier)).apply(this, arguments));
-      }
-
-      createClass(ParagraphModifier, [{
-          key: "modify",
-          value: function modify(currentArray, originalString) {
-              var newArray = [];
-              var capturedContent = [];
-              var arrayLocation = 0;
-              var currentElement = currentArray[arrayLocation];
-              var lineStart = 0;
-
-              for (var i = 0; i < originalString.length; i += 1) {
-                  if (i >= currentElement.end) {
-                      capturedContent.push(currentElement);
-                      arrayLocation += 1;
-                      currentElement = currentArray[arrayLocation];
-                  }
-
-                  if (currentElement.isJSX) {
-                      continue;
-                  }
-
-                  if (originalString[i] === "\n") {
-                      if (currentElement.start < i) {
-                          capturedContent.push({
-                              isString: true,
-                              start: currentElement.start,
-                              end: i
-                          });
-                      }
-
-                      newArray.push({
-                          content: this.wrap(this.processChildren(capturedContent, originalString)),
-                          start: lineStart,
-                          end: i + 1
-                      });
-                      capturedContent = [];
-                      lineStart = i + 1;
-
-                      if (originalString[i + 1] === "\n") {
-                          var start = void 0,
-                              end = void 0;
-                          start = i;
-
-                          while (i + 1 < originalString.length && originalString[i + 1] === "\n") {
-                              i += 1;
-                          }
-                          end = i + 1;
-
-                          newArray.push({
-                              content: {
-                                  tag: "br"
-                              },
-                              start: start,
-                              end: end
-                          });
-
-                          lineStart = i + 1;
-                      }
-
-                      currentElement = {
-                          isString: true,
-                          start: lineStart,
-                          end: currentElement.end
-                      };
-                  }
-              }
-
-              if (currentElement.start < originalString.length) {
-                  capturedContent.push(currentElement);
-              }
-              if (capturedContent.length > 0) {
-                  newArray.push({
-                      content: this.wrap(this.processChildren(capturedContent, originalString)),
-                      start: lineStart,
-                      end: originalString.length
-                  });
-              }
-              return newArray;
-          }
-      }, {
-          key: "wrap",
-          value: function wrap(capture) {
-              return {
-                  tag: "p",
-                  children: capture
-              };
-          }
-      }]);
-      return ParagraphModifier;
-  }(Modifier$1);
-
-  var StrongModifier = function (_InlineModifierMixin) {
-      inherits(StrongModifier, _InlineModifierMixin);
-
-      function StrongModifier(options) {
-          classCallCheck(this, StrongModifier);
-
-          var _this12 = possibleConstructorReturn(this, (StrongModifier.__proto__ || Object.getPrototypeOf(StrongModifier)).call(this, options));
-
-          _this12.leftWhitespace = true;
-          _this12.pattern = "*";
-          _this12.endPattern = "*";
-          _this12.tag = "strong";
-          return _this12;
-      }
-
-      return StrongModifier;
-  }(InlineModifierMixin(Modifier$1));
-
-  var ItalicModifier = function (_InlineModifierMixin2) {
-      inherits(ItalicModifier, _InlineModifierMixin2);
-
-      function ItalicModifier(options) {
-          classCallCheck(this, ItalicModifier);
-
-          var _this13 = possibleConstructorReturn(this, (ItalicModifier.__proto__ || Object.getPrototypeOf(ItalicModifier)).call(this, options));
-
-          _this13.leftWhitespace = true;
-          _this13.pattern = "/";
-          _this13.endPattern = "/";
-          _this13.tag = "em";
-          return _this13;
-      }
-
-      return ItalicModifier;
-  }(InlineModifierMixin(Modifier$1));
-
-  var InlineCodeModifier = function (_RawContentModifierMi) {
-      inherits(InlineCodeModifier, _RawContentModifierMi);
-
-      function InlineCodeModifier(options) {
-          classCallCheck(this, InlineCodeModifier);
-
-          var _this14 = possibleConstructorReturn(this, (InlineCodeModifier.__proto__ || Object.getPrototypeOf(InlineCodeModifier)).call(this, options));
-
-          _this14.pattern = "`";
-          _this14.endPattern = "`";
-          _this14.tag = "code";
-          return _this14;
-      }
-
-      createClass(InlineCodeModifier, [{
-          key: "processChildren",
-          value: function processChildren(children, originalString) {
-              if (children.length === 0) {
-                  return [];
-              }
-
-              return [originalString.substring(children[0].start, children[children.length - 1].end)];
-          }
-      }]);
-      return InlineCodeModifier;
-  }(RawContentModifierMixin(InlineModifierMixin(Modifier$1)));
-
-  var InlineVarModifier = function (_RawContentModifierMi2) {
-      inherits(InlineVarModifier, _RawContentModifierMi2);
-
-      function InlineVarModifier(options) {
-          classCallCheck(this, InlineVarModifier);
-
-          var _this15 = possibleConstructorReturn(this, (InlineVarModifier.__proto__ || Object.getPrototypeOf(InlineVarModifier)).call(this, options));
-
-          _this15.pattern = "$";
-          _this15.endPattern = "$";
-          _this15.tag = "var";
-          return _this15;
-      }
-
-      return InlineVarModifier;
-  }(RawContentModifierMixin(InlineModifierMixin(Modifier$1)));
-
-  var InlineLatexModifier = function (_RawContentModifierMi3) {
-      inherits(InlineLatexModifier, _RawContentModifierMi3);
-
-      function InlineLatexModifier(options) {
-          classCallCheck(this, InlineLatexModifier);
-
-          var _this16 = possibleConstructorReturn(this, (InlineLatexModifier.__proto__ || Object.getPrototypeOf(InlineLatexModifier)).call(this, options));
-
-          _this16.pattern = "$$";
-          _this16.endPattern = "$$";
-          _this16.tag = "Latex";
-          return _this16;
-      }
-
-      return InlineLatexModifier;
-  }(RawContentModifierMixin(InlineModifierMixin(Modifier$1)));
-
-  var LinkModifier = function (_Modifier3) {
-      inherits(LinkModifier, _Modifier3);
-
-      function LinkModifier() {
-          classCallCheck(this, LinkModifier);
-          return possibleConstructorReturn(this, (LinkModifier.__proto__ || Object.getPrototypeOf(LinkModifier)).apply(this, arguments));
-      }
-
-      createClass(LinkModifier, [{
-          key: "modify",
-          value: function modify(currentArray, originalString) {
-              var _this18 = this;
-
-              var newArray = [];
-              var arrayLocation = 0;
-              var currentElement = currentArray[arrayLocation];
-              var lineStart = 0;
-
-              var checkAndAddUrl = function checkAndAddUrl(start, end) {
-                  var substr = originalString.substring(start, end);
-                  if (_this18.constructor.isCorrectUrl(substr)) {
-                      if (currentElement.start < start) {
-                          newArray.push({
-                              isString: true,
-                              start: currentElement.start,
-                              end: start
-                          });
-                      }
-
-                      newArray.push({
-                          isJSX: true,
-                          content: {
-                              tag: "a",
-                              href: substr,
-                              children: [_this18.constructor.trimProtocol(substr)],
-                              target: "_blank"
-                          },
-                          start: start,
-                          end: end
-                      });
-
-                      currentElement = {
-                          isString: true,
-                          start: end,
-                          end: currentElement.end
-                      };
-                  }
-              };
-
-              for (var i = 0; i < originalString.length; i += 1) {
-                  if (i >= currentElement.end) {
-                      newArray.push(currentElement);
-                      arrayLocation += 1;
-                      currentElement = currentArray[arrayLocation];
-                  }
-
-                  if (currentElement.isJSX) {
-                      continue;
-                  }
-
-                  if (/\s/.test(originalString[i])) {
-                      checkAndAddUrl(lineStart, i);
-                      lineStart = i + 1;
-                  }
-              }
-              if (lineStart < originalString.length) {
-                  checkAndAddUrl(lineStart, originalString.length);
-              }
-              if (currentElement.start < originalString.length) {
-                  newArray.push(currentElement);
-              }
-              return newArray;
-          }
-      }], [{
-          key: "isCorrectUrl",
-          value: function isCorrectUrl(str) {
-              if (str.startsWith("http://") || str.startsWith("https://")) {
-                  return true;
-              }
-          }
-      }, {
-          key: "trimProtocol",
-          value: function trimProtocol(str) {
-              if (str[4] === 's') {
-                  return str.substring(8, str.length);
-              }
-              return str.substring(7, str.length);
-          }
-      }]);
-      return LinkModifier;
-  }(Modifier$1);
-
-  var MarkupParser = function () {
-      function MarkupParser(options) {
-          classCallCheck(this, MarkupParser);
-
-          options = options || {};
-
-          this.modifiers = options.modifiers || this.constructor.modifiers;
-          this.uiElements = options.uiElements || new Map();
-      }
-
-      createClass(MarkupParser, [{
-          key: "parse",
-          value: function parse(content) {
-              if (!content) return [];
-
-              var result = [];
-
-              var arr = this.parseUIElements(content);
-
-              for (var i = this.modifiers.length - 1; i >= 0; i -= 1) {
-                  var modifier = this.modifiers[i];
-
-                  arr = modifier.modify(arr, content);
-              }
-
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = arr[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var el = _step.value;
-
-                      if (el.isDummy) ; else if (el.isString) {
-                          result.push(content.substring(el.start, el.end));
-                      } else {
-                          result.push(el.content);
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              return result;
-          }
-      }, {
-          key: "parseUIElements",
-          value: function parseUIElements(content) {
-              var stream = new StringStream(content);
-
-              var result = [];
-              var textStart = 0;
-
-              while (!stream.done()) {
-                  var char = stream.char();
-
-                  if (char === "<" && /[a-zA-Z]/.test(stream.at(0))) {
-                      stream.pointer -= 1; //step back to beginning of ui element
-                      var elementStart = stream.pointer;
-                      var uiElement = void 0;
-                      try {
-                          uiElement = this.parseUIElement(stream);
-                      } catch (e) {
-                          // failed to parse jsx element
-                          continue;
-                      }
-
-                      if (this.uiElements.has(uiElement.tag)) {
-                          result.push({
-                              isString: true,
-                              start: textStart,
-                              end: elementStart
-                          });
-
-                          result.push({
-                              content: uiElement,
-                              isJSX: true,
-                              start: elementStart,
-                              end: stream.pointer
-                          });
-                          textStart = stream.pointer;
-                      }
-                  }
-              }
-
-              if (textStart < content.length) {
-                  result.push({
-                      isString: true,
-                      start: textStart,
-                      end: content.length
-                  });
-              }
-
-              return result;
-          }
-      }, {
-          key: "parseUIElement",
-          value: function parseUIElement(stream) {
-              var delimiter = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : /\/?>/;
-
-              // content should be of type <ClassName option1="string" option2={{jsonObject: true}} />
-              // TODO: support nested elements like <ClassName><NestedClass /></ClassName>
-
-              stream.whitespace();
-              if (stream.done()) {
-                  return null;
-              }
-
-              if (stream.at(0) !== "<") {
-                  throw Error("Invalid UIElement declaration.");
-              }
-
-              var result = {};
-
-              stream.char(); // skip the '<'
-
-              result.tag = stream.word();
-              stream.whitespace();
-
-              Object.assign(result, this.parseOptions(stream, delimiter));
-              stream.line(delimiter);
-
-              return result;
-          }
-      }, {
-          key: "parseOptions",
-          value: function parseOptions(stream, optionsEnd) {
-              return this.constructor.parseOptions(stream, optionsEnd);
-          }
-
-          // optionsEnd cannot include whitespace or start with '='
-
-      }, {
-          key: "parseTextLine",
-          value: function parseTextLine(stream) {
-
-              var capturedContent = [];
-
-              var textStart = stream.pointer;
-              var contentStart = stream.pointer;
-
-              while (!stream.done()) {
-                  if (stream.startsWith(/\s+\r*\n/)) {
-                      // end of line, stop here
-                      break;
-                  }
-
-                  if (stream.at(0) === "<") {
-                      capturedContent.push({
-                          content: stream.string.substring(contentStart, stream.pointer),
-                          start: contentStart,
-                          end: stream.pointer
-                      });
-                      var uiElementStart = stream.pointer;
-                      var uiElement = this.parseUIElement(stream, /\/*>/);
-                      capturedContent.push({
-                          content: uiElement,
-                          start: uiElementStart,
-                          end: stream.pointer
-                      });
-                      contentStart = stream.pointer;
-                      continue;
-                  }
-
-                  var char = stream.char();
-
-                  if (char === "\\") {
-                      // escape next character
-                      char += stream.char();
-                  }
-              }
-
-              var remainingContent = stream.string.substring(textStart, stream.pointer);
-              if (remainingContent.length > 0) {
-                  capturedContent.push(remainingContent);
-              }
-              stream.line(); // delete line endings
-
-              return capturedContent;
-          }
-      }], [{
-          key: "parseOptions",
-          value: function parseOptions(stream, optionsEnd) {
-              var options = {};
-
-              stream.whitespace();
-
-              while (!stream.done()) {
-                  // argument name is anything that comes before whitespace or '='
-                  stream.whitespace();
-
-                  var validOptionName = /[\w$]/;
-                  var optionName = void 0;
-                  if (validOptionName.test(stream.at(0))) {
-                      optionName = stream.word(validOptionName);
-                  }
-
-                  stream.whitespace();
-
-                  if (optionsEnd && stream.search(optionsEnd) === 0) {
-                      options[optionName] = true;
-                      break;
-                  }
-                  if (!optionName) {
-                      throw Error("Invalid option name");
-                  }
-
-                  if (stream.peek() === "=") {
-                      stream.char();
-                      stream.whitespace();
-
-                      if (stream.done()) {
-                          throw Error("No argument given for option: " + optionName);
-                      }
-
-                      if (stream.peek() === '"') {
-                          // We have a string here
-                          var optionString = "";
-                          var foundStringEnd = false;
-
-                          stream.char();
-                          while (!stream.done()) {
-                              var char = stream.char();
-                              if (char === '"') {
-                                  foundStringEnd = true;
-                                  break;
-                              }
-                              optionString += char;
-                          }
-
-                          if (!foundStringEnd) {
-                              // You did not close that string
-                              throw Error("Argument string not closed: " + optionString);
-                          }
-                          options[optionName] = optionString;
-                      } else if (stream.peek() === '{') {
-                          // Once you pop, the fun don't stop
-                          var bracketCount = 0;
-
-                          var validJSON = false;
-                          var jsonString = "";
-                          stream.char();
-
-                          while (!stream.done()) {
-                              var _char2 = stream.char();
-                              if (_char2 === '{') {
-                                  bracketCount += 1;
-                              } else if (_char2 === '}') {
-                                  if (bracketCount > 0) {
-                                      bracketCount -= 1;
-                                  } else {
-                                      // JSON ends here
-                                      options[optionName] = jsonString.length > 0 ? this.parseJSON5(jsonString) : undefined;
-                                      validJSON = true;
-                                      break;
-                                  }
-                              }
-                              jsonString += _char2;
-                          }
-                          if (!validJSON) {
-                              throw Error("Invalid JSON argument for option: " + optionName + ". Input: " + jsonString);
-                          }
-                      } else {
-                          throw Error("Invalid argument for option: " + optionName + ". Need string or JSON.");
-                      }
-                  } else {
-                      options[optionName] = true;
-                  }
-                  stream.whitespace();
-              }
-
-              return options;
-          }
-      }]);
-      return MarkupParser;
-  }();
-
-  MarkupParser.modifiers = [new BlockCodeModifier(), new HeaderModifier(), new HorizontalRuleModifier(), new UnorderedListModifier(), new OrderedListModifier(), new ParagraphModifier(), new InlineCodeModifier(), new InlineLatexModifier(), new InlineVarModifier(), new StrongModifier(), new ItalicModifier(), new LinkModifier()];
-
-  // json5.js
-  // This file is based directly off of Douglas Crockford's json_parse.js:
-  // https://github.com/douglascrockford/JSON-js/blob/master/json_parse.js
-  MarkupParser.parseJSON5 = function () {
-      // This is a function that can parse a JSON5 text, producing a JavaScript
-      // data structure. It is a simple, recursive descent parser. It does not use
-      // eval or regular expressions, so it can be used as a model for implementing
-      // a JSON5 parser in other languages.
-
-      // We are defining the function inside of another function to avoid creating
-      // global variables.
-
-      var at = void 0,
-          // The index of the current character
-      lineNumber = void 0,
-          // The current line number
-      columnNumber = void 0,
-          // The current column number
-      ch = void 0; // The current character
-      var escapee = {
-          "'": "'",
-          '"': '"',
-          '\\': '\\',
-          '/': '/',
-          '\n': '', // Replace escaped newlines in strings w/ empty string
-          b: '\b',
-          f: '\f',
-          n: '\n',
-          r: '\r',
-          t: '\t'
-      };
-      var text = void 0;
-
-      var renderChar = function renderChar(chr) {
-          return chr === '' ? 'EOF' : "'" + chr + "'";
-      };
-
-      var error = function error(m) {
-          // Call error when something is wrong.
-
-          var error = new SyntaxError();
-          // beginning of message suffix to agree with that provided by Gecko - see https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse
-          error.message = m + " at line " + lineNumber + " column " + columnNumber + " of the JSON5 data. Still to read: " + JSON.stringify(text.substring(at - 1, at + 19));
-          error.at = at;
-          // These two property names have been chosen to agree with the ones in Gecko, the only popular
-          // environment which seems to supply this info on JSON.parse
-          error.lineNumber = lineNumber;
-          error.columnNumber = columnNumber;
-          throw error;
-      };
-
-      var next = function next(c) {
-          // If a c parameter is provided, verify that it matches the current character.
-
-          if (c && c !== ch) {
-              error("Expected " + renderChar(c) + " instead of " + renderChar(ch));
-          }
-
-          // Get the next character. When there are no more characters,
-          // return the empty string.
-
-          ch = text.charAt(at);
-          at++;
-          columnNumber++;
-          if (ch === '\n' || ch === '\r' && peek() !== '\n') {
-              lineNumber++;
-              columnNumber = 0;
-          }
-          return ch;
-      };
-
-      var peek = function peek() {
-          // Get the next character without consuming it or
-          // assigning it to the ch varaible.
-
-          return text.charAt(at);
-      };
-
-      var identifier = function identifier() {
-          // Parse an identifier. Normally, reserved words are disallowed here, but we
-          // only use this for unquoted object keys, where reserved words are allowed,
-          // so we don't check for those here. References:
-          // - http://es5.github.com/#x7.6
-          // - https://developer.mozilla.org/en/Core_JavaScript_1.5_Guide/Core_Language_Features#Variables
-          // - http://docstore.mik.ua/orelly/webprog/jscript/ch02_07.htm
-          // TODO Identifiers can have Unicode "letters" in them; add support for those.
-          var key = ch;
-
-          // Identifiers must start with a letter, _ or $.
-          if (ch !== '_' && ch !== '$' && (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z')) {
-              error("Bad identifier as unquoted key");
-          }
-
-          // Subsequent characters can contain digits.
-          while (next() && (ch === '_' || ch === '$' || ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9')) {
-              key += ch;
-          }
-
-          return key;
-      };
-
-      var number = function number() {
-          // Parse a number value.
-          var number,
-              sign = '',
-              string = '',
-              base = 10;
-
-          if (ch === '-' || ch === '+') {
-              sign = ch;
-              next(ch);
-          }
-
-          // support for Infinity (could tweak to allow other words):
-          if (ch === 'I') {
-              number = word();
-              if (typeof number !== 'number' || isNaN(number)) {
-                  error('Unexpected word for number');
-              }
-              return sign === '-' ? -number : number;
-          }
-
-          // support for NaN
-          if (ch === 'N') {
-              number = word();
-              if (!isNaN(number)) {
-                  error('expected word to be NaN');
-              }
-              // ignore sign as -NaN also is NaN
-              return number;
-          }
-
-          if (ch === '0') {
-              string += ch;
-              next();
-              if (ch === 'x' || ch === 'X') {
-                  string += ch;
-                  next();
-                  base = 16;
-              } else if (ch >= '0' && ch <= '9') {
-                  error('Octal literal');
-              }
-          }
-
-          switch (base) {
-              case 10:
-                  while (ch >= '0' && ch <= '9') {
-                      string += ch;
-                      next();
-                  }
-                  if (ch === '.') {
-                      string += '.';
-                      while (next() && ch >= '0' && ch <= '9') {
-                          string += ch;
-                      }
-                  }
-                  if (ch === 'e' || ch === 'E') {
-                      string += ch;
-                      next();
-                      if (ch === '-' || ch === '+') {
-                          string += ch;
-                          next();
-                      }
-                      while (ch >= '0' && ch <= '9') {
-                          string += ch;
-                          next();
-                      }
-                  }
-                  break;
-              case 16:
-                  while (ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'F' || ch >= 'a' && ch <= 'f') {
-                      string += ch;
-                      next();
-                  }
-                  break;
-          }
-
-          if (sign === '-') {
-              number = -string;
-          } else {
-              number = +string;
-          }
-
-          if (!isFinite(number)) {
-              error("Bad number");
-          } else {
-              return number;
-          }
-      };
-
-      var string = function string() {
-          // Parse a string value.
-          var hex = void 0,
-              i = void 0,
-              string = '',
-              uffff = void 0;
-          var delim = void 0; // double quote or single quote
-
-          // When parsing for string values, we must look for ' or " and \ characters.
-
-          if (ch === '"' || ch === "'") {
-              delim = ch;
-              while (next()) {
-                  if (ch === delim) {
-                      next();
-                      return string;
-                  } else if (ch === '\\') {
-                      next();
-                      if (ch === 'u') {
-                          uffff = 0;
-                          for (i = 0; i < 4; i += 1) {
-                              hex = parseInt(next(), 16);
-                              if (!isFinite(hex)) {
-                                  break;
-                              }
-                              uffff = uffff * 16 + hex;
-                          }
-                          string += String.fromCharCode(uffff);
-                      } else if (ch === '\r') {
-                          if (peek() === '\n') {
-                              next();
-                          }
-                      } else if (typeof escapee[ch] === 'string') {
-                          string += escapee[ch];
-                      } else {
-                          break;
-                      }
-                  } else if (ch === '\n') {
-                      // unescaped newlines are invalid; see:
-                      // https://github.com/aseemk/json5/issues/24
-                      // TODO this feels special-cased; are there other
-                      // invalid unescaped chars?
-                      break;
-                  } else {
-                      string += ch;
-                  }
-              }
-          }
-          error("Bad string");
-      };
-
-      var inlineComment = function inlineComment() {
-          // Skip an inline comment, assuming this is one. The current character should
-          // be the second / character in the // pair that begins this inline comment.
-          // To finish the inline comment, we look for a newline or the end of the text.
-
-          if (ch !== '/') {
-              error("Not an inline comment");
-          }
-
-          do {
-              next();
-              if (ch === '\n' || ch === '\r') {
-                  next();
-                  return;
-              }
-          } while (ch);
-      };
-
-      var blockComment = function blockComment() {
-          // Skip a block comment, assuming this is one. The current character should be
-          // the * character in the /* pair that begins this block comment.
-          // To finish the block comment, we look for an ending */ pair of characters,
-          // but we also watch for the end of text before the comment is terminated.
-
-          if (ch !== '*') {
-              error("Not a block comment");
-          }
-
-          do {
-              next();
-              while (ch === '*') {
-                  next('*');
-                  if (ch === '/') {
-                      next('/');
-                      return;
-                  }
-              }
-          } while (ch);
-
-          error("Unterminated block comment");
-      };
-
-      var comment = function comment() {
-          // Skip a comment, whether inline or block-level, assuming this is one.
-          // Comments always begin with a / character.
-
-          if (ch !== '/') {
-              error("Not a comment");
-          }
-
-          next('/');
-
-          if (ch === '/') {
-              inlineComment();
-          } else if (ch === '*') {
-              blockComment();
-          } else {
-              error("Unrecognized comment");
-          }
-      };
-
-      var white = function white() {
-          // Skip whitespace and comments.
-          // Note that we're detecting comments by only a single / character.
-          // This works since regular expressions are not valid JSON(5), but this will
-          // break if there are other valid values that begin with a / character!
-
-          while (ch) {
-              if (ch === '/') {
-                  comment();
-              } else if (/\s/.test(ch)) {
-                  next();
-              } else {
-                  return;
-              }
-          }
-      };
-
-      var word = function word() {
-          // true, false, or null.
-
-          switch (ch) {
-              case 't':
-                  next('t');
-                  next('r');
-                  next('u');
-                  next('e');
-                  return true;
-              case 'f':
-                  next('f');
-                  next('a');
-                  next('l');
-                  next('s');
-                  next('e');
-                  return false;
-              case 'n':
-                  next('n');
-                  next('u');
-                  next('l');
-                  next('l');
-                  return null;
-              case 'I':
-                  next('I');
-                  next('n');
-                  next('f');
-                  next('i');
-                  next('n');
-                  next('i');
-                  next('t');
-                  next('y');
-                  return Infinity;
-              case 'N':
-                  next('N');
-                  next('a');
-                  next('N');
-                  return NaN;
-          }
-          error("Unexpected " + renderChar(ch));
-      };
-
-      var value = void 0;
-
-      var array = function array() {
-          // Parse an array value.
-          var array = [];
-
-          if (ch === '[') {
-              next('[');
-              white();
-              while (ch) {
-                  if (ch === ']') {
-                      next(']');
-                      return array; // Potentially empty array
-                  }
-                  // ES5 allows omitting elements in arrays, e.g. [,] and
-                  // [,null]. We don't allow this in JSON5.
-                  if (ch === ',') {
-                      error("Missing array element");
-                  } else {
-                      array.push(value());
-                  }
-                  white();
-                  // If there's no comma after this value, this needs to
-                  // be the end of the array.
-                  if (ch !== ',') {
-                      next(']');
-                      return array;
-                  }
-                  next(',');
-                  white();
-              }
-          }
-          error("Bad array");
-      };
-
-      var object = function object() {
-          // Parse an object value.
-
-          var key,
-              object = {};
-
-          if (ch === '{') {
-              next('{');
-              white();
-              while (ch) {
-                  if (ch === '}') {
-                      next('}');
-                      return object; // Potentially empty object
-                  }
-
-                  // Keys can be unquoted. If they are, they need to be
-                  // valid JS identifiers.
-                  if (ch === '"' || ch === "'") {
-                      key = string();
-                  } else {
-                      key = identifier();
-                  }
-
-                  white();
-                  next(':');
-                  object[key] = value();
-                  white();
-                  // If there's no comma after this pair, this needs to be
-                  // the end of the object.
-                  if (ch !== ',') {
-                      next('}');
-                      return object;
-                  }
-                  next(',');
-                  white();
-              }
-          }
-          error("Bad object");
-      };
-
-      value = function value() {
-          // Parse a JSON value. It could be an object, an array, a string, a number,
-          // or a word.
-
-          white();
-          switch (ch) {
-              case '{':
-                  return object();
-              case '[':
-                  return array();
-              case '"':
-              case "'":
-                  return string();
-              case '-':
-              case '+':
-              case '.':
-                  return number();
-              default:
-                  return ch >= '0' && ch <= '9' ? number() : word();
-          }
-      };
-
-      // Return the json_parse function. It will have access to all of the above
-      // functions and variables.
-
-      return function (source, reviver) {
-          var result;
-
-          text = String(source);
-          at = 0;
-          lineNumber = 1;
-          columnNumber = 1;
-          ch = ' ';
-          result = value();
-          white();
-          if (ch) {
-              error("Syntax error");
-          }
-
-          // If there is a reviver function, we recursively walk the new structure,
-          // passing each name/value pair to the reviver function for possible
-          // transformation, starting with a temporary root object that holds the result
-          // in an empty key. If there is not a reviver function, we simply return the
-          // result.
-
-          return typeof reviver === 'function' ? function walk(holder, key) {
-              var k,
-                  v,
-                  value = holder[key];
-              if (value && (typeof value === "undefined" ? "undefined" : _typeof(value)) === 'object') {
-                  for (k in value) {
-                      if (Object.prototype.hasOwnProperty.call(value, k)) {
-                          v = walk(value, k);
-                          if (v !== undefined) {
-                              value[k] = v;
-                          } else {
-                              delete value[k];
-                          }
-                      }
-                  }
-              }
-              return reviver.call(holder, key, value);
-          }({ '': result }, '') : result;
-      };
-  }();
-
-  // Class that for every markup tag returns the UI class to instantiate for that element
-
-  var MarkupClassMap = function () {
-      function MarkupClassMap(fallback) {
-          var extraClasses = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
-          classCallCheck(this, MarkupClassMap);
-
-          this.classMap = new Map();
-          this.fallback = fallback;
-          var _iteratorNormalCompletion = true;
-          var _didIteratorError = false;
-          var _iteratorError = undefined;
-
-          try {
-              for (var _iterator = extraClasses[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                  var extraClass = _step.value;
-
-                  this.addClass(extraClass[0], extraClass[1]);
-              }
-          } catch (err) {
-              _didIteratorError = true;
-              _iteratorError = err;
-          } finally {
-              try {
-                  if (!_iteratorNormalCompletion && _iterator.return) {
-                      _iterator.return();
-                  }
-              } finally {
-                  if (_didIteratorError) {
-                      throw _iteratorError;
-                  }
-              }
-          }
-      }
-
-      createClass(MarkupClassMap, [{
-          key: "addClass",
-          value: function addClass(className, classObject) {
-              this.classMap.set(className, classObject);
-          }
-      }, {
-          key: "registerDependencies",
-          value: function registerDependencies(dependencies) {
-              var _iteratorNormalCompletion2 = true;
-              var _didIteratorError2 = false;
-              var _iteratorError2 = undefined;
-
-              try {
-                  for (var _iterator2 = dependencies[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                      var dependency = _step2.value;
-
-                      if (dependency && dependency.registerMarkup) {
-                          dependency.registerMarkup(this);
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError2 = true;
-                  _iteratorError2 = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                          _iterator2.return();
-                      }
-                  } finally {
-                      if (_didIteratorError2) {
-                          throw _iteratorError2;
-                      }
-                  }
-              }
-          }
-      }, {
-          key: "getClass",
-          value: function getClass(className) {
-              var classObject = this.classMap.get(className);
-              if (!classObject && this.fallback) {
-                  classObject = this.fallback.getClass(className);
-              }
-              return classObject;
-          }
-      }, {
-          key: "get",
-          value: function get$$1(className) {
-              return this.getClass(className);
-          }
-      }, {
-          key: "has",
-          value: function has(className) {
-              return this.getClass(className);
-          }
-      }], [{
-          key: "addClass",
-          value: function addClass(className, classObject) {
-              this.GLOBAL.addClass(className, classObject);
-          }
-      }]);
-      return MarkupClassMap;
-  }();
-
-  MarkupClassMap.GLOBAL = new MarkupClassMap();
-
-  var MarkupRenderer = function (_Panel) {
-      inherits(MarkupRenderer, _Panel);
-
-      function MarkupRenderer() {
-          classCallCheck(this, MarkupRenderer);
-          return possibleConstructorReturn(this, (MarkupRenderer.__proto__ || Object.getPrototypeOf(MarkupRenderer)).apply(this, arguments));
-      }
-
-      createClass(MarkupRenderer, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              if (!options.classMap) {
-                  options.classMap = new MarkupClassMap(MarkupClassMap.GLOBAL);
-              }
-              if (!options.parser) {
-                  options.parser = new MarkupParser({
-                      uiElements: options.classMap
-                  });
-              }
-              get(MarkupRenderer.prototype.__proto__ || Object.getPrototypeOf(MarkupRenderer.prototype), "setOptions", this).call(this, options);
-
-              this.setValue(this.options.value || "");
-              if (this.options.classMap) {
-                  this.classMap = this.options.classMap;
-              }
-          }
-      }, {
-          key: "setValue",
-          value: function setValue(value) {
-              if (typeof value === "string") {
-                  this.options.rawValue = value;
-                  try {
-                      value = this.options.parser.parse(value);
-                  } catch (e) {
-                      console.error("Can't parse ", value, e);
-                      value = {
-                          tag: "span",
-                          children: [value]
-                      };
-                  }
-              }
-              this.options.value = value;
-          }
-      }, {
-          key: "reparse",
-          value: function reparse() {
-              if (this.options.rawValue) {
-                  this.setValue(this.options.rawValue);
-              }
-          }
-      }, {
-          key: "registerDependencies",
-          value: function registerDependencies(dependencies) {
-              if (dependencies.length > 0) {
-                  this.classMap.registerDependencies(dependencies);
-                  this.reparse();
-              }
-          }
-      }, {
-          key: "addClass",
-          value: function addClass(className, classObject) {
-              this.classMap.addClass(className, classObject);
-          }
-      }, {
-          key: "getClass",
-          value: function getClass(className) {
-              return this.classMap.getClass(className);
-          }
-      }, {
-          key: "getValue",
-          value: function getValue() {
-              return this.options.value;
-          }
-      }, {
-          key: "convertToUI",
-          value: function convertToUI(value) {
-              var _this2 = this;
-
-              if (value instanceof UI.TextElement || value instanceof UI.Element) {
-                  // TODO: investigate this!
-                  return value;
-              }
-
-              if (typeof value === "string") {
-                  return new UI.TextElement(value);
-              }
-              if (Array.isArray(value)) {
-                  return value.map(function (x) {
-                      return _this2.convertToUI(x);
-                  });
-              }
-              if (value.children) {
-                  value.children = this.convertToUI(value.children);
-              }
-
-              var classObject = this.getClass(value.tag) || value.tag;
-
-              // TODO: maybe just copy to another object, not delete?
-              //delete value.tag;
-              return UI.createElement.apply(UI, [classObject, value].concat(toConsumableArray(value.children || [])));
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return this.convertToUI(this.getValue());
-          }
-      }]);
-      return MarkupRenderer;
-  }(Panel);
-
-  MarkupClassMap.addClass("CodeSnippet", StaticCodeHighlighter);
-
-  var SafeUriEnhancer = function SafeUriEnhancer(BaseClass, attribute) {
-      return function (_BaseClass) {
-          inherits(SafeUriClass, _BaseClass);
-
-          function SafeUriClass() {
-              classCallCheck(this, SafeUriClass);
-              return possibleConstructorReturn(this, (SafeUriClass.__proto__ || Object.getPrototypeOf(SafeUriClass)).apply(this, arguments));
-          }
-
-          createClass(SafeUriClass, [{
-              key: "setOptions",
-              value: function setOptions(options) {
-                  if (options.hasOwnProperty(attribute) && !this.constructor.isSafeUri(options[attribute])) {
-                      return get(SafeUriClass.prototype.__proto__ || Object.getPrototypeOf(SafeUriClass.prototype), "setOptions", this).call(this, Object.assign({}, options, defineProperty({}, attribute, undefined)));
-                  }
-                  return get(SafeUriClass.prototype.__proto__ || Object.getPrototypeOf(SafeUriClass.prototype), "setOptions", this).call(this, options);
-              }
-          }], [{
-              key: "isSafeUri",
-              value: function isSafeUri(uri) {
-                  return uri.indexOf(":") === -1 || uri.startsWith("http:") || uri.startsWith("https:") || uri.startsWith("mailto:");
-              }
-          }]);
-          return SafeUriClass;
-      }(BaseClass);
-  };
-
-  MarkupClassMap.addClass("Link", SafeUriEnhancer(Link, "href"));
-  MarkupClassMap.addClass("Image", SafeUriEnhancer(Image, "src"));
-
-  var MarkupEditor = function (_Panel) {
-      inherits(MarkupEditor, _Panel);
-
-      function MarkupEditor() {
-          classCallCheck(this, MarkupEditor);
-          return possibleConstructorReturn(this, (MarkupEditor.__proto__ || Object.getPrototypeOf(MarkupEditor)).apply(this, arguments));
-      }
-
-      createClass(MarkupEditor, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return {
-                  showButtons: true
-              };
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              get(MarkupEditor.prototype.__proto__ || Object.getPrototypeOf(MarkupEditor.prototype), "extraNodeAttributes", this).call(this, attr);
-              attr.setStyle("textAlign", "center");
-          }
-      }, {
-          key: "getMarkupRenderer",
-          value: function getMarkupRenderer() {
-              var rendererOptions = {};
-              if (this.options.classMap) {
-                  rendererOptions.classMap = this.options.classMap;
-              }
-              return UI.createElement(MarkupRenderer, _extends({ ref: this.refLink("markupRenderer"), value: this.options.value, style: { height: "100%", overflow: "auto" } }, rendererOptions));
-          }
-      }, {
-          key: "getEditor",
-          value: function getEditor() {
-              return UI.createElement(TextArea, { ref: "codeEditor", style: {
-                      width: "100%",
-                      height: "calc(100% - 3px)",
-                      resize: "none",
-                      backgroundColor: "#F9F9F9"
-                  }, value: this.options.value || "" });
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var buttons = void 0;
-              if (this.options.showButtons) {
-                  buttons = UI.createElement(
-                      ButtonGroup,
-                      null,
-                      UI.createElement(Button, { ref: "toggleLeftButton", label: UI.T("Editor"), level: Level.SUCCESS }),
-                      UI.createElement(Button, { ref: "toggleRightButton", label: UI.T("Article"), level: Level.SUCCESS })
-                  );
-              }
-
-              return [buttons, UI.createElement(
-                  SectionDivider$$1,
-                  { ref: "sectionDivider", orientation: Orientation.HORIZONTAL,
-                      style: { textAlign: "initial", height: "100%", width: "100%", display: "inline-block",
-                          overflow: "hidden" } },
-                  UI.createElement(
-                      Panel,
-                      { ref: "editorPanel", style: { width: "50%", height: "100%", overflow: "hidden" } },
-                      this.getEditor()
-                  ),
-                  UI.createElement(
-                      Panel,
-                      { ref: "rendererPanel", style: { width: "50%", height: "100%", overflow: "auto", padding: "10px" } },
-                      this.getMarkupRenderer()
-                  )
-              )];
-          }
-      }, {
-          key: "updateValue",
-          value: function updateValue(markup) {
-              this.markupRenderer.setValue(markup);
-              this.markupRenderer.redraw();
-          }
-      }, {
-          key: "appendValue",
-          value: function appendValue(markup) {
-              var separator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "\n";
-
-              var value = this.getValue();
-              if (value && separator != null) {
-                  value += separator;
-              }
-              value += markup;
-              this.setValue(value);
-              this.updateValue(value);
-          }
-      }, {
-          key: "setEditorOptions",
-          value: function setEditorOptions() {
-              var _this2 = this;
-
-              this.editorPanel.addListener("resize", function () {
-                  _this2.codeEditor.setWidth(_this2.editorPanel.getWidth() - 15);
-              });
-
-              this.codeEditor.addNodeListener("input", function () {
-                  var markup = _this2.codeEditor.getValue();
-                  try {
-                      _this2.updateValue(markup);
-                  } catch (e) {
-                      console.error("Exception in parsing markup: ", e);
-                  }
-              });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this3 = this;
-
-              if (this.options.showButtons) {
-                  this.toggleLeftButton.addClickListener(function () {
-                      if (_this3.editorPanel.getWidth() === 0) {
-                          _this3.sectionDivider.expandChild(0);
-                          _this3.toggleLeftButton.setLevel(Level.SUCCESS);
-                      } else {
-                          _this3.sectionDivider.collapseChild(0);
-                          _this3.toggleLeftButton.setLevel(Level.DANGER);
-                      }
-                  });
-                  this.toggleRightButton.addClickListener(function () {
-                      if (_this3.rendererPanel.getWidth() === 0) {
-                          _this3.sectionDivider.expandChild(1);
-                          _this3.toggleRightButton.setLevel(Level.SUCCESS);
-                      } else {
-                          _this3.sectionDivider.collapseChild(1);
-                          _this3.toggleRightButton.setLevel(Level.DANGER);
-                      }
-                  });
-              }
-
-              this.setEditorOptions();
-          }
-      }, {
-          key: "getValue",
-          value: function getValue() {
-              return this.codeEditor.getValue();
-          }
-      }, {
-          key: "setValue",
-          value: function setValue(value) {
-              this.updateValue(value);
-              return this.codeEditor.setValue(value);
-          }
-      }]);
-      return MarkupEditor;
-  }(Panel);
-
-  var User = function (_StoreObject) {
-      inherits(User, _StoreObject);
-
-      function User(obj) {
-          classCallCheck(this, User);
-          return possibleConstructorReturn(this, (User.__proto__ || Object.getPrototypeOf(User)).call(this, obj));
-      }
-
-      createClass(User, [{
-          key: "getName",
-          value: function getName() {}
-      }, {
-          key: "getCustomSetting",
-          value: function getCustomSetting(key, defaultValue) {
-              var keyChain = key.split(":");
-              var currentDict = this.customSettings;
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = keyChain[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var _key = _step.value;
-
-                      if (_key in currentDict) {
-                          currentDict = currentDict[_key];
-                      } else {
-                          return defaultValue;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              return currentDict;
-          }
-      }, {
-          key: "getParsedCustomSetting",
-          value: function getParsedCustomSetting(key, defaultValue) {
-              return JSON.parse(this.getCustomSetting(key, defaultValue));
-          }
-      }, {
-          key: "setCustomSetting",
-          value: function setCustomSetting(key, value) {
-              var keyChain = key.split(":");
-              var lastKey = keyChain.pop();
-              if (!this.customSettings) {
-                  this.customSettings = {};
-              }
-              var currentDict = this.customSettings;
-              var _iteratorNormalCompletion2 = true;
-              var _didIteratorError2 = false;
-              var _iteratorError2 = undefined;
-
-              try {
-                  for (var _iterator2 = keyChain[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                      var _key2 = _step2.value;
-
-                      if (!(_key2 in currentDict)) {
-                          currentDict[_key2] = {};
-                      }
-                      currentDict = currentDict[_key2];
-                  }
-              } catch (err) {
-                  _didIteratorError2 = true;
-                  _iteratorError2 = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                          _iterator2.return();
-                      }
-                  } finally {
-                      if (_didIteratorError2) {
-                          throw _iteratorError2;
-                      }
-                  }
-              }
-
-              currentDict[lastKey] = value;
-
-              this.dispatch("updateCustomSetting", {
-                  key: key,
-                  value: JSON.parse(value),
-                  rawValue: value,
-                  origin: "set"
-              });
-          }
-      }, {
-          key: "saveCustomSetting",
-          value: function saveCustomSetting(key, value) {
-              if (this.id != USER.id) {
-                  console.error("Invalid user");
-                  return;
-              }
-
-              this.dispatch("updateCustomSetting", {
-                  key: key,
-                  value: value,
-                  origin: "save"
-              });
-
-              var request = {
-                  customSettingsKey: key,
-                  customSettingsValue: value
-              };
-
-              if (!this.timeouts) {
-                  this.timeouts = new Map();
-              }
-              if (this.timeouts.has(key)) {
-                  clearTimeout(this.timeouts.get(key));
-              }
-              this.timeouts.set(key, setTimeout(function () {
-                  Ajax.postJSON("/accounts/profile_changed/", request).then(function () {}, function () {});
-              }));
-          }
-      }, {
-          key: "applyEvent",
-          value: function applyEvent(event) {
-              if (event.type === "setCustomSetting") {
-                  console.log("Updated custom settings: ", event);
-                  this.setCustomSetting(event["data"].key, event["data"].value);
-              } else {
-                  get(User.prototype.__proto__ || Object.getPrototypeOf(User.prototype), "applyEvent", this).call(this, event);
-              }
-          }
-      }]);
-      return User;
-  }(StoreObject);
-
-  var UserStore = new GenericObjectStore("user", User);
-
-  UserStore.getCurrentUser = function () {
-      return window.USER;
-  };
-
-  var PublicUser = function (_StoreObject2) {
-      inherits(PublicUser, _StoreObject2);
-
-      function PublicUser() {
-          classCallCheck(this, PublicUser);
-          return possibleConstructorReturn(this, (PublicUser.__proto__ || Object.getPrototypeOf(PublicUser)).apply(this, arguments));
-      }
-
-      createClass(PublicUser, [{
-          key: "getDisplayHandle",
-          value: function getDisplayHandle() {
-              var name = void 0;
-              if (this.displayName) {
-                  name = this.name || this.username;
-              } else {
-                  name = this.username || this.name;
-              }
-              return name || "user-" + this.id;
-          }
-      }, {
-          key: "getProfileUrl",
-          value: function getProfileUrl() {
-              if (this.username) {
-                  return "/user/" + this.username;
-              } else {
-                  return "/userid/" + this.id;
-              }
-          }
-      }]);
-      return PublicUser;
-  }(StoreObject);
-
-  // TODO: extend AjaxFetchMixin, to put the options in the constructor
-
-
-  var PublicUserStoreClass = AjaxFetchMixin(GenericObjectStore);
-
-  var PublicUserStore = new PublicUserStoreClass("publicuser", PublicUser, {
-      fetchTimeoutDuration: 20,
-      maxFetchObjectCount: 512,
-      fetchURL: "/accounts/public_user_profiles/"
-  });
-
-  window.USER = Object.assign({
-      id: 0,
-      customSettings: {}
-  }, window.USER || {});
-
-  window.USER = UserStore.fakeCreate(window.USER);
-
-  var UserNotification = function (_StoreObject3) {
-      inherits(UserNotification, _StoreObject3);
-
-      function UserNotification() {
-          classCallCheck(this, UserNotification);
-          return possibleConstructorReturn(this, (UserNotification.__proto__ || Object.getPrototypeOf(UserNotification)).apply(this, arguments));
-      }
-
-      createClass(UserNotification, [{
-          key: "getUser",
-          value: function getUser() {
-              return UserStore.get(this.userId);
-          }
-      }, {
-          key: "isRead",
-          value: function isRead() {
-              return this.id <= this.getUser().lastReadNotificationId;
-          }
-      }]);
-      return UserNotification;
-  }(StoreObject);
-
-  var UserNotificationStore = new GenericObjectStore("UserNotification", UserNotification, { dependencies: ["user"] });
-
-  var UserHandle = function (_UI$Element) {
-      inherits(UserHandle, _UI$Element);
-
-      function UserHandle() {
-          classCallCheck(this, UserHandle);
-          return possibleConstructorReturn(this, (UserHandle.__proto__ || Object.getPrototypeOf(UserHandle)).apply(this, arguments));
-      }
-
-      createClass(UserHandle, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options.userId = options.userId || options.id;
-
-              get(UserHandle.prototype.__proto__ || Object.getPrototypeOf(UserHandle.prototype), "setOptions", this).call(this, options);
-
-              this.options.color = this.options.color || "#2089b5";
-              this.setUser(PublicUserStore.get(this.options.userId));
-          }
-      }, {
-          key: "setUser",
-          value: function setUser(user) {
-              this.user = user;
-          }
-      }, {
-          key: "getNodeType",
-          value: function getNodeType() {
-              return "span";
-          }
-      }, {
-          key: "setColor",
-          value: function setColor(color) {
-              this.options.color = color;
-              this.handle.setStyle("color", color);
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this2 = this;
-
-              var handle = void 0;
-              if (!this.user) {
-                  PublicUserStore.fetch(this.options.userId, function (user) {
-                      _this2.setUser(user);
-                      _this2.redraw();
-                  });
-                  handle = UI.createElement(
-                      "b",
-                      { ref: "handle", style: { color: "#BBB" } },
-                      "user-" + this.options.userId
-                  );
-              } else {
-                  handle = UI.createElement(
-                      "span",
-                      { ref: "handle", style: { cursor: "pointer", color: this.options.color },
-                          onClick: function onClick() {
-                              window.open(_this2.user.getProfileUrl(), "_blank");
-                          } },
-                      UI.createElement(
-                          "b",
-                          null,
-                          this.user.getDisplayHandle()
-                      )
-                  );
-              }
-
-              //The purpose of the container is to simplify the usage of the popup.
-              return [UI.createElement(
-                  "span",
-                  { ref: "container", style: { position: "relative", overflow: "hidden" } },
-                  handle,
-                  this.options.children
-              )];
-          }
-      }]);
-      return UserHandle;
-  }(UI.Element);
-
-  var ArticleRenderer = function (_MarkupRenderer) {
-      inherits(ArticleRenderer, _MarkupRenderer);
-
-      function ArticleRenderer() {
-          classCallCheck(this, ArticleRenderer);
-          return possibleConstructorReturn(this, (ArticleRenderer.__proto__ || Object.getPrototypeOf(ArticleRenderer)).apply(this, arguments));
-      }
-
-      createClass(ArticleRenderer, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options.classMap = options.classMap || this.constructor.markupClassMap;
-              get(ArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(ArticleRenderer.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "getEditButton",
-          value: function getEditButton() {
-              if (this.options.showEditButton && this.options.article.canBeEditedByUser()) {
-                  var url = this.options.editButtonUrl || "/article/" + this.options.article.id + "/edit/";
-                  return UI.createElement(
-                      "div",
-                      { className: "text-left" },
-                      UI.createElement(
-                          "a",
-                          { href: url, target: "_blank" },
-                          UI.createElement(Button, { label: UI.T("Edit"),
-                              style: { "margin": "10px" } })
-                      )
-                  );
-              }
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [this.getEditButton(), get(ArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(ArticleRenderer.prototype), "render", this).call(this)];
-          }
-      }, {
-          key: "setArticle",
-          value: function setArticle(article) {
-              this.updateOptions({ article: article });
-          }
-      }, {
-          key: "getValue",
-          value: function getValue() {
-              get(ArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(ArticleRenderer.prototype), "setValue", this).call(this, this.getArticleToRender().markup);
-              return get(ArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(ArticleRenderer.prototype), "getValue", this).call(this);
-          }
-      }, {
-          key: "getArticleToRender",
-          value: function getArticleToRender() {
-              return this.options.article.getTranslation();
-          }
-      }, {
-          key: "getArticleDependencies",
-          value: function getArticleDependencies() {
-              var dependencies = this.options.article.dependency;
-              return dependencies && dependencies.split(",");
-          }
-      }, {
-          key: "redraw",
-          value: function redraw() {
-              var _this2 = this;
-
-              var dependencies = this.getArticleDependencies();
-              if (!dependencies) {
-                  get(ArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(ArticleRenderer.prototype), "redraw", this).call(this);
-                  return;
-              }
-
-              // Not using require directly to fool webpack
-              window["require"](dependencies, function () {
-                  for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-                      args[_key] = arguments[_key];
-                  }
-
-                  _this2.registerDependencies(args);
-                  get(ArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(ArticleRenderer.prototype), "redraw", _this2).call(_this2);
-              });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this3 = this;
-
-              if (this.options.liveLanguage) {
-                  this.attachListener(Language, "localeChange", function () {
-                      return _this3.redraw();
-                  });
-              }
-          }
-      }]);
-      return ArticleRenderer;
-  }(MarkupRenderer);
-
-  var RecursiveArticleRenderer = function (_ArticleRenderer) {
-      inherits(RecursiveArticleRenderer, _ArticleRenderer);
-
-      function RecursiveArticleRenderer() {
-          classCallCheck(this, RecursiveArticleRenderer);
-          return possibleConstructorReturn(this, (RecursiveArticleRenderer.__proto__ || Object.getPrototypeOf(RecursiveArticleRenderer)).apply(this, arguments));
-      }
-
-      createClass(RecursiveArticleRenderer, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(RecursiveArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(RecursiveArticleRenderer.prototype), "setOptions", this).call(this, options);
-              this.options.articleId = this.options.articleId || this.options.id;
-          }
-      }, {
-          key: "redraw",
-          value: function redraw() {
-              var _this5 = this;
-
-              if (this.options.article) {
-                  return get(RecursiveArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(RecursiveArticleRenderer.prototype), "redraw", this).call(this);
-              } else {
-                  ArticleStore.fetch(this.options.articleId, function (article) {
-                      return _this5.updateOptions({ article: article });
-                  });
-              }
-          }
-      }]);
-      return RecursiveArticleRenderer;
-  }(ArticleRenderer);
-
-  var ArticleSwitcher = function (_Switcher) {
-      inherits(ArticleSwitcher, _Switcher);
-      createClass(ArticleSwitcher, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return Object.assign({}, get(ArticleSwitcher.prototype.__proto__ || Object.getPrototypeOf(ArticleSwitcher.prototype), "getDefaultOptions", this).call(this), {
-                  fullHeight: true
-              });
-          }
-      }]);
-
-      function ArticleSwitcher() {
-          classCallCheck(this, ArticleSwitcher);
-
-          var _this6 = possibleConstructorReturn(this, (ArticleSwitcher.__proto__ || Object.getPrototypeOf(ArticleSwitcher)).apply(this, arguments));
-
-          _this6.articleChildMap = new WeakMap();
-          return _this6;
-      }
-
-      createClass(ArticleSwitcher, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options = Object.assign({
-                  lazyRender: true
-              }, options);
-              get(ArticleSwitcher.prototype.__proto__ || Object.getPrototypeOf(ArticleSwitcher.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "getPageForArticle",
-          value: function getPageForArticle(article) {
-              if (!this.articleChildMap.has(article)) {
-                  this.articleChildMap.set(article, UI.createElement(ArticleRenderer, { article: article, showEditButton: this.options.showEditButton }));
-              }
-              return this.articleChildMap.get(article);
-          }
-      }, {
-          key: "setActive",
-          value: function setActive(article) {
-              if (!(article instanceof Article)) {
-                  get(ArticleSwitcher.prototype.__proto__ || Object.getPrototypeOf(ArticleSwitcher.prototype), "setActive", this).call(this, article);
-                  return;
-              }
-              get(ArticleSwitcher.prototype.__proto__ || Object.getPrototypeOf(ArticleSwitcher.prototype), "setActive", this).call(this, this.getPageForArticle(article));
-          }
-      }, {
-          key: "setActiveArticleId",
-          value: function setActiveArticleId(articleId) {
-              var _this7 = this;
-
-              ArticleStore.fetch(articleId, function (article) {
-                  _this7.setActive(article);
-              });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              get(ArticleSwitcher.prototype.__proto__ || Object.getPrototypeOf(ArticleSwitcher.prototype), "onMount", this).call(this);
-              if (this.options.initialArticle) {
-                  this.setActive(this.options.initialArticle);
-              }
-              if (this.options.initialArticleId) {
-                  this.setActiveArticleId(this.options.initialArticleId);
-              }
-          }
-      }]);
-      return ArticleSwitcher;
-  }(Switcher);
-
-  ArticleRenderer.markupClassMap = new MarkupClassMap(MarkupClassMap.GLOBAL, [["Article", RecursiveArticleRenderer], ["RawSVG", SVG.RawSVG]]);
-
-  var _class$43, _descriptor$19, _descriptor2$15, _descriptor3$15, _descriptor4$13, _descriptor5$11, _descriptor6$9, _class3$14, _descriptor7$7, _descriptor8$5;
-
-  function _initDefineProp$20(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$20(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-
-  var color = {
-      BLUE: "#20232d",
-      HOVER_BLUE: "#364251",
-      BLACK: "#181a22",
-      HOVER_BLACK: "#323539",
-      WHITE: "#eee"
-  };
-
-  var CSAStyle = {
-      color: color
-  };
-
-  var BlogStyle = (_class$43 = function (_StyleSheet) {
-      inherits(BlogStyle, _StyleSheet);
-
-      function BlogStyle() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, BlogStyle);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = BlogStyle.__proto__ || Object.getPrototypeOf(BlogStyle)).call.apply(_ref, [this].concat(args))), _this), _this.titleFontSize = "2em", _initDefineProp$20(_this, "commentsTitle", _descriptor$19, _this), _initDefineProp$20(_this, "bottomSection", _descriptor2$15, _this), _initDefineProp$20(_this, "blogEntryView", _descriptor3$15, _this), _this.title = {
-              "font-size": _this.titleFontSize,
-              "padding-top": "20px",
-              "padding-bottom": "10px",
-              "text-decoration": "italic",
-              "width": "100%",
-              "text-align": "center",
-              "word-wrap": "normal",
-              "line-height": "60px"
-          }, _this.writtenBy = {
-              "width": "100%",
-              "text-align": "left",
-              "padding-top": "20px",
-              "font-size": "1em",
-              "color": "#666"
-          }, _this.article = {
-              "text-align": "justify",
-              "font-size": "17px"
-          }, _this.link = {
-              textDecoration: "none",
-              textAlign: "center",
-              marginTop: "-15pt",
-              fontSize: "1.1em"
-          }, _this.blogArticleRenderer = {
-              overflow: "hidden",
-              position: "relative",
-              maxHeight: "180px",
-              "text-align": "justify",
-              "font-size": "17px",
-              marginBottom: "25px"
-          }, _initDefineProp$20(_this, "whiteOverlay", _descriptor4$13, _this), _initDefineProp$20(_this, "loadMoreButton", _descriptor5$11, _this), _initDefineProp$20(_this, "sendMessageButtonStyle", _descriptor6$9, _this), _temp), possibleConstructorReturn(_this, _ret);
-      }
-
-      return BlogStyle;
-  }(StyleSheet), (_descriptor$19 = _applyDecoratedDescriptor$20(_class$43.prototype, "commentsTitle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "20px",
-              color: "#333",
-              marginTop: "10px",
-              fontSize: "1em",
-              textTransform: "uppercase"
-          };
-      }
-  }), _descriptor2$15 = _applyDecoratedDescriptor$20(_class$43.prototype, "bottomSection", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              marginTop: "5px",
-              height: "50px",
-              width: "100%"
-          };
-      }
-  }), _descriptor3$15 = _applyDecoratedDescriptor$20(_class$43.prototype, "blogEntryView", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              "margin": "0 auto",
-              "width": "900px",
-              "max-width": "100%"
-              // "padding-top": "50px",
-              // "padding-bottom": "50px",
-          };
-      }
-  }), _descriptor4$13 = _applyDecoratedDescriptor$20(_class$43.prototype, "whiteOverlay", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "100px",
-              background: "linear-gradient(rgba(255,255,255,0), #fff)",
-              position: "absolute",
-              marginTop: "-120px",
-              pointerEvents: "none",
-              width: "92%"
-          };
-      }
-  }), _descriptor5$11 = _applyDecoratedDescriptor$20(_class$43.prototype, "loadMoreButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              marginLeft: "16px",
-              color: "#fff",
-              height: "40px",
-              marginTop: "10px",
-              marginBottom: "20px",
-              width: "auto",
-              borderRadius: "0px",
-              backgroundColor: CSAStyle.color.BLUE,
-              border: "0",
-              padding: "5px 10px",
-              borderColor: CSAStyle.color.BLUE,
-              fontSize: "1em",
-              transition: ".2s",
-              textTransform: "uppercase",
-              opacity: "1",
-              ":hover": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              },
-              ":active": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              },
-              ":focus": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              },
-              ":active:focus": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              }
-          };
-      }
-  }), _descriptor6$9 = _applyDecoratedDescriptor$20(_class$43.prototype, "sendMessageButtonStyle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "30px",
-              marginTop: "10px",
-              marginBottom: "20px",
-              width: "auto",
-              borderRadius: "0px",
-              backgroundColor: CSAStyle.color.BLUE,
-              borderColor: "#333",
-              fontSize: "13px",
-              transition: ".2s",
-              ":hover": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              },
-              ":active": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              },
-              ":focus": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              },
-              ":focus:active": {
-                  backgroundColor: CSAStyle.color.HOVER_BLUE,
-                  borderColor: CSAStyle.color.HOVER_BLUE,
-                  transition: ".2s"
-              }
-          };
-      }
-  })), _class$43);
-  var BlogArticleRendererStyle = (_class3$14 = function (_StyleSheet2) {
-      inherits(BlogArticleRendererStyle, _StyleSheet2);
-
-      function BlogArticleRendererStyle() {
-          var _ref2;
-
-          var _temp2, _this2, _ret2;
-
-          classCallCheck(this, BlogArticleRendererStyle);
-
-          for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-              args[_key2] = arguments[_key2];
-          }
-
-          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = BlogArticleRendererStyle.__proto__ || Object.getPrototypeOf(BlogArticleRendererStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.hStyle = {
-              "text-align": "center",
-              "margin-top": "30px",
-              "margin-bottom": "30px",
-              "width": "100%"
-          }, _initDefineProp$20(_this2, "blogArticleRenderer", _descriptor7$7, _this2), _initDefineProp$20(_this2, "quote", _descriptor8$5, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
-      }
-
-      return BlogArticleRendererStyle;
-  }(StyleSheet), (_descriptor7$7 = _applyDecoratedDescriptor$20(_class3$14.prototype, "blogArticleRenderer", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              " h1": this.hStyle,
-              " h2": this.hStyle,
-              " h3": this.hStyle,
-              " h4": this.hStyle,
-              " h5": this.hStyle,
-              " h6": this.hStyle
-          };
-      }
-  }), _descriptor8$5 = _applyDecoratedDescriptor$20(_class3$14.prototype, "quote", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              "font-style": "italic",
-              "margin-top": "20px",
-              "margin-bottom": "20px",
-              "color": "#707070",
-              "float": "right",
-              "display": "flex",
-              "width": "100%"
-          };
-      }
-  })), _class3$14);
-
-  var _dec$22, _class$44, _dec2$7, _class2$8;
-
-  var BlogArticleRenderer = (_dec$22 = registerStyle(BlogArticleRendererStyle), _dec$22(_class$44 = function (_ArticleRenderer) {
-      inherits(BlogArticleRenderer, _ArticleRenderer);
-
-      function BlogArticleRenderer() {
-          classCallCheck(this, BlogArticleRenderer);
-          return possibleConstructorReturn(this, (BlogArticleRenderer.__proto__ || Object.getPrototypeOf(BlogArticleRenderer)).apply(this, arguments));
-      }
-
-      createClass(BlogArticleRenderer, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              get(BlogArticleRenderer.prototype.__proto__ || Object.getPrototypeOf(BlogArticleRenderer.prototype), "extraNodeAttributes", this).call(this, attr);
-              attr.addClass(this.styleSheet.blogArticleRenderer);
-          }
-      }]);
-      return BlogArticleRenderer;
-  }(ArticleRenderer)) || _class$44);
-  var BlogQuote = (_dec2$7 = registerStyle(BlogArticleRendererStyle), _dec2$7(_class2$8 = function (_UI$Primitive) {
-      inherits(BlogQuote, _UI$Primitive);
-
-      function BlogQuote() {
-          classCallCheck(this, BlogQuote);
-          return possibleConstructorReturn(this, (BlogQuote.__proto__ || Object.getPrototypeOf(BlogQuote)).apply(this, arguments));
-      }
-
-      createClass(BlogQuote, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.quote);
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [UI.createElement("div", { style: {
-                      "flex-grow": "1000000",
-                      "min-width": "10%",
-                      "display": "inline-block"
-                  } }), UI.createElement(
-                  "div",
-                  { style: {
-                          "flex-grow": "1",
-                          "display": "inline-block"
-                      } },
-                  this.options.value
-              )];
-          }
-      }]);
-      return BlogQuote;
-  }(UI.Primitive("div"))) || _class2$8);
-
-
-  BlogArticleRenderer.markupClassMap = new MarkupClassMap(ArticleRenderer.markupClassMap);
-  BlogArticleRenderer.markupClassMap.addClass("Quote", BlogQuote);
-
-  var TransferOwnershipModal = function (_ActionModal) {
-      inherits(TransferOwnershipModal, _ActionModal);
-
-      function TransferOwnershipModal() {
-          classCallCheck(this, TransferOwnershipModal);
-          return possibleConstructorReturn(this, (TransferOwnershipModal.__proto__ || Object.getPrototypeOf(TransferOwnershipModal)).apply(this, arguments));
-      }
-
-      createClass(TransferOwnershipModal, [{
-          key: "getActionName",
-          value: function getActionName() {
-              return "Transfer ownership";
-          }
-      }, {
-          key: "getActionLevel",
-          value: function getActionLevel() {
-              return Level.PRIMARY;
-          }
-      }, {
-          key: "getArticle",
-          value: function getArticle() {
-              return this.options.article;
-          }
-      }, {
-          key: "getBody",
-          value: function getBody() {
-              return [UI.createElement(UI.TextElement, { ref: "text", value: "Set owner for " + this.getArticle().name + ":" }), UI.createElement(
-                  Form,
-                  { style: { marginTop: "10px" } },
-                  UI.createElement(
-                      FormField,
-                      { ref: "ownerFormField", label: "Author ID" },
-                      UI.createElement(TextInput, { ref: "ownerFormInput", value: this.getArticle().userCreatedId })
-                  )
-              )];
-          }
-      }, {
-          key: "getFooter",
-          value: function getFooter() {
-              var _this2 = this;
-
-              return [UI.createElement(TemporaryMessageArea, { ref: "messageArea" }), UI.createElement(
-                  ButtonGroup,
-                  null,
-                  UI.createElement(Button, { label: "Close", onClick: function onClick() {
-                          return _this2.hide();
-                      } }),
-                  UI.createElement(AjaxButton, { ref: "transferOwnershipButton", level: this.getActionLevel(), onClick: function onClick() {
-                          return _this2.action();
-                      },
-                      statusOptions: [this.getActionName(), { faIcon: "spinner fa-spin", label: " transfering ownership ..." }, this.getActionName(), "Failed"] })
-              )];
-          }
-      }, {
-          key: "action",
-          value: function action() {
-              var _this3 = this;
-
-              var newOwner = this.ownerFormInput.getValue();
-              var request = {
-                  newOwner: newOwner
-              };
-
-              this.messageArea.showMessage("Saving...", "black", null);
-
-              this.transferOwnershipButton.postJSON("/article/" + this.getArticle().id + "/set_owner/", request).then(function () {
-                  return _this3.hide();
-              }, function (error) {
-                  return _this3.messageArea.showMessage("Error in changing owner " + error.message, "red");
-              });
-          }
-      }, {
-          key: "hide",
-          value: function hide() {
-              this.messageArea.clear();
-              get(TransferOwnershipModal.prototype.__proto__ || Object.getPrototypeOf(TransferOwnershipModal.prototype), "hide", this).call(this);
-          }
-      }]);
-      return TransferOwnershipModal;
-  }(ActionModal);
-
-  var DeleteArticleModal = function (_ActionModal2) {
-      inherits(DeleteArticleModal, _ActionModal2);
-
-      function DeleteArticleModal() {
-          classCallCheck(this, DeleteArticleModal);
-          return possibleConstructorReturn(this, (DeleteArticleModal.__proto__ || Object.getPrototypeOf(DeleteArticleModal)).apply(this, arguments));
-      }
-
-      createClass(DeleteArticleModal, [{
-          key: "getActionName",
-          value: function getActionName() {
-              return "Delete article";
-          }
-      }, {
-          key: "getBody",
-          value: function getBody() {
-              return UI.createElement(UI.TextElement, { ref: "text", value: "Delete " + this.getArticle().name + "?" });
-          }
-      }, {
-          key: "getArticle",
-          value: function getArticle() {
-              return this.options.article;
-          }
-      }, {
-          key: "getFooter",
-          value: function getFooter() {
-              var _this5 = this;
-
-              return [UI.createElement(TemporaryMessageArea, { ref: "messageArea" }), UI.createElement(
-                  ButtonGroup,
-                  null,
-                  UI.createElement(Button, { label: "Close", onClick: function onClick() {
-                          return _this5.hide();
-                      } }),
-                  UI.createElement(AjaxButton, { ref: "deleteArticleButton", level: Level.DANGER, onClick: function onClick() {
-                          _this5.deleteArticle();
-                      },
-                      statusOptions: ["Delete article", { faIcon: "spinner fa-spin", label: " deleting article ..." }, "Delete article", "Failed"] })
-              )];
-          }
-      }, {
-          key: "deleteArticle",
-          value: function deleteArticle() {
-              var _this6 = this;
-
-              this.deleteArticleButton.postJSON("/article/" + this.getArticle().id + "/delete/", {}).then(function () {
-                  var table = _this6.options.parent.table;
-                  table.options.articles.splice(table.getArticleIndex(_this6.getArticle().id), 1);
-                  table.redraw();
-                  _this6.hide();
-              }, function (error) {
-                  return _this6.messageArea.showMessage(error.message, "red");
-              });
-          }
-      }, {
-          key: "hide",
-          value: function hide() {
-              this.messageArea.clear();
-              get(DeleteArticleModal.prototype.__proto__ || Object.getPrototypeOf(DeleteArticleModal.prototype), "hide", this).call(this);
-          }
-      }]);
-      return DeleteArticleModal;
-  }(ActionModal);
-
-  var CreateArticleModal = function (_ActionModal3) {
-      inherits(CreateArticleModal, _ActionModal3);
-
-      function CreateArticleModal() {
-          classCallCheck(this, CreateArticleModal);
-          return possibleConstructorReturn(this, (CreateArticleModal.__proto__ || Object.getPrototypeOf(CreateArticleModal)).apply(this, arguments));
-      }
-
-      createClass(CreateArticleModal, [{
-          key: "getActionName",
-          value: function getActionName() {
-              return "Create article";
-          }
-      }, {
-          key: "getBody",
-          value: function getBody() {
-              return UI.createElement(
-                  Form,
-                  { style: { marginTop: "10px" } },
-                  UI.createElement(
-                      FormField,
-                      { ref: "articleNameFormField", label: "Article name" },
-                      UI.createElement(TextInput, { ref: "articleNameInput", value: "" })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { ref: "dependencyFormField", label: "Dependencies" },
-                      UI.createElement(TextInput, { ref: "dependencyInput", value: "" })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { ref: "languageFormField", label: "Language" },
-                      UI.createElement(Select, { ref: "languageSelect", options: Language.all() })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { ref: "publicFormField", label: "Public" },
-                      UI.createElement(CheckboxInput, { ref: "publicCheckbox", checked: false })
-                  )
-              );
-          }
-      }, {
-          key: "getFooter",
-          value: function getFooter() {
-              var _this8 = this;
-
-              return [UI.createElement(TemporaryMessageArea, { ref: "messageArea" }), UI.createElement(
-                  ButtonGroup,
-                  null,
-                  UI.createElement(Button, { label: "Close", onClick: function onClick() {
-                          return _this8.hide();
-                      } }),
-                  UI.createElement(AjaxButton, { ref: "createArticleButton", level: Level.PRIMARY, onClick: function onClick() {
-                          _this8.createArticle();
-                      },
-                      statusOptions: ["Create article", { faIcon: "spinner fa-spin", label: " creating article ..." }, "Create article", "Failed"] })
-              )];
-          }
-      }, {
-          key: "createArticle",
-          value: function createArticle(options) {
-              var _this9 = this;
-
-              var name = this.articleNameInput.getValue();
-              var dependency = this.dependencyInput.getValue();
-              var languageId = this.languageSelect.get().id;
-              var isPublic = this.publicCheckbox.getValue();
-              var request = {
-                  name: name,
-                  dependency: dependency,
-                  languageId: languageId,
-                  isPublic: isPublic
-              };
-              if (options) {
-                  Object.assign(request, options);
-              }
-              this.createArticleButton.postJSON("/create_article/", request).then(function (data) {
-                  _this9.options.parent.table.addArticle(ArticleStore.get(data.article.id));
-                  _this9.hide();
-              }, function (error) {
-                  _this9.messageArea.showMessage(error.message, "red");
-              });
-          }
-      }, {
-          key: "hide",
-          value: function hide() {
-              this.messageArea.clear();
-              get(CreateArticleModal.prototype.__proto__ || Object.getPrototypeOf(CreateArticleModal.prototype), "hide", this).call(this);
-          }
-      }]);
-      return CreateArticleModal;
-  }(ActionModal);
-
-  var AddTranslationModal = function (_CreateArticleModal) {
-      inherits(AddTranslationModal, _CreateArticleModal);
-
-      function AddTranslationModal() {
-          classCallCheck(this, AddTranslationModal);
-          return possibleConstructorReturn(this, (AddTranslationModal.__proto__ || Object.getPrototypeOf(AddTranslationModal)).apply(this, arguments));
-      }
-
-      createClass(AddTranslationModal, [{
-          key: "getActioName",
-          value: function getActioName() {
-              return "Add translation";
-          }
-      }, {
-          key: "getBody",
-          value: function getBody() {
-              var baseArticle = this.options.baseArticle;
-              return UI.createElement(
-                  Form,
-                  { style: { marginTop: "10px" } },
-                  UI.createElement(
-                      FormField,
-                      { ref: "articleNameFormField", label: "Article name" },
-                      UI.createElement(TextInput, { ref: "articleNameInput", value: "Translation for " + baseArticle.name })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { ref: "dependencyFormField", label: "Dependencies" },
-                      UI.createElement(TextInput, { ref: "dependencyInput", value: baseArticle.dependency })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { ref: "languageFormField", label: "Language" },
-                      UI.createElement(Select, { ref: "languageSelect", options: Language.all() })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { ref: "publicFormField", label: "Public" },
-                      UI.createElement(CheckboxInput, { ref: "publicCheckbox", checked: baseArticle.isPublic })
-                  )
-              );
-          }
-      }, {
-          key: "getFooter",
-          value: function getFooter() {
-              var _this11 = this;
-
-              var baseArticle = this.options.baseArticle;
-              return [UI.createElement(TemporaryMessageArea, { ref: "messageArea" }), UI.createElement(
-                  ButtonGroup,
-                  null,
-                  UI.createElement(Button, { label: "Close", onClick: function onClick() {
-                          return _this11.hide();
-                      } }),
-                  UI.createElement(AjaxButton, { ref: "createArticleButton", level: Level.PRIMARY,
-                      onClick: function onClick() {
-                          return _this11.createArticle({
-                              baseArticleId: baseArticle.id,
-                              markup: baseArticle.markup
-                          });
-                      },
-                      statusOptions: ["Add translation", { faIcon: "spinner fa-spin", label: " creating translation article ..." }, "Success", "Failed"] })
-              )];
-          }
-      }]);
-      return AddTranslationModal;
-  }(CreateArticleModal);
-
-  var ArticleOwnerSpan = function (_UI$Primitive) {
-      inherits(ArticleOwnerSpan, _UI$Primitive);
-
-      function ArticleOwnerSpan() {
-          classCallCheck(this, ArticleOwnerSpan);
-          return possibleConstructorReturn(this, (ArticleOwnerSpan.__proto__ || Object.getPrototypeOf(ArticleOwnerSpan)).apply(this, arguments));
-      }
-
-      createClass(ArticleOwnerSpan, [{
-          key: "getArticle",
-          value: function getArticle() {
-              return this.options.article;
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return UI.createElement(UserHandle, { id: this.getArticle().userCreatedId });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this13 = this;
-
-              this.attachUpdateListener(this.getArticle(), function () {
-                  return _this13.redraw();
-              });
-          }
-      }]);
-      return ArticleOwnerSpan;
-  }(UI.Primitive("span"));
-
-  var ArticlePublicSpan = function (_FAIcon) {
-      inherits(ArticlePublicSpan, _FAIcon);
-
-      function ArticlePublicSpan() {
-          classCallCheck(this, ArticlePublicSpan);
-          return possibleConstructorReturn(this, (ArticlePublicSpan.__proto__ || Object.getPrototypeOf(ArticlePublicSpan)).apply(this, arguments));
-      }
-
-      createClass(ArticlePublicSpan, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return {
-                  size: "lg"
-              };
-          }
-      }, {
-          key: "getArticle",
-          value: function getArticle() {
-              return this.options.article;
-          }
-      }, {
-          key: "isPublic",
-          value: function isPublic() {
-              return this.options.article.isPublic;
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              get(ArticlePublicSpan.prototype.__proto__ || Object.getPrototypeOf(ArticlePublicSpan.prototype), "extraNodeAttributes", this).call(this, attr);
-              attr.setStyle("color", this.isPublic() ? "green" : "red");
-          }
-      }, {
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(ArticlePublicSpan.prototype.__proto__ || Object.getPrototypeOf(ArticlePublicSpan.prototype), "setOptions", this).call(this, options);
-              this.options.icon = this.isPublic() ? "check" : "times";
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this15 = this;
-
-              this.attachUpdateListener(this.getArticle(), function () {
-                  return _this15.updateOptions({ icon: _this15.isPublic() ? "check" : "times" });
-              });
-          }
-      }]);
-      return ArticlePublicSpan;
-  }(FAIcon);
-
-  var ArticleTable = function (_SortableTable) {
-      inherits(ArticleTable, _SortableTable);
-
-      function ArticleTable() {
-          classCallCheck(this, ArticleTable);
-          return possibleConstructorReturn(this, (ArticleTable.__proto__ || Object.getPrototypeOf(ArticleTable)).apply(this, arguments));
-      }
-
-      createClass(ArticleTable, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(ArticleTable.prototype.__proto__ || Object.getPrototypeOf(ArticleTable.prototype), "setOptions", this).call(this, options);
-              this.resetColumnSortingOrder();
-          }
-      }, {
-          key: "resetColumnSortingOrder",
-          value: function resetColumnSortingOrder() {
-              this.columnSortingOrder = [this.columns[4], this.columns[5], this.columns[0], this.columns[3], this.columns[2], this.columns[1]];
-          }
-      }, {
-          key: "getArticleIndex",
-          value: function getArticleIndex(articleId) {
-              for (var i = 0; i < this.options.articles.length; i += 1) {
-                  if (this.options.articles[i].id === articleId) return i;
-              }
-              return -1;
-          }
-      }, {
-          key: "addArticle",
-          value: function addArticle(article) {
-              this.options.articles.push(article);
-              this.redraw();
-          }
-      }, {
-          key: "setColumns",
-          value: function setColumns() {
-              var _this17 = this;
-
-              var cellStyle = {
-                  textAlign: "left",
-                  verticalAlign: "middle"
-              };
-              var headerStyle = {
-                  textAlign: "left",
-                  verticalAlign: "middle"
-              };
-              var columns = [{
-                  value: function value(article) {
-                      return UI.createElement(Link, { href: "/article/" + article.id + "/edit/", value: article.name });
-                  },
-                  rawValue: function rawValue(article) {
-                      return article.name;
-                  },
-                  headerName: "Article",
-                  headerStyle: headerStyle,
-                  cellStyle: cellStyle
-              }, {
-                  value: function value(article) {
-                      return UI.createElement(ArticleOwnerSpan, { article: article });
-                  },
-                  rawValue: function rawValue(article) {
-                      return PublicUserStore.get(article.userCreatedId).username;
-                  },
-                  headerName: "Author",
-                  headerStyle: headerStyle,
-                  cellStyle: cellStyle
-              }, {
-                  value: function value(article) {
-                      return UI.createElement(ArticlePublicSpan, { article: article });
-                  },
-                  rawValue: function rawValue(article) {
-                      return article.isPublic ? "Yes" : "No";
-                  },
-                  headerName: "Public",
-                  headerStyle: headerStyle,
-                  cellStyle: cellStyle
-              }, {
-                  value: function value(article) {
-                      return Language.get(article.languageId).name;
-                  },
-                  rawValue: function rawValue(article) {
-                      return Language.get(article.languageId).name;
-                  },
-                  headerName: "Language",
-                  headerStyle: headerStyle,
-                  cellStyle: cellStyle
-              }, {
-                  value: function value(article) {
-                      return StemDate.unix(article.dateCreated).locale("en").format("DD/MM/YYYY HH:mm:ss");
-                  },
-                  rawValue: function rawValue(article) {
-                      return article.dateCreated;
-                  },
-                  sortDescending: true,
-                  headerName: "Date created",
-                  headerStyle: headerStyle,
-                  cellStyle: cellStyle
-              }, {
-                  value: function value(article) {
-                      return StemDate.unix(article.dateModified).locale("en").format("DD/MM/YYYY HH:mm:ss");
-                  },
-                  rawValue: function rawValue(article) {
-                      return article.dateModified;
-                  },
-                  sortDescending: true,
-                  headerName: "Date modified",
-                  headerStyle: headerStyle,
-                  cellStyle: cellStyle
-              }];
-              if (!this.options.parent.options.readOnly) {
-                  if (USER.isSuperUser) {
-                      columns.push({
-                          value: function value(article) {
-                              return UI.createElement(Button, { level: Level.PRIMARY, label: "Set owner",
-                                  onClick: function onClick() {
-                                      return TransferOwnershipModal.show({ article: article });
-                                  } });
-                          },
-                          headerName: "Set owner",
-                          headerStyle: headerStyle,
-                          cellStyle: cellStyle
-                      });
-                  }
-                  columns.push({
-                      value: function value(article) {
-                          return UI.createElement(Button, { level: Level.DANGER, label: "Delete",
-                              onClick: function onClick() {
-                                  DeleteArticleModal.show({
-                                      article: article,
-                                      parent: _this17.options.parent
-                                  });
-                              } });
-                      },
-                      headerName: "Delete",
-                      headerStyle: headerStyle,
-                      cellStyle: cellStyle
-                  });
-              }
-              get(ArticleTable.prototype.__proto__ || Object.getPrototypeOf(ArticleTable.prototype), "setColumns", this).call(this, columns);
-          }
-      }, {
-          key: "getEntries",
-          value: function getEntries() {
-              return this.sortEntries(this.options.articles);
-          }
-      }]);
-      return ArticleTable;
-  }(SortableTable);
-
-  var ArticleManager = function (_Panel) {
-      inherits(ArticleManager, _Panel);
-
-      function ArticleManager() {
-          classCallCheck(this, ArticleManager);
-          return possibleConstructorReturn(this, (ArticleManager.__proto__ || Object.getPrototypeOf(ArticleManager)).apply(this, arguments));
-      }
-
-      createClass(ArticleManager, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return {
-                  title: "Article manager",
-                  articles: []
-              };
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              get(ArticleManager.prototype.__proto__ || Object.getPrototypeOf(ArticleManager.prototype), "extraNodeAttributes", this).call(this, attr);
-              attr.addClass(GlobalStyle.Container.SMALL);
-          }
-      }, {
-          key: "setOptions",
-          value: function setOptions(options) {
-              options = Object.assign(this.getDefaultOptions(), options);
-              get(ArticleManager.prototype.__proto__ || Object.getPrototypeOf(ArticleManager.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this19 = this;
-
-              var addButton = null;
-              if (!this.options.readOnly) {
-                  addButton = UI.createElement(
-                      "div",
-                      { className: "pull-right" },
-                      UI.createElement(Button, { level: Level.PRIMARY, label: "Create article",
-                          onClick: function onClick() {
-                              return CreateArticleModal.show({ parent: _this19 });
-                          },
-                          style: { marginTop: "5px", marginBottom: "5px" } })
-                  );
-              }
-
-              return [UI.createElement(
-                  "div",
-                  { className: "pull-left" },
-                  UI.createElement(
-                      "h4",
-                      null,
-                      UI.createElement(
-                          "strong",
-                          null,
-                          this.options.title
-                      )
-                  )
-              ), addButton, UI.createElement(ArticleTable, { ref: "table", articles: this.options.articles, parent: this })];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this20 = this;
-
-              if (this.options.articles && this.options.articles.length > 0) {
-                  return;
-              }
-              Ajax.getJSON("/get_available_articles/", {}).then(function () {
-                  return _this20.table.updateOptions({ articles: ArticleStore.all() });
-              });
-          }
-      }]);
-      return ArticleManager;
-  }(Panel);
-
-  var ArticleTranslationManager = function (_Panel2) {
-      inherits(ArticleTranslationManager, _Panel2);
-
-      function ArticleTranslationManager() {
-          classCallCheck(this, ArticleTranslationManager);
-          return possibleConstructorReturn(this, (ArticleTranslationManager.__proto__ || Object.getPrototypeOf(ArticleTranslationManager)).apply(this, arguments));
-      }
-
-      createClass(ArticleTranslationManager, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return {
-                  title: "Translation manager"
-              };
-          }
-      }, {
-          key: "setOptions",
-          value: function setOptions(options) {
-              options = Object.assign(this.getDefaultOptions(), options);
-              get(ArticleTranslationManager.prototype.__proto__ || Object.getPrototypeOf(ArticleTranslationManager.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this22 = this;
-
-              this.table = UI.createElement(ArticleTable, { articles: [], parent: this });
-              var addButton = null;
-              if (!this.options.readOnly) {
-                  addButton = UI.createElement(
-                      "div",
-                      { className: "pull-right" },
-                      UI.createElement(Button, { level: Level.PRIMARY, label: "Add translation",
-                          onClick: function onClick() {
-                              return AddTranslationModal.show({
-                                  parent: _this22,
-                                  baseArticle: _this22.options.baseArticle
-                              });
-                          },
-                          style: { marginTop: "5px", marginBottom: "5px" } })
-                  );
-              }
-              return [UI.createElement(
-                  "div",
-                  { className: "pull-left" },
-                  UI.createElement(
-                      "h4",
-                      null,
-                      UI.createElement(
-                          "strong",
-                          null,
-                          this.options.title
-                      )
-                  )
-              ), addButton, this.table];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this23 = this;
-
-              if (!this.options.baseArticle) {
-                  return;
-              }
-
-              Ajax.getJSON("/article/" + this.options.baseArticle.id + "/get_translations/", {}).then(function () {
-                  var _iteratorNormalCompletion = true;
-                  var _didIteratorError = false;
-                  var _iteratorError = undefined;
-
-                  try {
-                      for (var _iterator = ArticleStore.all()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                          var article = _step.value;
-
-                          if (article.baseArticleId === _this23.options.baseArticle.id) {
-                              _this23.table.options.articles.push(article);
-                          }
-                      }
-                  } catch (err) {
-                      _didIteratorError = true;
-                      _iteratorError = err;
-                  } finally {
-                      try {
-                          if (!_iteratorNormalCompletion && _iterator.return) {
-                              _iterator.return();
-                          }
-                      } finally {
-                          if (_didIteratorError) {
-                              throw _iteratorError;
-                          }
-                      }
-                  }
-
-                  _this23.table.redraw();
-              });
-          }
-      }]);
-      return ArticleTranslationManager;
-  }(Panel);
-
-  var deleteRedirectLink = "/";
-
-  var ArticleMarkupEditor = function (_MarkupEditor) {
-      inherits(ArticleMarkupEditor, _MarkupEditor);
-
-      function ArticleMarkupEditor() {
-          classCallCheck(this, ArticleMarkupEditor);
-          return possibleConstructorReturn(this, (ArticleMarkupEditor.__proto__ || Object.getPrototypeOf(ArticleMarkupEditor)).apply(this, arguments));
-      }
-
-      createClass(ArticleMarkupEditor, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(ArticleMarkupEditor.prototype.__proto__ || Object.getPrototypeOf(ArticleMarkupEditor.prototype), "setOptions", this).call(this, options);
-              this.options.value = this.options.article.markup;
-          }
-      }, {
-          key: "getMarkupRenderer",
-          value: function getMarkupRenderer() {
-              return UI.createElement(ArticleRenderer, { ref: this.refLink("markupRenderer"), article: this.options.article, style: { flex: "1", height: "100%", overflow: "auto" } });
-          }
-      }, {
-          key: "updateValue",
-          value: function updateValue(markup) {
-              this.options.article.markup = markup;
-              get(ArticleMarkupEditor.prototype.__proto__ || Object.getPrototypeOf(ArticleMarkupEditor.prototype), "updateValue", this).call(this, markup);
-          }
-      }]);
-      return ArticleMarkupEditor;
-  }(MarkupEditor);
-
-  var DeleteArticleModal$1 = function (_ActionModal) {
-      inherits(DeleteArticleModal, _ActionModal);
-
-      function DeleteArticleModal() {
-          classCallCheck(this, DeleteArticleModal);
-          return possibleConstructorReturn(this, (DeleteArticleModal.__proto__ || Object.getPrototypeOf(DeleteArticleModal)).apply(this, arguments));
-      }
-
-      createClass(DeleteArticleModal, [{
-          key: "getActionName",
-          value: function getActionName() {
-              return "Delete Article";
-          }
-      }, {
-          key: "getBody",
-          value: function getBody() {
-              return UI.createElement(
-                  "p",
-                  null,
-                  "Delete ",
-                  this.options.article.name,
-                  "?"
-              );
-          }
-      }, {
-          key: "getFooter",
-          value: function getFooter() {
-              var _this3 = this;
-
-              return [UI.createElement(TemporaryMessageArea, { ref: "messageArea" }), UI.createElement(
-                  ButtonGroup,
-                  null,
-                  UI.createElement(Button, { label: "Close", onClick: function onClick() {
-                          return _this3.hide();
-                      } }),
-                  UI.createElement(AjaxButton, { ref: "deleteArticleButton", level: Level.DANGER, onClick: function onClick() {
-                          _this3.deleteArticle();
-                      },
-                      statusOptions: ["Delete article", { faIcon: "spinner fa-spin", label: " deleting article ..." }, "Delete article", "Failed"] })
-              )];
-          }
-      }, {
-          key: "deleteArticle",
-          value: function deleteArticle() {
-              var _this4 = this;
-
-              this.deleteArticleButton.postJSON("/article/" + this.options.article.id + "/delete/", {}).then(function () {
-                  if (_this4.options.article.baseArticleId) window.location.replace("/article/" + _this4.options.article.baseArticleId + "/edit/");else window.location.replace(deleteRedirectLink);
-              }, function (error) {
-                  return _this4.messageArea.showMessage(error.message, "red");
-              });
-          }
-      }]);
-      return DeleteArticleModal;
-  }(ActionModal);
-
-  var ArticleEditor = function (_Panel) {
-      inherits(ArticleEditor, _Panel);
-
-      function ArticleEditor() {
-          classCallCheck(this, ArticleEditor);
-          return possibleConstructorReturn(this, (ArticleEditor.__proto__ || Object.getPrototypeOf(ArticleEditor)).apply(this, arguments));
-      }
-
-      createClass(ArticleEditor, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(ArticleEditor.prototype.__proto__ || Object.getPrototypeOf(ArticleEditor.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "getArticle",
-          value: function getArticle() {
-              return ArticleStore.get(this.options.articleId);
-          }
-      }, {
-          key: "initializeVersioning",
-          value: function initializeVersioning() {
-              if (ArticleEditor.DiffWidgetClass) {
-                  this.versions = [];
-                  this.versionsLabels = [];
-                  var _iteratorNormalCompletion = true;
-                  var _didIteratorError = false;
-                  var _iteratorError = undefined;
-
-                  try {
-                      for (var _iterator = this.getArticle().getEdits()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                          var article = _step.value;
-
-                          this.versions.push(article.content);
-                          this.versionsLabels.push("Version " + article.id);
-                      }
-                  } catch (err) {
-                      _didIteratorError = true;
-                      _iteratorError = err;
-                  } finally {
-                      try {
-                          if (!_iteratorNormalCompletion && _iterator.return) {
-                              _iterator.return();
-                          }
-                      } finally {
-                          if (_didIteratorError) {
-                              throw _iteratorError;
-                          }
-                      }
-                  }
-
-                  this.versions.push(this.getArticle().markup);
-                  this.versionsLabels.push("Edit version");
-                  this.versions.reverse();
-                  this.versionsLabels.reverse();
-
-                  this.leftEditable = true;
-                  this.rightEditable = false;
-              }
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              get(ArticleEditor.prototype.__proto__ || Object.getPrototypeOf(ArticleEditor.prototype), "extraNodeAttributes", this).call(this, attr);
-              attr.setStyle({
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "100%"
-              });
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this6 = this;
-
-              this.initializeVersioning();
-              var translationsPanel = null;
-              var baseArticleForm = null;
-              if (this.getArticle().baseArticleId) {
-                  baseArticleForm = UI.createElement(
-                      FormField,
-                      { ref: "baseArticleFormField", label: "Base article" },
-                      UI.createElement(Link, { href: "/article/" + this.getArticle().baseArticleId + "/edit/", value: "Go to base article" })
-                  );
-              } else {
-                  translationsPanel = UI.createElement(
-                      Panel,
-                      { title: "Translations" },
-                      UI.createElement(ArticleTranslationManager, { title: "Translations for " + this.getArticle().name,
-                          baseArticle: this.getArticle() })
-                  );
-              }
-              var ownershipPanel = null;
-              if (USER.isSuperUser) {
-                  ownershipPanel = UI.createElement(
-                      Panel,
-                      { title: "Ownership" },
-                      UI.createElement(
-                          Form,
-                          { style: { marginTop: "10px" } },
-                          UI.createElement(
-                              FormField,
-                              { ref: "ownerFormField", label: "Author ID" },
-                              UI.createElement(TextInput, { ref: "ownerFormInput", value: this.getArticle().userCreatedId })
-                          )
-                      ),
-                      UI.createElement(AjaxButton, { ref: "setOwnerButton", level: Level.INFO, onClick: function onClick() {
-                              var newOwner = _this6.ownerFormInput.getValue();
-                              _this6.setOwner(newOwner);
-                          },
-                          statusOptions: ["Transfer ownership", { faIcon: "spinner fa-spin", label: " transfering ownership ..." }, "Transfer ownership", "Failed"]
-                      }),
-                      UI.createElement(TemporaryMessageArea, { ref: "setOwnerMessageArea" })
-                  );
-              }
-
-              var revisionsPanel = void 0;
-              if (ArticleEditor.DiffWidgetClass) {
-                  var DiffWidgetClass = ArticleEditor.DiffWidgetClass;
-                  revisionsPanel = UI.createElement(
-                      Panel,
-                      { title: "Revisions", style: { height: "100%", display: "flex", flexDirection: "column" } },
-                      UI.createElement(
-                          Panel,
-                          null,
-                          UI.createElement(Select, { ref: "leftTextSelector", options: this.versionsLabels }),
-                          UI.createElement(Select, { style: { float: "right", marginRight: "25px" }, ref: "rightTextSelector", options: this.versionsLabels })
-                      ),
-                      UI.createElement(DiffWidgetClass, { ref: "diffWidget", leftEditable: this.leftEditable, rightEditable: this.rightEditable,
-                          leftTextValue: this.versions[2], arrows: this.arrows, rightTextValue: this.versions[1],
-                          style: { flex: "1", height: "calc(100% - 100px)", width: "calc(100% - 100px)" } })
-                  );
-              }
-
-              return [UI.createElement(
-                  "h3",
-                  null,
-                  this.getArticle().name + " Id=" + this.options.articleId
-              ), UI.createElement(
-                  TabArea,
-                  { ref: "tabArea", variableHeightPanels: true, style: { flex: "1", height: "100%", display: "flex", flexDirection: "column" } },
-                  UI.createElement(
-                      Panel,
-                      { title: "Edit", active: true, style: { height: "100%", overflow: "hidden" } },
-                      UI.createElement(AjaxButton, { ref: "saveMarkupButton", level: Level.INFO, onClick: function onClick() {
-                              var content = _this6.markupEditor.getValue();
-                              _this6.saveMarkup(content);
-                          },
-                          statusOptions: ["Save", { faIcon: "spinner fa-spin", label: " saveing ..." }, "Save", "Failed"]
-                      }),
-                      UI.createElement(TemporaryMessageArea, { ref: "saveMarkupMessageArea" }),
-                      UI.createElement(ArticleMarkupEditor, { style: { height: "100%", marginTop: "-31px", display: "flex", flexDirection: "column" },
-                          ref: "markupEditor", article: this.getArticle() })
-                  ),
-                  revisionsPanel,
-                  UI.createElement(
-                      Panel,
-                      { title: "Summary" },
-                      UI.createElement(
-                          Form,
-                          { style: { marginTop: "10px" } },
-                          UI.createElement(
-                              FormField,
-                              { ref: "articleNameFormField", label: "Article name" },
-                              UI.createElement(TextInput, { ref: "articleNameFormInput", value: this.getArticle().name })
-                          ),
-                          UI.createElement(
-                              FormField,
-                              { ref: "dependencyFormField", label: "Dependencies" },
-                              UI.createElement(TextInput, { ref: "dependencyFormInput", value: this.getArticle().dependency })
-                          ),
-                          baseArticleForm,
-                          UI.createElement(
-                              FormField,
-                              { ref: "languageFormField", label: "Language" },
-                              UI.createElement(Select, { ref: "languageSelect", options: Language.all(),
-                                  selected: Language.get(this.getArticle().languageId) })
-                          ),
-                          UI.createElement(
-                              FormField,
-                              { ref: "publicFormField", label: "Public" },
-                              UI.createElement(CheckboxInput, { ref: "publicCheckbox", checked: this.getArticle().isPublic })
-                          )
-                      ),
-                      UI.createElement(AjaxButton, { ref: "saveOptionsButton", level: Level.INFO, onClick: function onClick() {
-                              var name = _this6.articleNameFormInput.getValue();
-                              var dependency = _this6.dependencyFormInput.getValue();
-                              var languageId = _this6.languageSelect.get().id;
-                              var isPublic = _this6.publicCheckbox.getValue();
-                              var options = {
-                                  name: name,
-                                  dependency: dependency,
-                                  languageId: languageId,
-                                  isPublic: isPublic
-                              };
-                              _this6.saveOptions(options);
-                          },
-                          statusOptions: ["Save", { faIcon: "spinner fa-spin", label: " saveing ..." }, "Save", "Failed"]
-                      }),
-                      UI.createElement(Button, { ref: "deleteArticleButton", level: Level.DANGER, label: "Delete article",
-                          style: { marginLeft: "3px" },
-                          onClick: function onClick() {
-                              return _this6.deleteArticleModal.show();
-                          } }),
-                      UI.createElement(TemporaryMessageArea, { ref: "saveOptionsMessageArea" })
-                  ),
-                  translationsPanel,
-                  ownershipPanel
-              )];
-          }
-      }, {
-          key: "saveMarkup",
-          value: function saveMarkup(content) {
-              var _this7 = this;
-
-              var request = {
-                  markup: content
-              };
-
-              this.saveMarkupMessageArea.showMessage("Saving...", "black", null);
-
-              this.saveMarkupButton.postJSON("/article/" + this.options.articleId + "/edit/", request).then(function () {
-                  // Add a new version in the dropdown if the save is a success
-                  if (ArticleEditor.DiffWidgetClass) {
-                      _this7.addNewVersion(content);
-                  }
-                  _this7.saveMarkupMessageArea.showMessage("Saved article");
-              }, function (error) {
-                  return _this7.saveMarkupMessageArea.showMessage("Error in saving the article: " + error.message, "red");
-              });
-          }
-      }, {
-          key: "saveOptions",
-          value: function saveOptions(options) {
-              var _this8 = this;
-
-              var request = {};
-              Object.assign(request, options);
-
-              this.saveOptionsMessageArea.showMessage("Saving...", "black", null);
-
-              this.saveOptionsButton.postJSON("/article/" + this.options.articleId + "/edit/", request).then(function () {
-                  return window.location.replace("/article/" + _this8.options.articleId + "/edit/");
-              }, function (error) {
-                  return _this8.saveOptionsMessageArea.showMessage("Error in saving the article: " + error.message, "red");
-              });
-          }
-      }, {
-          key: "setOwner",
-          value: function setOwner(newOwner) {
-              var _this9 = this;
-
-              this.setOwnerMessageArea.showMessage("Saving...", "black", null);
-              this.setOwnerButton.postJSON("/article/" + this.options.articleId + "/set_owner/", {
-                  newOwner: newOwner
-              }).then(function () {
-                  return _this9.setOwnerMessageArea.showMessage("Author successfully changed");
-              }, function (error) {
-                  return _this9.setOwnerMessageArea.showMessage("Error in changing owner " + error.message, "red");
-              });
-          }
-      }, {
-          key: "addNewVersion",
-          value: function addNewVersion(content) {
-              this.versionsLabels[0] = "Version " + this.versionsLabels.length;
-              this.versions[0] = content;
-
-              this.versions.unshift(this.markupEditor.getValue());
-              this.versionsLabels.unshift("Edit version");
-
-              var leftIndex = this.leftTextSelector.getIndex();
-              var rightIndex = this.rightTextSelector.getIndex();
-
-              this.leftTextSelector.redraw();
-              this.rightTextSelector.redraw();
-
-              this.setLeftIndex(leftIndex);
-              this.setRightIndex(rightIndex);
-          }
-      }, {
-          key: "setLeftIndex",
-          value: function setLeftIndex(index) {
-              this.leftTextSelector.setIndex(index);
-              this.diffWidget.setLeftText(this.versions[index]);
-          }
-      }, {
-          key: "setRightIndex",
-          value: function setRightIndex(index) {
-              this.rightTextSelector.setIndex(index);
-              this.diffWidget.setRightText(this.versions[index]);
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this10 = this;
-
-              this.deleteArticleModal = UI.createElement(DeleteArticleModal$1, { article: this.getArticle() });
-
-              if (ArticleEditor.DiffWidgetClass) {
-                  this.tabArea.titleArea.children[1].addClickListener(function () {
-                      _this10.versions[0] = _this10.markupEditor.getValue();
-                      _this10.setLeftIndex(_this10.leftTextSelector.getIndex());
-                      _this10.setRightIndex(_this10.rightTextSelector.getIndex());
-                      //this.diffWidget.diffGutterPanel.scroll();
-                  });
-
-                  var updateEditable = function updateEditable() {
-                      _this10.leftEditable = _this10.leftTextSelector.getIndex() === 0;
-                      _this10.rightEditable = _this10.rightTextSelector.getIndex() === 0;
-                      _this10.diffWidget.setLeftEditable(_this10.leftEditable);
-                      _this10.diffWidget.setRightEditable(_this10.rightEditable);
-                  };
-
-                  this.leftTextSelector.addChangeListener(function () {
-                      _this10.diffWidget.setLeftText(_this10.versions[_this10.leftTextSelector.getIndex()]);
-                      updateEditable();
-                  });
-
-                  this.rightTextSelector.addChangeListener(function () {
-                      _this10.diffWidget.setRightText(_this10.versions[_this10.rightTextSelector.getIndex()]);
-                      updateEditable();
-                  });
-
-                  this.setLeftIndex(0);
-                  this.setRightIndex(1);
-
-                  //this.diffWidget.diffGutter.redraw();
-              }
-
-              window.onbeforeunload = function () {
-                  // Are you sure you want to close the page?
-                  return "";
-              };
-          }
-      }]);
-      return ArticleEditor;
-  }(Panel);
-
-  var UserReactionCollection = function (_StoreObject) {
-      inherits(UserReactionCollection, _StoreObject);
-
-      function UserReactionCollection() {
-          classCallCheck(this, UserReactionCollection);
-          return possibleConstructorReturn(this, (UserReactionCollection.__proto__ || Object.getPrototypeOf(UserReactionCollection)).apply(this, arguments));
-      }
-
-      createClass(UserReactionCollection, [{
-          key: "getUserReactionStore",
-          value: function getUserReactionStore() {
-              return this.getStore().getState().getStore("UserReaction");
-          }
-
-          // TODO should be done as generator? Clearly needs to have indexed data!
-
-      }, {
-          key: "getReactions",
-          value: function getReactions() {
-              var reactions = [];
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = this.getUserReactionStore().all()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var reaction = _step.value;
-
-                      if (reaction.collectionId == this.id) {
-                          reactions.push(reaction);
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              return reactions;
-          }
-      }, {
-          key: "getCurrentUserReaction",
-          value: function getCurrentUserReaction() {
-              var currentUser = window.USER;
-              var _iteratorNormalCompletion2 = true;
-              var _didIteratorError2 = false;
-              var _iteratorError2 = undefined;
-
-              try {
-                  for (var _iterator2 = this.getReactions()[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                      var userReaction = _step2.value;
-
-                      if (userReaction.userId == currentUser.id) {
-                          return userReaction;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError2 = true;
-                  _iteratorError2 = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                          _iterator2.return();
-                      }
-                  } finally {
-                      if (_didIteratorError2) {
-                          throw _iteratorError2;
-                      }
-                  }
-              }
-
-              return null;
-          }
-      }, {
-          key: "getCurrentUserReactionType",
-          value: function getCurrentUserReactionType() {
-              var currentUserReaction = this.getCurrentUserReaction();
-              return currentUserReaction && currentUserReaction.type;
-          }
-      }]);
-      return UserReactionCollection;
-  }(StoreObject);
-
-  var UserReaction = function (_StoreObject2) {
-      inherits(UserReaction, _StoreObject2);
-
-      function UserReaction() {
-          classCallCheck(this, UserReaction);
-          return possibleConstructorReturn(this, (UserReaction.__proto__ || Object.getPrototypeOf(UserReaction)).apply(this, arguments));
-      }
-
-      return UserReaction;
-  }(StoreObject);
-
-  var UserReactionCollectionStore = new GenericObjectStore("UserReactionCollection", UserReactionCollection);
-  var UserReactionStore = new GenericObjectStore("UserReaction", UserReaction);
-
-  var MessageInstance = function (_VirtualStoreObjectMi) {
-      inherits(MessageInstance, _VirtualStoreObjectMi);
-
-      function MessageInstance(obj, event) {
-          classCallCheck(this, MessageInstance);
-
-          var _this = possibleConstructorReturn(this, (MessageInstance.__proto__ || Object.getPrototypeOf(MessageInstance)).call(this, obj, event));
-
-          PublicUserStore.fakeCreate(event.user);
-          return _this;
-      }
-
-      createClass(MessageInstance, [{
-          key: "getNormalizedId",
-          value: function getNormalizedId() {
-              // TODO: Pretty bad implementation, works though
-              var messageId = this.id + "";
-              if (messageId.startsWith("temp-")) {
-                  messageId = messageId.substr(5);
-              }
-              return parseInt(messageId);
-          }
-      }, {
-          key: "getDate",
-          value: function getDate() {
-              return this.timeAdded;
-          }
-      }, {
-          key: "getUser",
-          value: function getUser() {
-              var user = PublicUserStore.get(this.userId);
-              if (user) {
-                  return user.username;
-              }
-              return "user-" + this.userId;
-          }
-      }, {
-          key: "getContent",
-          value: function getContent() {
-              return this.content;
-          }
-      }, {
-          key: "getMessageThread",
-          value: function getMessageThread() {
-              return MessageThreadStore.get(this.messageThreadId);
-          }
-      }, {
-          key: "getReactionCollection",
-          value: function getReactionCollection() {
-              var fakeIfMissing = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-
-              var reactionCollection = UserReactionCollectionStore.get(this.reactionCollectionId);
-              if (fakeIfMissing && !reactionCollection) {
-                  return {
-                      upvotesCount: 0,
-                      downvotesCount: 0,
-                      getCurrentUserReactionType: function getCurrentUserReactionType() {}
-                  };
-              }
-              return reactionCollection;
-          }
-      }, {
-          key: "getNumLikes",
-          value: function getNumLikes() {
-              return this.getReactionCollection(true).upvotesCount;
-          }
-      }, {
-          key: "getNumDislikes",
-          value: function getNumDislikes() {
-              return this.getReactionCollection(true).downvotesCount;
-          }
-      }, {
-          key: "getVotesBalance",
-          value: function getVotesBalance() {
-              return this.getNumLikes() - this.getNumDislikes();
-          }
-      }, {
-          key: "getUserVote",
-          value: function getUserVote() {
-              return this.getReactionCollection(true).getCurrentUserReactionType();
-          }
-      }, {
-          key: "getPreviousMessage",
-          value: function getPreviousMessage() {
-              // TODO: this should be cached and kept by the message thread
-              var ans = null;
-              var currentId = this.getNormalizedId();
-              // If message has temporary id, then it is identical with the previous message id, so instead the
-              // previous previous message would be found instead.
-              if (this.hasTemporaryId()) {
-                  currentId += 1;
-              }
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = this.getMessageThread().getMessages()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var message = _step.value;
-
-                      if (message.id < currentId && (!ans || ans.id < message.id)) {
-                          ans = message;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              return ans;
-          }
-      }, {
-          key: "getNextMessage",
-          value: function getNextMessage() {
-              throw "Implement me!";
-          }
-      }, {
-          key: "hasMarkupEnabled",
-          value: function hasMarkupEnabled() {
-              return this.getMessageThread().hasMarkupEnabled();
-          }
-      }, {
-          key: "getTimeOfDay",
-          value: function getTimeOfDay() {
-              return StemDate.unix(this.timeAdded).format("HH:mm");
-          }
-      }, {
-          key: "edit",
-          value: function edit(content) {
-              var onSuccess = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : NOOP_FUNCTION;
-              var onError = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : NOOP_FUNCTION;
-
-              Ajax.postJSON("/chat/edit_message/", {
-                  messageId: this.id,
-                  message: content
-              }).then(onSuccess, onError);
-          }
-      }, {
-          key: "react",
-          value: function react(reaction) {
-              var onSuccess = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : NOOP_FUNCTION;
-              var onError = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : NOOP_FUNCTION;
-
-              Ajax.postJSON("/chat/edit_message/", {
-                  messageId: this.id,
-                  reaction: reaction
-              }).then(onSuccess, onError);
-          }
-      }, {
-          key: "like",
-          value: function like(onSuccess, onError) {
-              this.react("like", onSuccess, onError);
-          }
-      }, {
-          key: "dislike",
-          value: function dislike(onSuccess, onError) {
-              this.react("dislike", onSuccess, onError);
-          }
-      }, {
-          key: "resetReaction",
-          value: function resetReaction(onSuccess, onError) {
-              this.react("resetReaction", onSuccess, onError);
-          }
-      }, {
-          key: "deleteMessage",
-          value: function deleteMessage(onSuccess, onError) {
-              Ajax.postJSON("/chat/edit_message/", {
-                  messageId: this.id,
-                  hidden: true
-              }).then(onSuccess, onError);
-          }
-      }, {
-          key: "applyEvent",
-          value: function applyEvent(event) {
-              if (event.type === "messageEdit") {
-                  Object.assign(this, event.data);
-                  this.dispatch("edit", event);
-              } else if (event.type === "reaction") {
-                  Object.assign(this, event.data);
-                  this.dispatch("reaction", event);
-              } else if (event.type === "messageDelete") {
-                  this.dispatch("delete", event);
-                  this.getMessageThread().deleteMessageInstance(this);
-              } else {
-                  get(MessageInstance.prototype.__proto__ || Object.getPrototypeOf(MessageInstance.prototype), "applyEvent", this).call(this, event);
-              }
-          }
-      }, {
-          key: "updateId",
-          value: function updateId(newId) {
-              if (this.id == newId) {
-                  return;
-              }
-              var oldId = this.id;
-              get(MessageInstance.prototype.__proto__ || Object.getPrototypeOf(MessageInstance.prototype), "updateId", this).call(this, newId);
-              var messageThread = this.getMessageThread();
-              messageThread.messages.delete(oldId);
-              messageThread.messages.set(this.id, this);
-          }
-      }, {
-          key: "setPostError",
-          value: function setPostError(postError) {
-              this.postError = postError;
-              this.dispatch("postError", postError);
-              console.log("Post error: ", postError);
-          }
-      }]);
-      return MessageInstance;
-  }(VirtualStoreObjectMixin(StoreObject));
-
-  var MessageThread = function (_StoreObject) {
-      inherits(MessageThread, _StoreObject);
-
-      function MessageThread(obj) {
-          classCallCheck(this, MessageThread);
-
-          var _this2 = possibleConstructorReturn(this, (MessageThread.__proto__ || Object.getPrototypeOf(MessageThread)).call(this, obj));
-
-          _this2.messages = new Map();
-          // TODO: for now don't register for private chats, you get them as user events
-          // TODO: don't change the global here, you fool!
-          if (!_this2.streamName.startsWith("messagethread-privatechat-")) {
-              GlobalState.registerStream(_this2.streamName);
-          }
-          _this2.online = new Set(_this2.online || []);
-          _this2.online.delete(0);
-          return _this2;
-      }
-
-      createClass(MessageThread, [{
-          key: "hasMarkupEnabled",
-          value: function hasMarkupEnabled() {
-              return this.markupEnabled || false;
-          }
-      }, {
-          key: "addMessageInstance",
-          value: function addMessageInstance(messageInstance, event) {
-              this.messages.set(messageInstance.id, messageInstance);
-              this.dispatch("newMessage", event);
-          }
-      }, {
-          key: "deleteMessageInstance",
-          value: function deleteMessageInstance(messageInstance) {
-              this.messages.delete(messageInstance.id);
-          }
-      }, {
-          key: "applyEvent",
-          value: function applyEvent(event) {
-              if (event.data.online) {
-                  this.online = event.data.online = new Set(event.data.online);
-                  this.online.delete(0);
-              }
-              if (event.type === "online") {
-                  this.dispatch("usersChanged", event);
-              } else if (event.type === "onlineDeltaJoined") {
-                  if (event.data.userId != 0) {
-                      this.online.add(event.data.userId);
-                  }
-
-                  this.dispatch("usersChanged", event);
-              } else if (event.type === "onlineDeltaLeft") {
-                  if (event.data.userId != 0) {
-                      this.online.delete(event.data.userId);
-                  }
-
-                  this.dispatch("usersChanged", event);
-              } else {
-                  get(MessageThread.prototype.__proto__ || Object.getPrototypeOf(MessageThread.prototype), "applyEvent", this).call(this, event);
-              }
-          }
-      }, {
-          key: "getMessages",
-          value: function getMessages() {
-              var orderDescending = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
-
-              // TODO: should be also as iterable
-              var messages = Array.from(this.messages.values());
-              if (orderDescending) {
-                  return messages.sort(function (a, b) {
-                      return b.id - a.id;
-                  });
-              }
-              return messages.sort(function (a, b) {
-                  return a.id - b.id;
-              });
-          }
-      }, {
-          key: "getNumMessages",
-          value: function getNumMessages() {
-              return this.messages.size;
-          }
-      }, {
-          key: "getMaxMessageId",
-          value: function getMaxMessageId() {
-              var value = 0;
-              var _iteratorNormalCompletion2 = true;
-              var _didIteratorError2 = false;
-              var _iteratorError2 = undefined;
-
-              try {
-                  for (var _iterator2 = this.messages.values()[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                      var messageInstance = _step2.value;
-
-                      if (!messageInstance.hasTemporaryId() && messageInstance.id > value) {
-                          value = messageInstance.id;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError2 = true;
-                  _iteratorError2 = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                          _iterator2.return();
-                      }
-                  } finally {
-                      if (_didIteratorError2) {
-                          throw _iteratorError2;
-                      }
-                  }
-              }
-
-              return value;
-          }
-
-          // This method will return the last message of the message thread,
-          // regardless of whether it is virtual or real.
-
-      }, {
-          key: "getLastMessage",
-          value: function getLastMessage() {
-              var lastMessage = null;
-              var _iteratorNormalCompletion3 = true;
-              var _didIteratorError3 = false;
-              var _iteratorError3 = undefined;
-
-              try {
-                  for (var _iterator3 = this.messages.values()[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                      var messageInstance = _step3.value;
-
-                      if (!lastMessage || lastMessage.getNormalizedId() < messageInstance.getNormalizedId() || lastMessage.getNormalizedId() === messageInstance.getNormalizedId() && messageInstance.hasTemporaryId()) {
-                          lastMessage = messageInstance;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError3 = true;
-                  _iteratorError3 = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion3 && _iterator3.return) {
-                          _iterator3.return();
-                      }
-                  } finally {
-                      if (_didIteratorError3) {
-                          throw _iteratorError3;
-                      }
-                  }
-              }
-
-              return lastMessage;
-          }
-      }]);
-      return MessageThread;
-  }(StoreObject);
-
-  var MessageInstanceStoreClass = function (_VirtualStoreMixin) {
-      inherits(MessageInstanceStoreClass, _VirtualStoreMixin);
-
-      function MessageInstanceStoreClass() {
-          classCallCheck(this, MessageInstanceStoreClass);
-          return possibleConstructorReturn(this, (MessageInstanceStoreClass.__proto__ || Object.getPrototypeOf(MessageInstanceStoreClass)).call(this, "MessageInstance", MessageInstance, { dependencies: ["messagethread", "publicuser"] }));
-      }
-
-      createClass(MessageInstanceStoreClass, [{
-          key: "createVirtualMessageInstance",
-          value: function createVirtualMessageInstance(messageContent, messageThread, temporaryId) {
-              var virtualMessageInstance = {
-                  content: messageContent,
-                  temporaryId: temporaryId,
-                  id: "temp-" + temporaryId,
-                  timeAdded: ServerTime.now().toUnix(),
-                  userId: parseInt(USER.id),
-                  messageThreadId: messageThread.id,
-                  meta: {}
-              };
-
-              return this.fakeCreate(virtualMessageInstance, "virtualMessage");
-          }
-      }]);
-      return MessageInstanceStoreClass;
-  }(VirtualStoreMixin(GenericObjectStore));
-
-  var MessageInstanceStore = new MessageInstanceStoreClass();
-
-  MessageInstanceStore.addCreateListener(function (messageInstance, createEvent) {
-      messageInstance.getMessageThread().addMessageInstance(messageInstance, createEvent);
-  });
-
-  var MessageThreadStore = new GenericObjectStore("messagethread", MessageThread);
-
-  var BaseChatObject = function (_StoreObject2) {
-      inherits(BaseChatObject, _StoreObject2);
-
-      function BaseChatObject() {
-          classCallCheck(this, BaseChatObject);
-          return possibleConstructorReturn(this, (BaseChatObject.__proto__ || Object.getPrototypeOf(BaseChatObject)).apply(this, arguments));
-      }
-
-      createClass(BaseChatObject, [{
-          key: "getMessageThread",
-          value: function getMessageThread() {
-              return MessageThreadStore.get(this.messageThreadId);
-          }
-      }, {
-          key: "getOnlineUserIds",
-          value: function getOnlineUserIds() {
-              return this.getMessageThread().online;
-          }
-      }]);
-      return BaseChatObject;
-  }(StoreObject);
-
-  var GroupChat = function (_BaseChatObject) {
-      inherits(GroupChat, _BaseChatObject);
-
-      function GroupChat() {
-          classCallCheck(this, GroupChat);
-          return possibleConstructorReturn(this, (GroupChat.__proto__ || Object.getPrototypeOf(GroupChat)).apply(this, arguments));
-      }
-
-      return GroupChat;
-  }(BaseChatObject);
-
-  var GroupChatStoreClass = AjaxFetchMixin(GenericObjectStore);
-
-  var GroupChatStore = new GroupChatStoreClass("groupChat", GroupChat, {
-      fetchURL: "/chat/group_chat_state/",
-      maxFetchObjectCount: 1
-  });
-
-  GroupChatStore.getFetchRequestData = function (ids, fetchJobs) {
-      return {
-          chatId: ids[0]
-      };
-  };
-
-  var PrivateChat = function (_BaseChatObject2) {
-      inherits(PrivateChat, _BaseChatObject2);
-
-      function PrivateChat() {
-          classCallCheck(this, PrivateChat);
-          return possibleConstructorReturn(this, (PrivateChat.__proto__ || Object.getPrototypeOf(PrivateChat)).apply(this, arguments));
-      }
-
-      createClass(PrivateChat, [{
-          key: "getOtherUserId",
-          value: function getOtherUserId() {
-              return USER.id === this.user1Id ? this.user2Id : this.user1Id;
-          }
-      }]);
-      return PrivateChat;
-  }(BaseChatObject);
-
-  var PrivateChatStore = new GenericObjectStore("PrivateChat", PrivateChat, {});
-
-  PrivateChatStore.getChatWithUser = function (userId) {
-      var myUserId = USER.id;
-      if (myUserId === userId) {
-          var _iteratorNormalCompletion4 = true;
-          var _didIteratorError4 = false;
-          var _iteratorError4 = undefined;
-
-          try {
-              for (var _iterator4 = this.all()[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                  var privateChat = _step4.value;
-
-                  if (privateChat.user1Id === userId && privateChat.user2Id === userId) {
-                      return privateChat;
-                  }
-              }
-          } catch (err) {
-              _didIteratorError4 = true;
-              _iteratorError4 = err;
-          } finally {
-              try {
-                  if (!_iteratorNormalCompletion4 && _iterator4.return) {
-                      _iterator4.return();
-                  }
-              } finally {
-                  if (_didIteratorError4) {
-                      throw _iteratorError4;
-                  }
-              }
-          }
-
-          return null;
-      }
-      var _iteratorNormalCompletion5 = true;
-      var _didIteratorError5 = false;
-      var _iteratorError5 = undefined;
-
-      try {
-          for (var _iterator5 = this.all()[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-              var _privateChat = _step5.value;
-
-              if (_privateChat.user1Id === userId || _privateChat.user2Id === userId) {
-                  return _privateChat;
-              }
-          }
-      } catch (err) {
-          _didIteratorError5 = true;
-          _iteratorError5 = err;
-      } finally {
-          try {
-              if (!_iteratorNormalCompletion5 && _iterator5.return) {
-                  _iterator5.return();
-              }
-          } finally {
-              if (_didIteratorError5) {
-                  throw _iteratorError5;
-              }
-          }
-      }
-  };
-
-  PrivateChatStore.fetchForUser = function (userId, onSuccess, onError) {
-      Ajax.postJSON("/chat/private_chat_state/", {
-          userId: userId
-      }).then(function (data) {
-          return onSuccess(PrivateChatStore.get(data.privateChatId));
-      }, onError);
-  };
-
-  PrivateChatStore.addListener("update", function (obj, event) {
-      if (event.type === "privateMessage") {
-          GlobalState.importState(event.state);
-      }
-  });
-
-  var _class$45, _temp$8;
-
-  var BasePopup = (_temp$8 = _class$45 = function (_FloatingWindow) {
-      inherits(BasePopup, _FloatingWindow);
-
-      function BasePopup() {
-          classCallCheck(this, BasePopup);
-          return possibleConstructorReturn(this, (BasePopup.__proto__ || Object.getPrototypeOf(BasePopup)).apply(this, arguments));
-      }
-
-      createClass(BasePopup, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              var options = get(BasePopup.prototype.__proto__ || Object.getPrototypeOf(BasePopup.prototype), "getDefaultOptions", this).call(this);
-              options.x = 0;
-              options.y = 0;
-              options.contentPadding = "7px";
-              options.contentStyle = {};
-              options.arrowDirection = Direction.UP;
-              options.arrowColor = "white";
-              options.backgroundColor = "white";
-              return options;
-          }
-      }, {
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(BasePopup.prototype.__proto__ || Object.getPrototypeOf(BasePopup.prototype), "setOptions", this).call(this, options);
-              this.options.style = Object.assign({
-                  boxShadow: "0px 0px 4px rgba(0,0,0,0.5)",
-                  borderRadius: "5px",
-                  display: "table",
-                  maxWidth: "350px",
-                  backgroundColor: this.options.backgroundColor,
-                  position: "absolute",
-                  left: this.options.x + "px",
-                  top: this.options.y + "px",
-                  zIndex: "3",
-                  right: "0px"
-              }, this.options.style);
-              this.createArrowStyle();
-          }
-      }, {
-          key: "setContent",
-          value: function setContent(content) {
-              this.options.children = content;
-              this.redraw();
-          }
-      }, {
-          key: "getContent",
-          value: function getContent() {
-              return UI.createElement(
-                  "div",
-                  { style: Object.assign({ padding: this.options.contentPadding }, this.options.contentStyle), ref: "contentArea" },
-                  this.options.children
-              );
-          }
-      }, {
-          key: "createArrowStyle",
-          value: function createArrowStyle() {
-              var baseArrowOutline = {
-                  "left": "50%",
-                  "z-index": "-3",
-                  "position": "absolute",
-                  "width": "0",
-                  "height": "0",
-                  "border-left": "10px solid transparent",
-                  "border-right": "10px solid transparent",
-                  marginLeft: "-11px"
-              };
-
-              this["arrow" + Direction.UP + "Outline"] = Object.assign({
-                  "border-bottom": "10px solid #C8C8C8",
-                  "margin-top": "-10.8px",
-                  marginLeft: "-11px"
-              }, baseArrowOutline);
-
-              this["arrow" + Direction.DOWN + "Outline"] = Object.assign({
-                  "border-top": "10px solid #C8C8C8",
-                  "margin-top": "2px"
-              }, baseArrowOutline);
-
-              var baseArrow = {
-                  "left": "50%",
-                  "position": "absolute",
-                  "width": "0",
-                  "height": "0",
-                  "border-left": "10px solid transparent",
-                  "border-right": "10px solid transparent"
-              };
-
-              this["arrow" + Direction.UP] = Object.assign({
-                  "margin-top": "-10px",
-                  "border-bottom": "10px solid " + this.options.arrowColor
-              }, baseArrow);
-
-              this["arrow" + Direction.DOWN] = Object.assign({
-                  "border-top": "10px solid " + this.options.arrowColor
-              }, baseArrow);
-          }
-      }, {
-          key: "getArrow",
-          value: function getArrow() {
-              var direction = this.options.arrowDirection;
-              return [UI.createElement(Panel, { ref: "popupArrow", style: this["arrow" + direction] }), UI.createElement(Panel, { ref: "popupArrowOutline", style: this["arrow" + direction + "Outline"] })];
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return this.options.arrowDirection === Direction.UP ? [this.getArrow(), this.getContent()] : [this.getContent(), this.getArrow()];
-          }
-      }, {
-          key: "bindInsideParent",
-          value: function bindInsideParent() {
-              if (this.target) {
-                  this.options.x = this.target.offsetWidth / 2;
-                  this.options.y = this.options.arrowDirection === Direction.UP ? this.target.offsetHeight : 0;
-              }
-              var left = parseFloat(this.options.x);
-              var top = parseFloat(this.options.y) + (this.options.arrowDirection === Direction.UP ? 11 : -this.getHeight() - 11);
-              var arrowMargin = -11;
-              left -= this.getWidth() / 2;
-              if (this.options.bodyPlaced && this.target) {
-                  var rect = this.target.getBoundingClientRect();
-                  left += rect.left;
-                  top += rect.top;
-              }
-              if (this.target && !this.options.bodyPlaced) {
-                  if (this.node.offsetParent && !this.options.bodyPlaced) {
-                      var left2 = left + this.node.offsetParent.offsetLeft;
-                      if (left2 < 0) {
-                          left -= left2 - 2;
-                          arrowMargin += left2 + 2;
-                      } else if (left2 + this.getWidth() > this.node.offsetParent.offsetParent.offsetWidth) {
-                          var delta = this.node.offsetParent.offsetParent.offsetWidth - (left2 + this.getWidth());
-                          arrowMargin -= delta - 2;
-                          left += delta - 2;
-                      }
-                  }
-              } else {
-                  if (left < 0) {
-                      arrowMargin += left + 2;
-                      left = 2;
-                  } else if (left + this.getWidth() > this.parentNode.offsetWidth) {
-                      var _delta = left + this.getWidth() - this.parentNode.offsetWidth;
-                      arrowMargin += _delta;
-                      left -= _delta;
-                  }
-              }
-              this.popupArrow.setStyle("margin-left", arrowMargin + "px");
-              this.popupArrowOutline.setStyle("margin-left", arrowMargin + "px");
-
-              this.setStyle("left", left + "px");
-              this.setStyle("top", top + "px");
-          }
-      }, {
-          key: "setParent",
-          value: function setParent(parent) {
-              var newParent = void 0;
-              if (parent instanceof HTMLElement) {
-                  newParent = parent;
-              } else {
-                  newParent = parent.node;
-              }
-              if (newParent === this.parentNode) {
-                  return;
-              }
-              if (this.isInDocument()) {
-                  this.parentNode.removeChild(this.node);
-                  newParent.appendChild(this.node);
-                  this.setParentNode(newParent);
-              } else {
-                  this.setParentNode(newParent);
-              }
-          }
-      }, {
-          key: "setCenter",
-          value: function setCenter(center) {
-              var _this2 = this;
-
-              var manual = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
-              this.options.x = center.x;
-              this.options.y = center.y;
-              if (manual) {
-                  setTimeout(function () {
-                      _this2.bindInsideParent();
-                  }, 0);
-              } else {
-                  this.bindInsideParent();
-              }
-          }
-      }, {
-          key: "onUnmount",
-          value: function onUnmount() {
-              get(BasePopup.prototype.__proto__ || Object.getPrototypeOf(BasePopup.prototype), "onUnmount", this).call(this);
-              if (this.options.bodyPlaced && this.target) {
-                  this.constructor.bodyPopups.delete(this);
-              }
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              if (this.options.target) {
-                  if (this.options.target instanceof HTMLElement) {
-                      this.target = this.options.target;
-                  } else {
-                      this.target = this.options.target.node;
-                  }
-                  this.options.x = this.target.offsetWidth / 2;
-                  this.options.y = this.target.offsetHeight;
-              }
-              get(BasePopup.prototype.__proto__ || Object.getPrototypeOf(BasePopup.prototype), "onMount", this).call(this);
-              // Set the Popup inside the parent
-              this.bindInsideParent();
-              if (this.options.bodyPlaced && this.target) {
-                  this.constructor.bodyPopups.add(this);
-              }
-          }
-      }], [{
-          key: "clearBodyPopups",
-          value: function clearBodyPopups() {
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = this.bodyPopups[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var popup = _step.value;
-
-                      popup.hide();
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              this.bodyPopups.clear();
-          }
-      }]);
-      return BasePopup;
-  }(FloatingWindow), _class$45.bodyPopups = new Set(), _temp$8);
-
-  var Popup = function (_BasePopup) {
-      inherits(Popup, _BasePopup);
-
-      function Popup() {
-          classCallCheck(this, Popup);
-          return possibleConstructorReturn(this, (Popup.__proto__ || Object.getPrototypeOf(Popup)).apply(this, arguments));
-      }
-
-      createClass(Popup, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              var options = get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "getDefaultOptions", this).call(this);
-              options.titleFontSize = "12pt";
-              options.contentFontSize = "10pt";
-              options.arrowColor = "#F3F3F3";
-              return options;
-          }
-      }, {
-          key: "getContent",
-          value: function getContent() {
-              var contentArea = get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "getContent", this).call(this);
-              contentArea.options.style = Object.assign({
-                  fontSize: this.options.contentFontSize
-              }, contentArea.options.style || {});
-
-              return [UI.createElement(
-                  Panel,
-                  { ref: "titleArea", style: { backgroundColor: "#F3F3F3", paddingLeft: "20px", fontSize: this.options.titleFontSize,
-                          fontWeight: "bold", paddingTop: "6px", paddingBottom: "6px", textAlign: "center",
-                          borderBottom: "1px solid #BEBEBE" } },
-                  this.getTitleAreaContent()
-              ), contentArea];
-          }
-      }, {
-          key: "setTitle",
-          value: function setTitle(newTitle) {
-              this.options.title = newTitle;
-              this.redraw();
-          }
-      }, {
-          key: "getTitleAreaContent",
-          value: function getTitleAreaContent() {
-              return [UI.createElement(Button, { className: "pull-right", ref: "closeButton", style: { backgroundColor: "transparent", border: "none", color: "#888888", fontSize: "18pt", padding: "2px", marginRight: "3px", marginTop: "-12px" }, label: "\xD7" }), UI.createElement(
-                  "div",
-                  { style: { marginRight: "25px" } },
-                  this.options.title
-              )];
-          }
-      }, {
-          key: "bindWindowListeners",
-          value: function bindWindowListeners() {
-              var _this4 = this;
-
-              this.addClickListener(function (event) {
-                  event.stopPropagation();
-              });
-
-              var documentListener = function documentListener() {
-                  _this4.hide();
-                  if (!Device.supportsEvent("click")) {
-                      document.removeEventListener("touchstart", documentListener);
-                  } else {
-                      document.removeEventListener("click", documentListener);
-                  }
-              };
-              if (!Device.supportsEvent("click")) {
-                  document.addEventListener("touchstart", documentListener);
-              } else {
-                  document.addEventListener("click", documentListener);
-              }
-          }
-      }, {
-          key: "show",
-          value: function show() {
-              get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "show", this).call(this);
-              this.bindWindowListeners();
-          }
-      }, {
-          key: "redraw",
-          value: function redraw() {
-              if (this.isInDocument()) {
-                  this.bindInsideParent();
-              }
-              get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "redraw", this).call(this);
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this5 = this;
-
-              get(Popup.prototype.__proto__ || Object.getPrototypeOf(Popup.prototype), "onMount", this).call(this);
-
-              // fake a click event that will propagate to window and trigger
-              // the events of any other popup, closing them
-              var fakeClickEvent = document.createEvent("MouseEvents");
-              fakeClickEvent.initEvent("click", true, false);
-              document.body.dispatchEvent(fakeClickEvent);
-
-              // Make the popup close when something else is clicked
-              this.bindWindowListeners();
-
-              // Close button behavior
-              this.closeButton.addClickListener(function () {
-                  _this5.hide();
-                  _this5.closeButton.node.blur();
-              });
-              var closeButtonColor = this.closeButton.options.style.color;
-              this.closeButton.addNodeListener("mouseover", function () {
-                  _this5.closeButton.setStyle("color", "#0082AD");
-              });
-              this.closeButton.addNodeListener("mouseout", function () {
-                  _this5.closeButton.setStyle("color", closeButtonColor);
-              });
-          }
-      }]);
-      return Popup;
-  }(BasePopup);
-
-  // import {Emoji as EmojiMini} from "EmojiMini";
-  // import "EmojiUI";
-
-  UI.Emoji = UI.Emoji || UI.Element;
-
-  var ClickableEmote = function (_UI$Emoji) {
-      inherits(ClickableEmote, _UI$Emoji);
-
-      function ClickableEmote() {
-          classCallCheck(this, ClickableEmote);
-          return possibleConstructorReturn(this, (ClickableEmote.__proto__ || Object.getPrototypeOf(ClickableEmote)).apply(this, arguments));
-      }
-
-      createClass(ClickableEmote, [{
-          key: "redraw",
-          value: function redraw() {
-              var _this2 = this;
-
-              this.redrawTimeout = setTimeout(function () {
-                  return get(ClickableEmote.prototype.__proto__ || Object.getPrototypeOf(ClickableEmote.prototype), "redraw", _this2).call(_this2);
-              });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this3 = this;
-
-              this.addClickListener(function () {
-                  var textBox = _this3.options.textBox;
-                  if (textBox) {
-                      textBox.appendValue(_this3.getValueText(), " ");
-                  }
-                  if (_this3.options.afterClick) {
-                      _this3.options.afterClick();
-                  }
-              });
-          }
-      }, {
-          key: "onUnmount",
-          value: function onUnmount() {
-              clearTimeout(this.redrawTimeout);
-          }
-      }]);
-      return ClickableEmote;
-  }(UI.Emoji);
-
-  var ClickableEmoji = function (_ClickableEmote) {
-      inherits(ClickableEmoji, _ClickableEmote);
-
-      function ClickableEmoji() {
-          classCallCheck(this, ClickableEmoji);
-          return possibleConstructorReturn(this, (ClickableEmoji.__proto__ || Object.getPrototypeOf(ClickableEmoji)).apply(this, arguments));
-      }
-
-      createClass(ClickableEmoji, [{
-          key: "getValueText",
-          value: function getValueText() {
-              return ":" + this.options.value + ":";
-          }
-      }]);
-      return ClickableEmoji;
-  }(ClickableEmote);
-
-  var ClickableTwitchEmote = function (_ClickableEmote2) {
-      inherits(ClickableTwitchEmote, _ClickableEmote2);
-
-      function ClickableTwitchEmote() {
-          classCallCheck(this, ClickableTwitchEmote);
-          return possibleConstructorReturn(this, (ClickableTwitchEmote.__proto__ || Object.getPrototypeOf(ClickableTwitchEmote)).apply(this, arguments));
-      }
-
-      createClass(ClickableTwitchEmote, [{
-          key: "getValueText",
-          value: function getValueText() {
-              return this.options.value;
-          }
-      }]);
-      return ClickableTwitchEmote;
-  }(ClickableEmote);
-
-  var EmojiButton = function (_Button) {
-      inherits(EmojiButton, _Button);
-
-      function EmojiButton() {
-          classCallCheck(this, EmojiButton);
-          return possibleConstructorReturn(this, (EmojiButton.__proto__ || Object.getPrototypeOf(EmojiButton)).apply(this, arguments));
-      }
-
-      createClass(EmojiButton, [{
-          key: "getPopup",
-          value: function getPopup() {
-              var _this7 = this;
-
-              var textBox = this.options.getTextBox();
-              var afterClick = function afterClick() {
-                  return _this7.closePopup();
-              };
-              var emotesList = [];
-              for (var emoji in EmojiMini.EMOJI) {
-                  emotesList.push(UI.createElement(ClickableEmoji, { textBox: textBox, afterClick: afterClick, value: emoji }));
-              }
-              for (var twitchEmoji in EmojiMini.TWITCH_EMOTICONS) {
-                  emotesList.push(UI.createElement(ClickableTwitchEmote, { textBox: textBox, afterClick: afterClick, value: twitchEmoji }));
-              }
-              return BasePopup.create(this.parent, {
-                  target: this,
-                  children: emotesList,
-                  arrowDirection: Direction.DOWN,
-                  style: {
-                      display: "flex",
-                      overflow: "auto",
-                      height: "300px",
-                      width: "300px"
-                  }
-              });
-          }
-      }, {
-          key: "closePopup",
-          value: function closePopup() {
-              if (this.emojiPopup) {
-                  this.emojiPopup.destroyNode();
-                  delete this.emojiPopup;
-              }
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this8 = this;
-
-              this.addClickListener(function () {
-                  if (_this8.emojiPopup) {
-                      _this8.closePopup();
-                  } else {
-                      _this8.emojiPopup = _this8.getPopup();
-                  }
-              });
-          }
-      }, {
-          key: "onUnmount",
-          value: function onUnmount() {
-              this.closePopup();
-          }
-      }]);
-      return EmojiButton;
-  }(Button);
-
-  var MarkupEditorModal = function (_Modal) {
-      inherits(MarkupEditorModal, _Modal);
-
-      function MarkupEditorModal() {
-          classCallCheck(this, MarkupEditorModal);
-          return possibleConstructorReturn(this, (MarkupEditorModal.__proto__ || Object.getPrototypeOf(MarkupEditorModal)).apply(this, arguments));
-      }
-
-      createClass(MarkupEditorModal, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return Object.assign(get(MarkupEditorModal.prototype.__proto__ || Object.getPrototypeOf(MarkupEditorModal.prototype), "getDefaultOptions", this).call(this), {
-                  height: "85%",
-                  width: "80%",
-                  destroyOnHide: false
-              });
-          }
-      }, {
-          key: "getMarkupEditorStyle",
-          value: function getMarkupEditorStyle() {
-              return {
-                  height: "85%",
-                  border: "solid 5px #DDD",
-                  borderRadius: "10px"
-              };
-          }
-      }, {
-          key: "getButtonStyle",
-          value: function getButtonStyle() {
-              return {
-                  margin: "5px"
-              };
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this10 = this;
-
-              return [UI.createElement(MarkupEditor, { ref: this.refLink("markupEditor"), classMap: this.options.classMap, showButtons: false, style: this.getMarkupEditorStyle() }), UI.createElement(
-                  "div",
-                  { ref: this.refLink("buttonPanel"), style: { "text-align": "center" } },
-                  UI.createElement(Button, { ref: "graphExample", label: "Graph",
-                      onClick: function onClick() {
-                          _this10.appendGraphExample();
-                      }, style: this.getButtonStyle(), className: "pull-left" }),
-                  UI.createElement(Button, { ref: "submissionExample", label: "Submission",
-                      onClick: function onClick() {
-                          _this10.appendSubmissionExample();
-                      }, style: this.getButtonStyle(), className: "pull-left" }),
-                  UI.createElement(Button, { ref: "codeSnippetExample", level: Level.DEFAULT, size: Size.DEFAULT, label: "Code",
-                      onClick: function onClick() {
-                          _this10.appendCodeExample();
-                      }, style: this.getButtonStyle(), className: "pull-left" }),
-                  UI.createElement(Button, { ref: "linkExample", level: Level.DEFAULT, size: Size.DEFAULT, label: "Link",
-                      onClick: function onClick() {
-                          _this10.appendLinkExample();
-                      }, style: this.getButtonStyle(), className: "pull-left" }),
-                  UI.createElement(Button, { ref: "latexExample", level: Level.DEFAULT, size: Size.DEFAULT, label: "LaTeX",
-                      onClick: function onClick() {
-                          _this10.appendLatexExample();
-                      }, style: this.getButtonStyle(), className: "pull-left" }),
-                  UI.createElement(Button, { ref: this.refLink("doneButton"), level: Level.PRIMARY, label: "Done",
-                      className: "pull-right", style: this.getButtonStyle() })
-              ),
-              //<span ref={this.refLink("emotesContainer")} style={{float: "left", position: "relative", margin: "5px"}}>
-              //    <EmojiButton ref="emotes" level={Level.DEFAULT} size={Size.DEFAULT} label="Emoticons" getTextBox={() => this.markupEditor}/>
-              //</span>
-              //<Button ref="userExample" level={Level.DEFAULT} size={Size.DEFAULT} label="User"
-              //           onClick={() => {this.appendUserExample()}} style={this.getButtonStyle()} className="pull-left"/>
-              UI.createElement(
-                  "div",
-                  { className: "", style: { "position": "absolute", "width": "90%", "margin-top": "45px" } },
-                  UI.createElement(Link, { href: "/about/#markup", value: "More details here" })
-              )];
-          }
-      }, {
-          key: "appendLatexExample",
-          value: function appendLatexExample() {
-              this.markupEditor.appendValue("$$lim_{x\\to\\infty} f(x)$$");
-          }
-      }, {
-          key: "appendGraphExample",
-          value: function appendGraphExample() {
-              this.markupEditor.appendValue("<Graph nodes={[{}, {}, {}]} edges={[{source:1, target:2}]} directed />");
-          }
-      }, {
-          key: "appendSubmissionExample",
-          value: function appendSubmissionExample() {
-              this.markupEditor.appendValue("<Submission id={25717} />");
-          }
-      }, {
-          key: "appendCodeExample",
-          value: function appendCodeExample() {
-              this.markupEditor.appendValue("```java\n" + "class Main {\n" + "    public static void main (String[] args) throws java.lang.Exception {\n" + "        System.out.println(\"42\");\n" + "    }\n" + "}\n" + "```");
-          }
-      }, {
-          key: "appendUserExample",
-          value: function appendUserExample() {
-              this.markupEditor.appendValue("<User id={1} />");
-          }
-      }, {
-          key: "appendLinkExample",
-          value: function appendLinkExample() {
-              this.markupEditor.appendValue("<Link href=\"https://csacademy.com\" value=\"Cool website\" newTab/>");
-          }
-      }, {
-          key: "hide",
-          value: function hide() {
-              get(MarkupEditorModal.prototype.__proto__ || Object.getPrototypeOf(MarkupEditorModal.prototype), "hide", this).call(this);
-              if (this.options.hideCallback) {
-                  this.options.hideCallback(this);
-              }
-          }
-      }, {
-          key: "show",
-          value: function show() {
-              get(MarkupEditorModal.prototype.__proto__ || Object.getPrototypeOf(MarkupEditorModal.prototype), "show", this).call(this);
-              if (this.options.showCallback) {
-                  this.options.showCallback(this);
-              }
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this11 = this;
-
-              get(MarkupEditorModal.prototype.__proto__ || Object.getPrototypeOf(MarkupEditorModal.prototype), "onMount", this).call(this);
-              this.doneButton.addClickListener(function () {
-                  _this11.hide();
-              });
-          }
-      }]);
-      return MarkupEditorModal;
-  }(Modal);
-
-  var ChatMarkupRenderer = function (_MarkupRenderer) {
-      inherits(ChatMarkupRenderer, _MarkupRenderer);
-
-      function ChatMarkupRenderer() {
-          classCallCheck(this, ChatMarkupRenderer);
-          return possibleConstructorReturn(this, (ChatMarkupRenderer.__proto__ || Object.getPrototypeOf(ChatMarkupRenderer)).apply(this, arguments));
-      }
-
-      createClass(ChatMarkupRenderer, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options.classMap = this.constructor.classMap;
-              get(ChatMarkupRenderer.prototype.__proto__ || Object.getPrototypeOf(ChatMarkupRenderer.prototype), "setOptions", this).call(this, options);
-          }
-      }]);
-      return ChatMarkupRenderer;
-  }(MarkupRenderer);
-
-  ChatMarkupRenderer.classMap = new MarkupClassMap(MarkupClassMap.GLOBAL);
-
-  var ScriptResolver = function (_Dispatchable) {
-      inherits(ScriptResolver, _Dispatchable);
-
-      function ScriptResolver(scriptPath) {
-          classCallCheck(this, ScriptResolver);
-
-          var _this = possibleConstructorReturn(this, (ScriptResolver.__proto__ || Object.getPrototypeOf(ScriptResolver)).call(this));
-
-          _this.loaded = false;
-          _this.jobs = [];
-          // TODO: should be more thought out
-          var scriptElement = document.createElement("script");
-          scriptElement.async = true;
-          scriptElement.src = scriptPath;
-          scriptElement.onload = function () {
-              return _this.onLoad();
-          };
-          // TODO: what about error?
-          document.getElementsByTagName("head")[0].appendChild(scriptElement);
-          return _this;
-      }
-
-      createClass(ScriptResolver, [{
-          key: "onLoad",
-          value: function onLoad() {
-              this.loaded = true;
-              for (var i = 0; i < this.jobs.length; i += 1) {
-                  this.jobs[i](this);
-              }
-              this.jobs = [];
-          }
-      }, {
-          key: "resolve",
-          value: function resolve(callback) {
-              if (this.loaded) {
-                  callback(this);
-                  return;
-              }
-              this.jobs.push(callback);
-          }
-      }]);
-      return ScriptResolver;
-  }(Dispatchable);
-
-  var scriptResolveMap = new Map();
-
-  function ensureSingle(script) {
-      var scriptResolver = scriptResolveMap.get(script);
-      if (!scriptResolver) {
-          scriptResolver = new ScriptResolver(script);
-          scriptResolveMap.set(script, scriptResolver);
-      }
-      return new Promise(function (resolve, reject) {
-          scriptResolver.resolve(resolve, reject);
-      });
-  }
-
-  function ensure(scripts, callback) {
-      if (!Array.isArray(scripts)) {
-          scripts = [scripts];
-      }
-      var promises = scripts.map(function (script) {
-          return ensureSingle(script);
-      });
-      Promise.all(promises).then(function () {
-          callback.apply(undefined, arguments);
-      });
-  }
-
-  var TranslationKey = function (_StoreObject) {
-      inherits(TranslationKey, _StoreObject);
-
-      function TranslationKey() {
-          classCallCheck(this, TranslationKey);
-          return possibleConstructorReturn(this, (TranslationKey.__proto__ || Object.getPrototypeOf(TranslationKey)).apply(this, arguments));
-      }
-
-      return TranslationKey;
-  }(StoreObject);
-
-  var TranslationKeyStore = new GenericObjectStore("TranslationKey", TranslationKey);
-
-  var TranslationEntry = function (_StoreObject2) {
-      inherits(TranslationEntry, _StoreObject2);
-
-      function TranslationEntry() {
-          classCallCheck(this, TranslationEntry);
-          return possibleConstructorReturn(this, (TranslationEntry.__proto__ || Object.getPrototypeOf(TranslationEntry)).apply(this, arguments));
-      }
-
-      createClass(TranslationEntry, [{
-          key: "getLanguage",
-          value: function getLanguage() {
-              return Language.get(this.languageId);
-          }
-      }, {
-          key: "getTranslationKey",
-          value: function getTranslationKey() {
-              return TranslationKeyStore.get(this.translationKeyId);
-          }
-      }]);
-      return TranslationEntry;
-  }(StoreObject);
-
-  var TranslationEntryStore = new GenericObjectStore("TranslationEntry", TranslationEntry);
-
-  Language.addListener("buildTranslationMap", function (language) {
-      var _iteratorNormalCompletion = true;
-      var _didIteratorError = false;
-      var _iteratorError = undefined;
-
-      try {
-          for (var _iterator = TranslationEntryStore.all()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-              var translationEntry = _step.value;
-
-              if (translationEntry.languageId === language.id) {
-                  language.translationMap.set(translationEntry.getTranslationKey().value, translationEntry.value);
-              }
-          }
-      } catch (err) {
-          _didIteratorError = true;
-          _iteratorError = err;
-      } finally {
-          try {
-              if (!_iteratorNormalCompletion && _iterator.return) {
-                  _iterator.return();
-              }
-          } finally {
-              if (_didIteratorError) {
-                  throw _iteratorError;
-              }
-          }
-      }
-  });
-
-  var ErrorMessage = function (_StoreObject) {
-      inherits(ErrorMessage, _StoreObject);
-
-      function ErrorMessage() {
-          classCallCheck(this, ErrorMessage);
-          return possibleConstructorReturn(this, (ErrorMessage.__proto__ || Object.getPrototypeOf(ErrorMessage)).apply(this, arguments));
-      }
-
-      createClass(ErrorMessage, [{
-          key: "getTranslation",
-          value: function getTranslation() {
-              var translationKey = TranslationKeyStore.get(this.translationKeyId);
-          }
-      }]);
-      return ErrorMessage;
-  }(StoreObject);
-
-  var ErrorMessageStoreClass = function (_GenericObjectStore) {
-      inherits(ErrorMessageStoreClass, _GenericObjectStore);
-
-      function ErrorMessageStoreClass() {
-          classCallCheck(this, ErrorMessageStoreClass);
-          return possibleConstructorReturn(this, (ErrorMessageStoreClass.__proto__ || Object.getPrototypeOf(ErrorMessageStoreClass)).call(this, "ErrorMessage", ErrorMessage));
-      }
-
-      return ErrorMessageStoreClass;
-  }(GenericObjectStore);
-
-  var ErrorMessageStore = new ErrorMessageStoreClass();
-
-  var ErrorHandlers = {};
-
-  ErrorHandlers.wrapError = function (error) {
-      if (error instanceof StoreObject) {
-          return error;
-      }
-
-      if (error.id) {
-          return ErrorMessageStore.fakeCreate(error);
-      } else {
-          if (typeof error === "string" || error instanceof String) {
-              error = { message: error };
-          } else if (error instanceof Error) {
-              error = {
-                  name: error.name,
-                  message: error.message
-              };
-          }
-          return new ErrorMessage(error);
-      }
-  };
-
-  ErrorHandlers.showErrorAlert = function (error) {
-      ErrorModal.show({
-          error: ErrorHandlers.wrapError(error)
-      });
-  };
-
-  ErrorHandlers.PAGE_NOT_FOUND = ErrorHandlers.wrapError("Page not found.");
-
-  var SocialAccountManager = function (_Dispatchable) {
-      inherits(SocialAccountManager, _Dispatchable);
-
-      function SocialAccountManager(socialApp, options) {
-          classCallCheck(this, SocialAccountManager);
-
-          var _this = possibleConstructorReturn(this, (SocialAccountManager.__proto__ || Object.getPrototypeOf(SocialAccountManager)).call(this));
-
-          _this.socialApp = socialApp;
-          _this.options = options;
-          return _this;
-      }
-
-      createClass(SocialAccountManager, [{
-          key: "getSocialApp",
-          value: function getSocialApp() {
-              return this.socialApp;
-          }
-      }, {
-          key: "getClientId",
-          value: function getClientId() {
-              return this.getSocialApp().getClientId();
-          }
-      }, {
-          key: "setLoaded",
-          value: function setLoaded() {
-              this.loaded = true;
-              this.dispatch("loaded");
-          }
-      }], [{
-          key: "getInstance",
-          value: function getInstance() {
-              if (!this._Global) {
-                  this._Global = new this();
-              }
-              return this._Global;
-          }
-
-          // TODO: all managers should call the onError function (if one is passed in) to report issues
-
-      }, {
-          key: "login",
-          value: function login(callback, onError) {
-              var _getInstance;
-
-              (_getInstance = this.getInstance()).login.apply(_getInstance, arguments);
-          }
-      }, {
-          key: "connect",
-          value: function connect(callback, onError) {
-              var _getInstance2;
-
-              (_getInstance2 = this.getInstance()).connect.apply(_getInstance2, arguments);
-          }
-      }]);
-      return SocialAccountManager;
-  }(Dispatchable);
-
-  var SocialApp = function (_StoreObject) {
-      inherits(SocialApp, _StoreObject);
-
-      function SocialApp() {
-          classCallCheck(this, SocialApp);
-          return possibleConstructorReturn(this, (SocialApp.__proto__ || Object.getPrototypeOf(SocialApp)).apply(this, arguments));
-      }
-
-      createClass(SocialApp, [{
-          key: "getClientId",
-          value: function getClientId() {
-              return this.clientId;
-          }
-      }]);
-      return SocialApp;
-  }(StoreObject);
-
-  var SocialAppStoreClass = function (_GenericObjectStore) {
-      inherits(SocialAppStoreClass, _GenericObjectStore);
-
-      function SocialAppStoreClass() {
-          classCallCheck(this, SocialAppStoreClass);
-          return possibleConstructorReturn(this, (SocialAppStoreClass.__proto__ || Object.getPrototypeOf(SocialAppStoreClass)).call(this, "SocialApp", SocialApp));
-      }
-
-      createClass(SocialAppStoreClass, [{
-          key: "getSocialApps",
-          value: function getSocialApps() {
-              return this.all();
-          }
-      }, {
-          key: "getSocialAppByName",
-          value: function getSocialAppByName(name) {
-              return this.all().find(function (socialApp) {
-                  return socialApp.name === name;
-              });
-          }
-      }]);
-      return SocialAppStoreClass;
-  }(GenericObjectStore);
-
-  var SocialAppStore = new SocialAppStoreClass();
-
-  var GoogleManager = function (_SocialAccountManager) {
-      inherits(GoogleManager, _SocialAccountManager);
-
-      function GoogleManager() {
-          classCallCheck(this, GoogleManager);
-
-          var _this = possibleConstructorReturn(this, (GoogleManager.__proto__ || Object.getPrototypeOf(GoogleManager)).call(this, SocialAppStore.getSocialAppByName("Google"), {
-              loginByTokenUrl: "/accounts/google/login/token/"
-          }));
-
-          _this.ensureScriptNodeExists();
-          return _this;
-      }
-
-      createClass(GoogleManager, [{
-          key: "sendData",
-          value: function sendData(url, data) {
-              var onSuccess = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : NOOP_FUNCTION;
-
-              Ajax.postJSON(url, data).then(onSuccess);
-          }
-      }, {
-          key: "ensureScriptNodeExists",
-          value: function ensureScriptNodeExists() {
-              var _this2 = this;
-
-              var id = "google-jsapi";
-              if (document.getElementById(id)) {
-                  return;
-              }
-              var scriptElement = document.createElement("script");
-              scriptElement.id = id;
-              scriptElement.async = true;
-              scriptElement.onload = function () {
-                  gapi.load("auth2", function () {
-                      gapi.auth2.init({
-                          client_id: _this2.getClientId()
-                      }).then(function () {
-                          // Handle the initial sign-in state.
-                          // this.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-                          _this2.updateSigninStatus(_this2.getGoogleAuth().isSignedIn.get());
-
-                          // Listen for sign-in state changes.
-                          // gapi.auth2.getAuthInstance().isSignedIn.listen(this.updateSigninStatus);
-                          _this2.getGoogleAuth().isSignedIn.listen(_this2.updateSigninStatus);
-
-                          _this2.setLoaded();
-                      });
-                  });
-              };
-              scriptElement.src = "https://apis.google.com/js/platform.js";
-              document.getElementsByTagName("head")[0].appendChild(scriptElement);
-          }
-      }, {
-          key: "getGoogleAuth",
-          value: function getGoogleAuth() {
-              return gapi.auth2.getAuthInstance();
-          }
-      }, {
-          key: "getGoogleUser",
-          value: function getGoogleUser() {
-              return this.getGoogleAuth().currentUser.get();
-          }
-      }, {
-          key: "getAuthResponse",
-          value: function getAuthResponse() {
-              return this.getGoogleUser().getAuthResponse();
-          }
-      }, {
-          key: "updateSigninStatus",
-          value: function updateSigninStatus(isSignedIn) {
-              if (isSignedIn) {
-                  console.log("Google user is signed in");
-              }
-          }
-      }, {
-          key: "handleProcess",
-          value: function handleProcess(process) {
-              var _this3 = this;
-
-              if (!this.loaded) {
-                  this.addListenerOnce("loaded", function () {
-                      return _this3.handleProcess(process);
-                  });
-                  return;
-              }
-              this.getGoogleAuth().grantOfflineAccess({
-                  redirect_uri: "postmessage",
-                  immediate: false
-              }).then(function (data) {
-                  Object.assign(data, {
-                      process: process
-                  });
-                  _this3.sendData(_this3.options.loginByTokenUrl, data, function () {
-                      return self.location.reload();
-                  });
-              });
-          }
-      }, {
-          key: "login",
-          value: function login() {
-              this.handleProcess("login");
-          }
-      }, {
-          key: "connect",
-          value: function connect() {
-              this.handleProcess("connect");
-          }
-      }]);
-      return GoogleManager;
-  }(SocialAccountManager);
-
-  var FacebookManager = function (_SocialAccountManager) {
-      inherits(FacebookManager, _SocialAccountManager);
-
-      function FacebookManager() {
-          classCallCheck(this, FacebookManager);
-
-          var _this = possibleConstructorReturn(this, (FacebookManager.__proto__ || Object.getPrototypeOf(FacebookManager)).call(this, SocialAppStore.getSocialAppByName("Facebook"), {
-              version: "v2.7",
-              loginByTokenUrl: "/accounts/facebook/login/token/",
-              loginOptions: {
-                  auth_type: "rerequest",
-                  scope: "email"
-              },
-              logoutUrl: "/accounts/logout/",
-              // TODO: should probably look at https://www.facebook.com/translations/FacebookLocales.xml and Language.Locale
-              locale: "en_US"
-          }));
-
-          _this.ensureScriptNodeExists();
-          return _this;
-      }
-
-      createClass(FacebookManager, [{
-          key: "sendData",
-          value: function sendData(url, data) {
-              var _this2 = this;
-
-              Ajax.postJSON(url, data).then(function (data) {
-                  if (data.next) {
-                      self.location.href = data.next;
-                  } else {
-                      location.reload();
-                  }
-              }, function (error) {
-                  _this2.dispatch("loginError", error);
-              });
-          }
-      }, {
-          key: "ensureScriptNodeExists",
-          value: function ensureScriptNodeExists() {
-              var _this3 = this;
-
-              self.fbAsyncInit = function () {
-                  FB.init({
-                      appId: _this3.getClientId(),
-                      version: _this3.options.version,
-                      status: true,
-                      cookie: true,
-                      xfbml: true
-                  });
-
-                  _this3.setLoaded();
-              };
-
-              var id = "facebook-jssdk";
-              if (document.getElementById(id)) {
-                  return;
-              }
-              var scriptElement = document.createElement("script");
-              scriptElement.id = id;
-              scriptElement.async = true;
-              scriptElement.src = "//connect.facebook.net/" + this.options.locale + "/sdk.js";
-              document.getElementsByTagName("head")[0].appendChild(scriptElement);
-          }
-      }, {
-          key: "onLoginCanceled",
-          value: function onLoginCanceled(response) {}
-      }, {
-          key: "onLoginError",
-          value: function onLoginError(response) {}
-      }, {
-          key: "onLoginSuccess",
-          value: function onLoginSuccess(response, nextUrl, process) {
-              var data = {
-                  next: nextUrl || '',
-                  process: process,
-                  accessToken: response.authResponse.accessToken,
-                  expiresIn: response.authResponse.expiresIn
-              };
-              this.sendData(this.options.loginByTokenUrl, data);
-          }
-      }, {
-          key: "logout",
-          value: function logout() {
-              var _this4 = this;
-
-              if (!self.FB) {
-                  return;
-              }
-              FB.logout(function (response) {
-                  _this4.onLogoutSuccess(response, nextUrl);
-              });
-          }
-      }, {
-          key: "onLogoutSuccess",
-          value: function onLogoutSuccess(response) {
-              if (this.options.logoutUrl) {
-                  this.sendData(this.options.logoutUrl, data);
-              }
-          }
-      }, {
-          key: "handleProcess",
-          value: function handleProcess(nextUrl, action, process) {
-              var _this5 = this;
-
-              if (!this.loaded) {
-                  this.addListenerOnce("loaded", function () {
-                      return _this5.handleProcess(process);
-                  });
-                  return;
-              }
-
-              if (action === "reauthenticate") {
-                  this.options.loginOptions.auth_type = action;
-              }
-
-              FB.login(function (response) {
-                  if (response.authResponse) {
-                      _this5.onLoginSuccess(response, nextUrl, process);
-                  } else if (response && response.status && ["not_authorized", "unknown"].indexOf(response.status) > -1) {
-                      _this5.onLoginCanceled(response);
-                  } else {
-                      _this5.onLoginError(response);
-                  }
-              }, this.options.loginOptions);
-          }
-      }, {
-          key: "login",
-          value: function login(nextUrl, action, process) {
-              this.handleProcess(nextUrl = self.location.pathname, action = "authenticate", process = "login");
-          }
-      }, {
-          key: "connect",
-          value: function connect(nextUrl, action, process) {
-              this.handleProcess(nextUrl = self.location.pathname, action = "authenticate", process = "connect");
-          }
-      }]);
-      return FacebookManager;
-  }(SocialAccountManager);
-
-  var GithubManager = function (_SocialAccountManager) {
-      inherits(GithubManager, _SocialAccountManager);
-
-      function GithubManager() {
-          classCallCheck(this, GithubManager);
-          return possibleConstructorReturn(this, (GithubManager.__proto__ || Object.getPrototypeOf(GithubManager)).call(this, SocialAppStore.getSocialAppByName("Github"), {
-              loginWindowOptions: "height=600,width=800,scrollbars=yes"
-          }));
-      }
-
-      createClass(GithubManager, [{
-          key: "login",
-          value: function login(callback) {
-              var githubUri = "https://github.com/login/oauth/authorize";
-
-              var rawParams = {
-                  client_id: this.getClientId()
-              };
-
-              var uri = composeURL(githubUri, rawParams);
-              var githubWindow = window.open(uri, "githubWindow", this.options.loginWindowOptions);
-
-              githubWindow.onbeforeunload = callback;
-          }
-      }]);
-      return GithubManager;
-  }(SocialAccountManager);
-
-  var Country = function (_StoreObject) {
-      inherits(Country, _StoreObject);
-
-      function Country() {
-          classCallCheck(this, Country);
-          return possibleConstructorReturn(this, (Country.__proto__ || Object.getPrototypeOf(Country)).apply(this, arguments));
-      }
-
-      createClass(Country, [{
-          key: "toString",
-          value: function toString() {
-              return this.name;
-          }
-      }, {
-          key: "getIsoCode",
-          value: function getIsoCode() {
-              return this.isoCode;
-          }
-      }, {
-          key: "getEmojiName",
-          value: function getEmojiName() {
-              return "flag_" + this.getIsoCode().toLowerCase();
-          }
-      }]);
-      return Country;
-  }(StoreObject);
-
-  var ALL_COUNTRIES_PLACEHOLDER = function ALL_COUNTRIES_PLACEHOLDER(name) {
-      return { id: 0, name: "", toString: function toString() {
-              return name || "All Countries";
-          } };
-  };
-  var NO_COUNTRY_PLACEHOLDER = function NO_COUNTRY_PLACEHOLDER(name) {
-      return { id: -1, name: "", toString: function toString() {
-              return name || "None";
-          } };
-  };
-
-  var COUNTRY_COMPARATOR = function COUNTRY_COMPARATOR(a, b) {
-      if (a.name > b.name) {
-          return 1;
-      }
-      return -1;
-  };
-
-  var CountryStoreClass = function (_GenericObjectStore) {
-      inherits(CountryStoreClass, _GenericObjectStore);
-
-      function CountryStoreClass() {
-          classCallCheck(this, CountryStoreClass);
-          return possibleConstructorReturn(this, (CountryStoreClass.__proto__ || Object.getPrototypeOf(CountryStoreClass)).apply(this, arguments));
-      }
-
-      createClass(CountryStoreClass, [{
-          key: "allWithNone",
-          value: function allWithNone() {
-              var noneName = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "None";
-
-              return [NO_COUNTRY_PLACEHOLDER(noneName)].concat(toConsumableArray(this.all().sort(COUNTRY_COMPARATOR)));
-          }
-      }, {
-          key: "getCountriesFromIds",
-          value: function getCountriesFromIds(countriesIds) {
-              var allCountries = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-              var countries = [];
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = countriesIds[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var countryId = _step.value;
-
-                      countries.push(CountryStore.get(countryId));
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              var result = countries.sort(COUNTRY_COMPARATOR);
-              if (allCountries) {
-                  result.unshift(ALL_COUNTRIES_PLACEHOLDER());
-              }
-              return result;
-          }
-      }]);
-      return CountryStoreClass;
-  }(GenericObjectStore);
-
-  var CountryStore = new CountryStoreClass("country", Country);
-
-  var _class$46, _descriptor$20, _descriptor2$16, _descriptor3$16, _descriptor4$14, _descriptor5$12, _descriptor6$10, _descriptor7$8, _descriptor8$6, _descriptor9$5, _descriptor10$4, _descriptor11$4, _descriptor12$4, _descriptor13$4, _descriptor14$4, _descriptor15$4, _descriptor16$4, _descriptor17$4, _descriptor18$2, _descriptor19$2, _descriptor20$2, _descriptor21$1, _descriptor22, _descriptor23;
-
-  function _initDefineProp$21(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$21(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-
-  var loginHeight = 500;
-  var registerHeight = 500;
-  var width = 500;
-  var buttonHeight = 60;
-  var fontAwesomeIconHeight = 40;
-  var textColor = "#252525";
-  var signInButtonHeight = 50;
-  var signInButtonWidth = 120;
-
-  var LoginStyle = (_class$46 = function (_StyleSheet) {
-      inherits(LoginStyle, _StyleSheet);
-
-      function LoginStyle() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, LoginStyle);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = LoginStyle.__proto__ || Object.getPrototypeOf(LoginStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$21(_this, "loginRegisterSystem", _descriptor$20, _this), _initDefineProp$21(_this, "loginRegisterButtons", _descriptor2$16, _this), _initDefineProp$21(_this, "loginSystemButton", _descriptor3$16, _this), _initDefineProp$21(_this, "registerSystemButton", _descriptor4$14, _this), _this.selectedLeft = {
-              borderBottom: "0",
-              borderRight: "0",
-              backgroundColor: "#fff",
-              fontWeight: "bold"
-          }, _initDefineProp$21(_this, "selectedLeftClass", _descriptor5$12, _this), _this.selectedRight = {
-              borderBottom: "0",
-              borderLeft: "0",
-              backgroundColor: "#fff",
-              fontWeight: "bold"
-          }, _initDefineProp$21(_this, "selectedRightClass", _descriptor6$10, _this), _initDefineProp$21(_this, "loginWidget", _descriptor7$8, _this), _initDefineProp$21(_this, "registerWidget", _descriptor8$6, _this), _this.fontAwesomeIcon = {
-              height: fontAwesomeIconHeight + "px",
-              lineHeight: fontAwesomeIconHeight + "px",
-              width: "15%",
-              maxWidth: "15%",
-              textAlign: "center",
-              fontSize: "150%",
-              display: "inline-block",
-              float: "left",
-              borderTopLeftRadius: "5px",
-              borderBottomLeftRadius: "5px",
-              borderRight: "0px solid white",
-              marginTop: "20px"
-          }, _initDefineProp$21(_this, "input", _descriptor9$5, _this), _initDefineProp$21(_this, "countrySelect", _descriptor10$4, _this), _initDefineProp$21(_this, "badLogin", _descriptor11$4, _this), _initDefineProp$21(_this, "rememberMe", _descriptor12$4, _this), _initDefineProp$21(_this, "rememberMeCheckbox", _descriptor13$4, _this), _initDefineProp$21(_this, "forgotPassword", _descriptor14$4, _this), _initDefineProp$21(_this, "signInButtonContainer", _descriptor15$4, _this), _initDefineProp$21(_this, "signInButton", _descriptor16$4, _this), _initDefineProp$21(_this, "horizontalLine", _descriptor17$4, _this), _this.connectWith = {
-              width: "100%",
-              textAlign: "center",
-              marginTop: "20px"
-          }, _this.connectIcons = {
-              width: "60%",
-              marginLeft: "20%",
-              marginRight: "20%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              marginTop: "20px"
-          }, _initDefineProp$21(_this, "faLogo", _descriptor18$2, _this), _initDefineProp$21(_this, "recaptchaContainer", _descriptor19$2, _this), _initDefineProp$21(_this, "connectWithButtonsSpan", _descriptor20$2, _this), _initDefineProp$21(_this, "thirdPartyLoginContainer", _descriptor21$1, _this), _this.socialConnectDimensions = "35px", _initDefineProp$21(_this, "socialConnectButtonContainer", _descriptor22, _this), _initDefineProp$21(_this, "socialConnectButtonIcon", _descriptor23, _this), _temp), possibleConstructorReturn(_this, _ret);
-      }
-
-      return LoginStyle;
-  }(StyleSheet), (_descriptor$20 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginRegisterSystem", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return function () {
-              if (Device.isTouchDevice()) {
-                  console.log("Touch device mode on");
-                  return {
-                      position: "absolute",
-                      height: loginHeight + "px",
-                      width: width + "px",
-                      backgroundColor: "#fff",
-                      maxHeight: "100%",
-                      maxWidth: "100%"
-                  };
-              } else {
-                  return {
-                      maxWidth: "100%",
-                      height: loginHeight + "px",
-                      width: width + "px",
-                      margin: "0 auto",
-                      backgroundColor: "#fff"
-                  };
-              }
-          };
-      }
-  }), _descriptor2$16 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginRegisterButtons", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "left",
-              width: "100%",
-              height: buttonHeight / loginHeight * 100 + "%"
-          };
-      }
-  }), _descriptor3$16 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginSystemButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return defineProperty({
-              // height: buttonHeight + "px",
-              height: "100%",
-              // lineHeight: buttonHeight / loginHeight * 100 + "%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              fontSize: "100%",
-              width: "50%",
-              backgroundColor: "#f6f6f6",
-              color: textColor,
-              border: "1px solid #d3d5d9",
-              cursor: "pointer",
-              float: "left",
-              borderLeft: "0",
-              borderTop: "0",
-              textTransform: "uppercase"
-          }, "fontSize", "1.1em");
-      }
-  }), _descriptor4$14 = _applyDecoratedDescriptor$21(_class$46.prototype, "registerSystemButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return defineProperty({
-              // height: buttonHeight + "px",
-              height: "100%",
-              // lineHeight: buttonHeight / loginHeight * 100 + "%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              fontSize: "100%",
-              width: "50%",
-              backgroundColor: "#f6f6f6",
-              color: textColor,
-              border: "1px solid #d3d5d9",
-              cursor: "pointer",
-              float: "left",
-              borderRight: "0",
-              borderTop: "0",
-              textTransform: "uppercase"
-          }, "fontSize", "1.1em");
-      }
-  }), _descriptor5$12 = _applyDecoratedDescriptor$21(_class$46.prototype, "selectedLeftClass", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              borderBottom: "0",
-              borderRight: "0",
-              backgroundColor: "#fff"
-          };
-      }
-  }), _descriptor6$10 = _applyDecoratedDescriptor$21(_class$46.prototype, "selectedRightClass", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              borderBottom: "0",
-              borderLeft: "0",
-              backgroundColor: "#fff"
-          };
-      }
-  }), _descriptor7$8 = _applyDecoratedDescriptor$21(_class$46.prototype, "loginWidget", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: loginHeight - buttonHeight + "px",
-              width: width + "px",
-              maxWidth: "100%",
-              padding: "5% 10%",
-              color: textColor,
-              borderTop: "0px solid #d3d5d9"
-          };
-      }
-  }), _descriptor8$6 = _applyDecoratedDescriptor$21(_class$46.prototype, "registerWidget", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: registerHeight - buttonHeight + "px",
-              width: width + "px",
-              maxWidth: "100%",
-              padding: "5% 10%",
-              color: textColor,
-              borderTop: "0px solid #d3d5d9"
-          };
-      }
-  }), _descriptor9$5 = _applyDecoratedDescriptor$21(_class$46.prototype, "input", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "85%",
-              maxWidth: "85%",
-              height: fontAwesomeIconHeight + "px",
-              lineHeight: fontAwesomeIconHeight + "px",
-              display: "inline-block",
-              float: "left",
-              borderRadius: "0",
-              borderTopRightRadius: "5px",
-              borderBottomRightRadius: "5px",
-              marginTop: "20px",
-              fontWeight: "bold",
-              color: textColor,
-              border: "0px solid #d3d5d9",
-              borderLeft: "0px solid white",
-              boxShadow: "none",
-              fontSize: "85%",
-              ":focus": {
-                  boxShadow: "none",
-                  outline: "none",
-                  border: "0px solid #d3d5d9",
-                  borderLeft: "0px solid white"
-              }
-          };
-      }
-  }), _descriptor10$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "countrySelect", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "85%",
-              maxWidth: "85%",
-              lineHeight: "30px",
-              marginTop: "30px",
-              marginBottom: "10px"
-          };
-      }
-  }), _descriptor11$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "badLogin", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "30px",
-              width: "100%",
-              fontSize: "14px",
-              color: this.themeProperties.COLOR_DANGER,
-              textAlign: "center"
-          };
-      }
-  }), _descriptor12$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "rememberMe", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "left",
-              paddingLeft: "5px"
-          };
-      }
-  }), _descriptor13$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "rememberMeCheckbox", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              float: "left"
-          };
-      }
-  }), _descriptor14$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "forgotPassword", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "right",
-              paddingRight: "5px"
-          };
-      }
-  }), _descriptor15$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "signInButtonContainer", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "100%",
-              height: "50px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "20px auto"
-          };
-      }
-  }), _descriptor16$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "signInButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              marginLeft: "auto",
-              marginRight: "auto",
-              backgroundColor: "#f6f6f6",
-              marginTop: "20px",
-              minWidth: signInButtonWidth + "px",
-              height: signInButtonHeight + "px",
-              textAlign: "center",
-              lineHeight: signInButtonHeight + "px",
-              border: "0px solid #d3d5d9",
-              fontSize: "18px",
-              color: "#252525",
-              ":hover": {
-                  border: "0px solid #0b79a7",
-                  borderBottom: "2px solid #0b79a7",
-                  color: "#0b79a7"
-              }
-          };
-      }
-  }), _descriptor17$4 = _applyDecoratedDescriptor$21(_class$46.prototype, "horizontalLine", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              borderBottom: "1px solid #d3d5d9",
-              width: "100%",
-              marginTop: "20px"
-          };
-      }
-  }), _descriptor18$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "faLogo", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "40px",
-              paddingLeft: "15px",
-              paddingRight: "15px",
-              borderRadius: "3px",
-              textAlign: "center",
-              fontSize: "18px",
-              marginLeft: "5px",
-              marginRight: "5px",
-              transition: ".2s",
-              color: "#fff",
-              ":hover": {
-                  transition: ".2s",
-                  opacity: ".9"
-              },
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontWeight: "bold"
-          };
-      }
-  }), _descriptor19$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "recaptchaContainer", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "flex",
-              justifyContent: "space-around",
-              alignItems: "center",
-              flexDirection: "column",
-              width: "100%"
-          };
-      }
-  }), _descriptor20$2 = _applyDecoratedDescriptor$21(_class$46.prototype, "connectWithButtonsSpan", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              paddingLeft: "15px",
-              fontSize: "15px"
-          };
-      }
-  }), _descriptor21$1 = _applyDecoratedDescriptor$21(_class$46.prototype, "thirdPartyLoginContainer", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexWrap: "wrap",
-              margin: "15px 0"
-          };
-      }
-  }), _descriptor22 = _applyDecoratedDescriptor$21(_class$46.prototype, "socialConnectButtonContainer", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "flex",
-              alignItems: "center",
-              height: this.socialConnectDimensions,
-              color: "#fff",
-              paddingRight: "10px",
-              borderRadius: "5px",
-              margin: "5px",
-              outline: "none",
-              paddingTop: "0",
-              cursor: "pointer",
-              fontSize: "13px",
-              border: "0",
-              ":hover": {
-                  opacity: ".85"
-              }
-          };
-      }
-  }), _descriptor23 = _applyDecoratedDescriptor$21(_class$46.prototype, "socialConnectButtonIcon", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: this.socialConnectDimensions,
-              width: this.socialConnectDimensions,
-              display: "flex !important",
-              justifyContent: "center",
-              alignItems: "center"
-          };
-      }
-  })), _class$46);
-
-  var _dec$23, _class$47, _dec2$8, _class2$9, _dec3$2, _class3$15, _dec4, _class4$2, _dec5, _class5$4, _dec6, _class6$1, _dec7, _class7$4;
-
-  var ERROR_TIMEOUT = 6 * 1000;
-
-  var accountsConfig = {
-      username: true,
-      country: true
-  };
-
-  var socialLoginSpecificInfo = {
-      Google: {
-          name: "Google",
-          color: "#de4b39",
-          icon: "google-plus",
-          loginManager: GoogleManager
-      },
-      Facebook: {
-          name: "Facebook",
-          color: "#3b5998",
-          icon: "facebook",
-          loginManager: FacebookManager
-      },
-      Github: {
-          name: "Github",
-          color: "#000",
-          icon: "github",
-          loginManager: GithubManager
-      }
-  };
-
-  var SocialConnectButton = (_dec$23 = registerStyle(LoginStyle), _dec$23(_class$47 = function (_UI$Primitive) {
-      inherits(SocialConnectButton, _UI$Primitive);
-
-      function SocialConnectButton() {
-          classCallCheck(this, SocialConnectButton);
-          return possibleConstructorReturn(this, (SocialConnectButton.__proto__ || Object.getPrototypeOf(SocialConnectButton)).apply(this, arguments));
-      }
-
-      createClass(SocialConnectButton, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              var specificInfo = this.options.specificInfo;
-
-
-              attr.addClass(this.styleSheet.socialConnectButtonContainer);
-              attr.setStyle({
-                  backgroundColor: specificInfo.color
-              });
-          }
-      }, {
-          key: "getLoginManager",
-          value: function getLoginManager() {
-              return this.options.specificInfo.loginManager.getInstance();
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var specificInfo = this.options.specificInfo;
-
-
-              return [UI.createElement(FAIcon, { icon: specificInfo.icon, className: this.styleSheet.socialConnectButtonIcon }), UI.createElement(
-                  "span",
-                  null,
-                  " ",
-                  specificInfo.name
-              )];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this2 = this;
-
-              // Access the login manager, to load any scripts needed by the social provider
-              // TODO: try to find a way to not load all provider scripts on the login page
-              this.getLoginManager();
-              this.addClickListener(function () {
-                  var loginElement = _this2.options.loginElement;
-                  loginElement && loginElement.clearErrorMessage();
-                  _this2.getLoginManager().login();
-              });
-          }
-      }]);
-      return SocialConnectButton;
-  }(UI.Primitive("button"))) || _class$47);
-  var ThirdPartyLogin = (_dec2$8 = registerStyle(LoginStyle), _dec2$8(_class2$9 = function (_UI$Element) {
-      inherits(ThirdPartyLogin, _UI$Element);
-
-      function ThirdPartyLogin() {
-          classCallCheck(this, ThirdPartyLogin);
-          return possibleConstructorReturn(this, (ThirdPartyLogin.__proto__ || Object.getPrototypeOf(ThirdPartyLogin)).apply(this, arguments));
-      }
-
-      createClass(ThirdPartyLogin, [{
-          key: "getSocialApps",
-          value: function getSocialApps() {
-              return SocialAppStore.all();
-          }
-      }, {
-          key: "getConnectWith",
-          value: function getConnectWith() {
-              return UI.createElement(
-                  "div",
-                  { style: this.styleSheet.connectWith },
-                  UI.T("or connect with")
-              );
-          }
-      }, {
-          key: "getConnectWithButtons",
-          value: function getConnectWithButtons() {
-              var _this4 = this;
-
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.thirdPartyLoginContainer },
-                  this.getSocialApps().map(function (socialApp) {
-                      return UI.createElement(SocialConnectButton, { specificInfo: socialLoginSpecificInfo[socialApp.name],
-                          loginElement: _this4.options.loginElement });
-                  })
-              );
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [this.getConnectWith(), this.getConnectWithButtons()];
-          }
-      }]);
-      return ThirdPartyLogin;
-  }(UI.Element)) || _class2$9);
-
-  var LoginWidget = (_dec3$2 = registerStyle(LoginStyle), _dec3$2(_class3$15 = function (_UI$Element2) {
-      inherits(LoginWidget, _UI$Element2);
-
-      function LoginWidget() {
-          classCallCheck(this, LoginWidget);
-          return possibleConstructorReturn(this, (LoginWidget.__proto__ || Object.getPrototypeOf(LoginWidget)).apply(this, arguments));
-      }
-
-      createClass(LoginWidget, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.loginWidget);
-          }
-      }, {
-          key: "getEmailInput",
-          value: function getEmailInput() {
-              var emailIcon = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "user";
-
-              return [UI.createElement(
-                  "div",
-                  { style: { width: "100%" } },
-                  UI.createElement(FAIcon, {
-                      icon: emailIcon,
-                      style: this.styleSheet.fontAwesomeIcon
-                  }),
-                  UI.createElement(EmailInput, {
-                      autofocus: "autofocus",
-                      placeholder: "Email address",
-                      name: "email",
-                      ref: "emailInput",
-                      className: this.styleSheet.input
-                  })
-              )];
-          }
-      }, {
-          key: "getPasswordInput",
-          value: function getPasswordInput() {
-              var passwordInputOptions = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-              passwordInputOptions = Object.assign({
-                  name: "password",
-                  className: this.styleSheet.input,
-                  ref: "passwordInput",
-                  placeholder: "Password",
-                  style: { marginBottom: "20px" }
-              }, passwordInputOptions);
-              return [UI.createElement(
-                  "div",
-                  { style: { width: "80% !important" } },
-                  UI.createElement(FAIcon, { icon: "lock",
-                      style: this.styleSheet.fontAwesomeIcon
-                  }),
-                  UI.createElement(PasswordInput, passwordInputOptions)
-              )];
-          }
-      }, {
-          key: "getRememberMeCheckbox",
-          value: function getRememberMeCheckbox() {
-              return [UI.createElement(CheckboxInput, { checked: true,
-                  ref: "rememberInput", className: this.styleSheet.rememberMeCheckbox }), UI.createElement(
-                  "div",
-                  { className: this.styleSheet.rememberMe },
-                  UI.T("Remember me")
-              )];
-          }
-      }, {
-          key: "getForgotPassword",
-          value: function getForgotPassword() {
-              return UI.createElement(Link, { className: this.styleSheet.forgotPassword, href: "/accounts/password_reset",
-                  value: UI.T("Forgot Password?") });
-          }
-      }, {
-          key: "getClearBothArea",
-          value: function getClearBothArea() {
-              return UI.createElement("div", { style: { clear: "both", height: "20px" } });
-          }
-      }, {
-          key: "getErrorArea",
-          value: function getErrorArea() {
-              return UI.createElement(TemporaryMessageArea, { className: this.styleSheet.badLogin, ref: "loginErrorMessage" });
-          }
-      }, {
-          key: "getSignInValue",
-          value: function getSignInValue() {
-              return "Sign In";
-          }
-      }, {
-          key: "getSignInButton",
-          value: function getSignInButton() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.signInButtonContainer },
-                  UI.createElement(SubmitInput, { className: this.styleSheet.signInButton, value: this.getSignInValue() })
-              );
-          }
-      }, {
-          key: "getHorizontalLine",
-          value: function getHorizontalLine() {
-              return UI.createElement("div", { className: this.styleSheet.horizontalLine });
-          }
-      }, {
-          key: "getThirdPartyLogin",
-          value: function getThirdPartyLogin() {
-              return SocialAppStore.all().length ? [this.getHorizontalLine(), UI.createElement(ThirdPartyLogin, { loginElement: this })] : null;
-          }
-      }, {
-          key: "render",
-          value: function render() {
-
-              return [UI.createElement(
-                  "form",
-                  { ref: "form" },
-                  this.getEmailInput(),
-                  this.getPasswordInput(),
-                  this.getRememberMeCheckbox(),
-                  this.getForgotPassword(),
-                  this.getSignInButton(),
-                  this.getClearBothArea(),
-                  this.getErrorArea()
-              ), this.getThirdPartyLogin()];
-          }
-      }, {
-          key: "setErrorMessage",
-          value: function setErrorMessage(error) {
-              var isError = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-              this.loginErrorMessage.showMessage(error.message, isError ? Theme.Global.getProperty("COLOR_DANGER") : "#000", ERROR_TIMEOUT);
-          }
-      }, {
-          key: "clearErrorMessage",
-          value: function clearErrorMessage() {
-              this.loginErrorMessage.clear();
-          }
-      }, {
-          key: "sendLogin",
-          value: function sendLogin() {
-              var _this6 = this;
-
-              this.clearErrorMessage();
-              var data = {
-                  email: this.emailInput.getValue(),
-                  password: this.passwordInput.getValue(),
-                  remember: this.rememberInput.getValue()
-              };
-              Ajax.postJSON("/accounts/login/", data).then(function () {
-                  return location.reload();
-              }, function (error) {
-                  return _this6.setErrorMessage(error);
-              });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this7 = this;
-
-              if (this.form) {
-                  this.form.addNodeListener("submit", function (event) {
-                      _this7.sendLogin();
-                      event.preventDefault();
-                  });
-              }
-          }
-      }]);
-      return LoginWidget;
-  }(UI.Element)) || _class3$15);
-
-  var RecaptchaWidget = function (_UI$Element3) {
-      inherits(RecaptchaWidget, _UI$Element3);
-
-      function RecaptchaWidget() {
-          classCallCheck(this, RecaptchaWidget);
-          return possibleConstructorReturn(this, (RecaptchaWidget.__proto__ || Object.getPrototypeOf(RecaptchaWidget)).apply(this, arguments));
-      }
-
-      createClass(RecaptchaWidget, [{
-          key: "render",
-          value: function render() {
-              return UI.createElement("div", { key: Math.random() });
-          }
-      }, {
-          key: "redraw",
-          value: function redraw() {
-              get(RecaptchaWidget.prototype.__proto__ || Object.getPrototypeOf(RecaptchaWidget.prototype), "redraw", this).call(this);
-
-              if (window.grecaptcha && window.GOOGLE_RECAPTCHA_PUBLIC_KEY) {
-                  this.captchaId = grecaptcha.render(this.children[0].node, {
-                      "sitekey": window.GOOGLE_RECAPTCHA_PUBLIC_KEY
-                  });
-              }
-          }
-      }, {
-          key: "getResponse",
-          value: function getResponse() {
-              return grecaptcha.getResponse(this.captchaId);
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this9 = this;
-
-              window.onRecaptchaCallback = function () {
-                  return _this9.redraw();
-              };
-
-              ensure("https://www.google.com/recaptcha/api.js?render=explicit&onload=onRecaptchaCallback", function () {});
-          }
-      }]);
-      return RecaptchaWidget;
-  }(UI.Element);
-
-  var RegisterWidget = (_dec4 = registerStyle(LoginStyle), _dec4(_class4$2 = function (_UI$Element4) {
-      inherits(RegisterWidget, _UI$Element4);
-
-      function RegisterWidget() {
-          classCallCheck(this, RegisterWidget);
-          return possibleConstructorReturn(this, (RegisterWidget.__proto__ || Object.getPrototypeOf(RegisterWidget)).apply(this, arguments));
-      }
-
-      createClass(RegisterWidget, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.registerWidget);
-          }
-      }, {
-          key: "getSignUpButton",
-          value: function getSignUpButton() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.signInButtonContainer },
-                  UI.createElement(SubmitInput, { className: this.styleSheet.signInButton, value: "Sign Up", ref: "submitButton" })
-              );
-          }
-      }, {
-          key: "getUsernameInput",
-          value: function getUsernameInput() {
-              return [UI.createElement(
-                  "div",
-                  { style: { width: "100%" } },
-                  UI.createElement(FAIcon, { icon: "user",
-                      style: this.styleSheet.fontAwesomeIcon }),
-                  UI.createElement(TextInput, {
-                      placeholder: "Username",
-                      ref: "usernameInput",
-                      className: this.styleSheet.input
-                  })
-              )];
-          }
-      }, {
-          key: "getCountryInput",
-          value: function getCountryInput() {
-              return [UI.createElement(
-                  "div",
-                  { style: { width: "100%", marginBottom: "20px" } },
-                  UI.createElement(FAIcon, { icon: "flag", style: this.styleSheet.fontAwesomeIcon }),
-                  UI.createElement(Select, { ref: "countrySelect", options: CountryStore.allWithNone("Don't set country"),
-                      className: this.styleSheet.countrySelect }),
-                  UI.createElement("div", { style: { clear: "both" } })
-              )];
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var formFields = [this.getEmailInput(), this.getPasswordInput()];
-              if (accountsConfig.username) {
-                  formFields.splice(1, 0, this.getUsernameInput());
-                  formFields[0] = this.getEmailInput("envelope");
-              }
-              if (accountsConfig.country) {
-                  formFields[formFields.length - 1] = this.getPasswordInput({ style: {} });
-                  formFields.push(this.getCountryInput());
-              }
-              // TODO: This should be done in another way.
-              if (window.location.hostname !== "localhost") {
-                  this.recaptchaWidget = UI.createElement(RecaptchaWidget, null);
-              }
-              return [UI.createElement(
-                  "form",
-                  { ref: "form" },
-                  formFields,
-                  UI.createElement(
-                      "div",
-                      { className: this.styleSheet.recaptchaContainer },
-                      this.recaptchaWidget,
-                      this.getSignUpButton(),
-                      UI.createElement(TemporaryMessageArea, { ref: "errorArea" })
-                  )
-              )];
-          }
-      }, {
-          key: "sendRegistration",
-          value: function sendRegistration() {
-              var _this11 = this;
-
-              this.submitButton.updateOptions({ value: "Signing up..." });
-
-              var data = {
-                  email: this.emailInput.getValue(),
-                  recaptchaKey: this.recaptchaWidget && this.recaptchaWidget.getResponse(),
-                  password: this.passwordInput.getValue()
-              };
-              if (this.usernameInput) {
-                  data.username = this.usernameInput.getValue();
-              }
-              if (this.countrySelect) {
-                  data.countryId = this.countrySelect.get().id;
-              }
-              Ajax.postJSON("/accounts/signup_request/", data).then(function () {
-                  _this11.recaptchaWidget && _this11.recaptchaWidget.hide();
-                  _this11.submitButton.hide();
-                  _this11.errorArea.showMessage("Done! Please check your email to continue", "black", 26 * 60 * 60 * 1000);
-              }, function (error) {
-                  _this11.errorArea.showMessage("Error in registration: " + error.message, "red", 4000);
-                  _this11.submitButton.updateOptions({ value: "Sign Up" });
-                  _this11.recaptchaWidget && _this11.recaptchaWidget.redraw();
-              });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this12 = this;
-
-              this.form.addNodeListener("submit", function (event) {
-                  event.preventDefault();
-                  _this12.sendRegistration();
-              });
-          }
-      }]);
-      return RegisterWidget;
-  }(UI.Element)) || _class4$2);
-
-  RegisterWidget.prototype.getEmailInput = LoginWidget.prototype.getEmailInput;
-  RegisterWidget.prototype.getPasswordInput = LoginWidget.prototype.getPasswordInput;
-  RegisterWidget.prototype.getHorizontalLine = LoginWidget.prototype.getHorizontalLine;
-
-  // original name: LoginRegisterSystem
-  var NormalLogin = (_dec5 = registerStyle(LoginStyle), _dec5(_class5$4 = function (_UI$Element5) {
-      inherits(NormalLogin, _UI$Element5);
-
-      function NormalLogin() {
-          classCallCheck(this, NormalLogin);
-
-          var _this13 = possibleConstructorReturn(this, (NormalLogin.__proto__ || Object.getPrototypeOf(NormalLogin)).call(this));
-
-          _this13.state = 0;
-          return _this13;
-      }
-
-      createClass(NormalLogin, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.loginRegisterSystem);
-          }
-      }, {
-          key: "getLoginButton",
-          value: function getLoginButton() {
-              var style = {};
-
-              if (this.state === 0) {
-                  style = this.styleSheet.selectedLeft;
-              }
-
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.loginSystemButton,
-                      style: style,
-                      ref: "loginButton" },
-                  UI.T("Log In")
-              );
-          }
-      }, {
-          key: "getRegisterButton",
-          value: function getRegisterButton() {
-              var style = {};
-
-              if (this.state === 1) {
-                  style = this.styleSheet.selectedRight;
-              }
-
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.registerSystemButton,
-                      style: style,
-                      ref: "registerButton" },
-                  UI.T("Sign Up")
-              );
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var result = [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.loginRegisterButtons },
-                  this.getLoginButton(),
-                  this.getRegisterButton()
-              ), UI.createElement(
-                  Switcher,
-                  { ref: "switcher" },
-                  UI.createElement(LoginWidget, { ref: "loginWidget", active: this.state === 0 }),
-                  UI.createElement(RegisterWidget, { ref: "registerWidget", active: this.state === 1 })
-              )];
-
-              return result;
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this14 = this;
-
-              this.loginButton.addClickListener(function () {
-                  _this14.state = 0;
-                  _this14.switcher.setActive(_this14.loginWidget);
-                  _this14.redraw();
-              });
-
-              this.registerButton.addClickListener(function () {
-                  _this14.state = 1;
-                  _this14.switcher.setActive(_this14.registerWidget);
-                  _this14.redraw();
-              });
-          }
-      }]);
-      return NormalLogin;
-  }(UI.Element)) || _class5$4);
-  var LoginTabButton = (_dec6 = registerStyle(LoginStyle), _dec6(_class6$1 = function (_UI$Primitive2) {
-      inherits(LoginTabButton, _UI$Primitive2);
-
-      function LoginTabButton() {
-          classCallCheck(this, LoginTabButton);
-          return possibleConstructorReturn(this, (LoginTabButton.__proto__ || Object.getPrototypeOf(LoginTabButton)).apply(this, arguments));
-      }
-
-      createClass(LoginTabButton, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return {
-                  children: [UI.T("Log In")]
-              };
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.loginSystemButton);
-              if (this.options.active) {
-                  attr.addClass(this.styleSheet.selectedLeftClass);
-              }
-          }
-      }]);
-      return LoginTabButton;
-  }(UI.Primitive(BasicTabTitle, "div"))) || _class6$1);
-  var RegisterTabButton = (_dec7 = registerStyle(LoginStyle), _dec7(_class7$4 = function (_UI$Primitive3) {
-      inherits(RegisterTabButton, _UI$Primitive3);
-
-      function RegisterTabButton() {
-          classCallCheck(this, RegisterTabButton);
-          return possibleConstructorReturn(this, (RegisterTabButton.__proto__ || Object.getPrototypeOf(RegisterTabButton)).apply(this, arguments));
-      }
-
-      createClass(RegisterTabButton, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return {
-                  children: [UI.T("Register")]
-              };
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.registerSystemButton);
-              if (this.options.active) {
-                  attr.addClass(this.styleSheet.selectedRightClass);
-              }
-          }
-      }]);
-      return RegisterTabButton;
-  }(UI.Primitive(BasicTabTitle, "div"))) || _class7$4);
-
-  var Login = function (_UI$Element6) {
-      inherits(Login, _UI$Element6);
-
-      function Login() {
-          classCallCheck(this, Login);
-          return possibleConstructorReturn(this, (Login.__proto__ || Object.getPrototypeOf(Login)).apply(this, arguments));
-      }
-
-      createClass(Login, [{
-          key: "render",
-          value: function render() {
-              return [UI.createElement(NormalLogin, null)];
-          }
-      }]);
-      return Login;
-  }(UI.Element);
-
-  var LoginModal = function (_Modal) {
-      inherits(LoginModal, _Modal);
-
-      function LoginModal() {
-          classCallCheck(this, LoginModal);
-          return possibleConstructorReturn(this, (LoginModal.__proto__ || Object.getPrototypeOf(LoginModal)).apply(this, arguments));
-      }
-
-      createClass(LoginModal, [{
-          key: "getModalWindowStyle",
-          value: function getModalWindowStyle() {
-              if (Device.isTouchDevice()) {
-                  return {
-                      position: "relative",
-                      padding: "0",
-                      boxShadow: "0 5px 15px rgba(0,0,0,0.5)",
-                      // margin: "60px auto",
-                      display: this.options.display || "block",
-                      left: "0",
-                      right: "0",
-                      width: "100vw",
-                      height: "600px",
-                      background: "white",
-                      overflow: this.options.overflow || "auto",
-                      maxHeight: "100%",
-                      maxWidth: "500px",
-                      verticalAlign: "center",
-                      margin: "0 auto"
-                  };
-              }
-              return {
-                  position: "relative",
-                  padding: "0",
-                  boxShadow: "0 5px 15px rgba(0,0,0,0.5)",
-                  margin: "60px auto",
-                  display: this.options.display || "block",
-                  maxHeight: this.options.maxHeight || "85%",
-                  left: "0",
-                  right: "0",
-                  width: "500px",
-                  height: this.options.height || "600px",
-                  background: "white",
-                  overflow: this.options.overflow || "auto"
-              };
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return UI.createElement(Login, null);
-          }
-      }], [{
-          key: "requireLogin",
-          value: function requireLogin(func) {
-              if (USER.isAuthenticated) {
-                  return func();
-              } else {
-                  this.show();
-              }
-          }
-      }]);
-      return LoginModal;
-  }(Modal);
-
-  var _class$48, _descriptor$21, _descriptor2$17, _descriptor3$17, _descriptor4$15, _descriptor5$13;
-
-  function _initDefineProp$22(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$22(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-
-  var VotingWidgetStyle = (_class$48 = function (_StyleSheet) {
-      inherits(VotingWidgetStyle, _StyleSheet);
-
-      function VotingWidgetStyle() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, VotingWidgetStyle);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = VotingWidgetStyle.__proto__ || Object.getPrototypeOf(VotingWidgetStyle)).call.apply(_ref, [this].concat(args))), _this), _this.height = 40, _this.size = 1, _this.likeColor = _this.options.likeColor || "#1E8921", _this.dislikeColor = _this.options.dislikeColor || "#C5302C", _this.notVoteColor = _this.options.notVoteColor || "#313534", _this.balanceColor = _this.options.balanceColor || "#313534", _this.orientation = Orientation.VERTICAL, _initDefineProp$22(_this, "container", _descriptor$21, _this), _this.mainClass = {
-              height: "40px",
-              lineHeight: "40px",
-              fontSize: "14px",
-              color: "#767676",
-              display: "inline-block",
-              float: "right",
-              textAlign: "right"
-          }, _this.thumbsStyle = {
-              fontSize: _this.height / 2 + "px",
-              lineHeight: _this.height + "px"
-          }, _initDefineProp$22(_this, "displayStyle", _descriptor2$17, _this), _this.counterStyle = {
-              fontSize: 18 * _this.size + "px",
-              fontWeight: "900",
-              color: _this.balanceColor
-          }, _initDefineProp$22(_this, "thumbsUpHoverStyle", _descriptor3$17, _this), _initDefineProp$22(_this, "thumbsDownHoverStyle", _descriptor4$15, _this), _initDefineProp$22(_this, "padding", _descriptor5$13, _this), _temp), possibleConstructorReturn(_this, _ret);
-      } //            |
-      //      |- Triadic colors + Shades
-
-
-      return VotingWidgetStyle;
-  }(StyleSheet), (_descriptor$21 = _applyDecoratedDescriptor$22(_class$48.prototype, "container", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "40px",
-              width: "100%",
-              fontSize: "14px",
-              color: "#767676",
-              display: "flex",
-              justifyContent: "flex-end",
-              alignItems: "center"
-          };
-      }
-  }), _descriptor2$17 = _applyDecoratedDescriptor$22(_class$48.prototype, "displayStyle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "left",
-              paddingLeft: "3px"
-          };
-      }
-  }), _descriptor3$17 = _applyDecoratedDescriptor$22(_class$48.prototype, "thumbsUpHoverStyle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              transition: ".25s",
-              ":hover": {
-                  color: this.likeColor,
-                  opacity: ".8",
-                  transition: ".25s"
-              }
-          };
-      }
-  }), _descriptor4$15 = _applyDecoratedDescriptor$22(_class$48.prototype, "thumbsDownHoverStyle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              transition: ".25s",
-              ":hover": {
-                  color: this.dislikeColor,
-                  opacity: ".8",
-                  transition: ".25s"
-              }
-          };
-      }
-  }), _descriptor5$13 = _applyDecoratedDescriptor$22(_class$48.prototype, "padding", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "3px",
-              float: "left",
-              display: "inline-block",
-              height: this.height + "px"
-          };
-      }
-  })), _class$48);
-
-  var _dec$24, _class$49;
-
-  var VotingWidget = function (_UI$Element) {
-      inherits(VotingWidget, _UI$Element);
-
-      function VotingWidget() {
-          classCallCheck(this, VotingWidget);
-          return possibleConstructorReturn(this, (VotingWidget.__proto__ || Object.getPrototypeOf(VotingWidget)).apply(this, arguments));
-      }
-
-      createClass(VotingWidget, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options = Object.assign({
-                  votesBalance: 0,
-                  userVote: VoteStatus.NONE,
-                  size: 1,
-                  likeColor: this.options.likeColor || "#1E8921", //            |
-                  dislikeColor: this.options.dislikeColor || "#C5302C", //      |- Triadic colors + Shades
-                  notVoteColor: this.options.notVoteColor || "#313534",
-                  balanceColor: this.options.balanceColor || "#313534",
-                  orientation: Orientation.VERTICAL
-              }, options);
-              get(VotingWidget.prototype.__proto__ || Object.getPrototypeOf(VotingWidget.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.setStyle({
-                  textAlign: "center",
-                  marginRight: "10px"
-              });
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var buttonsStyle = {
-                  paddingLeft: "4px",
-                  paddingRight: "4px",
-                  paddingTop: "0px",
-                  paddingBottom: "0px",
-                  lineHeight: "0px",
-                  backgroundColor: "transparent",
-                  borderColor: "transparent",
-                  fontSize: 40 * this.options.size + "px",
-                  marginTop: 8 * this.options.size + "px",
-                  marginBottom: 8 * this.options.size + "px",
-                  display: this.options.orientation === Orientation.VERTICAL ? "block" : "inline-block",
-                  marginLeft: "auto",
-                  marginRight: "auto",
-                  opacity: 0.7,
-                  cursor: "pointer",
-                  color: this.options.notVoteColor
-              };
-
-              var likeButtonStyle = Object.assign({}, buttonsStyle);
-              if (this.getUserVote() === VoteStatus.LIKE) {
-                  likeButtonStyle.color = this.options.likeColor;
-              }
-
-              var dislikeButtonStyle = Object.assign({}, buttonsStyle);
-              if (this.getUserVote() === VoteStatus.DISLIKE) {
-                  dislikeButtonStyle.color = this.options.dislikeColor;
-              }
-
-              var counterStyle = {
-                  fontSize: 18 * this.options.size + "px",
-                  fontWeight: "900",
-                  "color": this.options.balanceColor
-              };
-
-              return [UI.createElement("span", { className: "fa fa-caret-up voteButton", ref: "likeButton",
-                  faIcon: "caret-up", style: likeButtonStyle, HTMLtitle: "Click to like" }), UI.createElement(
-                  "span",
-                  { ref: "counterContainer", style: counterStyle },
-                  UI.createElement(UI.TextElement, { ref: "counter", value: this.getVotesBalance() + "" })
-              ), UI.createElement("span", { className: "fa fa-caret-down voteButton", ref: "dislikeButton",
-                  faIcon: "caret-down", style: dislikeButtonStyle, HTMLtitle: "Click to dislike" })];
-          }
-      }, {
-          key: "getVotesBalance",
-          value: function getVotesBalance() {
-              return this.options.votesBalance;
-          }
-      }, {
-          key: "getUserVote",
-          value: function getUserVote() {
-              return this.options.userVote;
-          }
-      }]);
-      return VotingWidget;
-  }(UI.Element);
-
-  var CommentVotingWidget = function (_VotingWidget) {
-      inherits(CommentVotingWidget, _VotingWidget);
-
-      function CommentVotingWidget() {
-          classCallCheck(this, CommentVotingWidget);
-          return possibleConstructorReturn(this, (CommentVotingWidget.__proto__ || Object.getPrototypeOf(CommentVotingWidget)).apply(this, arguments));
-      }
-
-      createClass(CommentVotingWidget, [{
-          key: "getVotesBalance",
-          value: function getVotesBalance() {
-              return this.options.message.getVotesBalance();
-          }
-      }, {
-          key: "getUserVote",
-          value: function getUserVote() {
-              return this.options.message.getUserVote();
-          }
-      }, {
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(CommentVotingWidget.prototype.__proto__ || Object.getPrototypeOf(CommentVotingWidget.prototype), "setOptions", this).call(this, options);
-              this.updateTarget(this.options.message);
-          }
-      }, {
-          key: "updateTarget",
-          value: function updateTarget(target) {
-              var _this3 = this;
-
-              if (!target || target instanceof UserReactionCollection) {
-                  this.options.target = target;
-                  return;
-              }
-              var possibleTarget = target.getReactionCollection();
-              if (possibleTarget) {
-                  this.options.target = possibleTarget;
-                  return;
-              }
-              var tempListener = this.attachEventListener(target, "createReactionCollection", function () {
-                  _this3.updateOptions({ target: target.getReactionCollection() });
-                  _this3.setupListener();
-                  tempListener.remove();
-              });
-          }
-      }, {
-          key: "setupListener",
-          value: function setupListener() {
-              var _this4 = this;
-
-              var target = this.options.target;
-              if (target) {
-                  this.attachUpdateListener(target, function () {
-                      _this4.redraw();
-                  });
-              }
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this5 = this;
-
-              this.setupListener();
-              this.likeButton.addClickListener(function () {
-                  if (!USER.isAuthenticated) {
-                      LoginModal.show();
-                      return;
-                  }
-                  if (_this5.getUserVote() === VoteStatus.LIKE) {
-                      _this5.options.message.resetReaction();
-                  } else {
-                      _this5.options.message.like();
-                  }
-              });
-              this.dislikeButton.addClickListener(function () {
-                  if (!USER.isAuthenticated) {
-                      LoginModal.show();
-                      return;
-                  }
-                  if (_this5.getUserVote() === VoteStatus.DISLIKE) {
-                      _this5.options.message.resetReaction();
-                  } else {
-                      _this5.options.message.dislike();
-                  }
-              });
-
-              this.options.message.addListener("reaction", function () {
-                  _this5.redraw();
-              });
-          }
-      }]);
-      return CommentVotingWidget;
-  }(VotingWidget);
-
-  // TODO: rewrite
-
-
-  var CommentVotingWidgetWithThumbs = (_dec$24 = registerStyle(VotingWidgetStyle), _dec$24(_class$49 = function (_CommentVotingWidget) {
-      inherits(CommentVotingWidgetWithThumbs, _CommentVotingWidget);
-
-      function CommentVotingWidgetWithThumbs() {
-          classCallCheck(this, CommentVotingWidgetWithThumbs);
-          return possibleConstructorReturn(this, (CommentVotingWidgetWithThumbs.__proto__ || Object.getPrototypeOf(CommentVotingWidgetWithThumbs)).apply(this, arguments));
-      }
-
-      createClass(CommentVotingWidgetWithThumbs, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.container);
-          }
-      }, {
-          key: "getNumLikes",
-          value: function getNumLikes() {
-              return this.options.message.getNumLikes();
-          }
-      }, {
-          key: "getNumDislikes",
-          value: function getNumDislikes() {
-              return this.options.message.getNumDislikes();
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var thumbsUpScoreStyle = {};
-              var thumbsDownScoreStyle = {};
-
-              // TODO: remove duplicate code
-              var likeButtonStyle = Object.assign({}, this.styleSheet.thumbsStyle);
-              if (this.getUserVote() === VoteStatus.LIKE) {
-                  likeButtonStyle.color = thumbsUpScoreStyle.color = this.options.likeColor;
-                  thumbsUpScoreStyle.fontWeight = "bold";
-              }
-
-              var dislikeButtonStyle = Object.assign({}, this.styleSheet.thumbsStyle);
-              if (this.getUserVote() === VoteStatus.DISLIKE) {
-                  dislikeButtonStyle.color = thumbsDownScoreStyle.color = this.options.dislikeColor;
-                  thumbsDownScoreStyle.fontWeight = "bold";
-              }
-
-              return [UI.createElement(
-                  "span",
-                  { className: this.styleSheet.displayStyle, style: thumbsUpScoreStyle },
-                  this.getNumLikes()
-              ), UI.createElement("span", { className: "fa fa-thumbs-up voteButton " + this.styleSheet.displayStyle + " " + this.styleSheet.thumbsUpHoverStyle, ref: "likeButton", faIcon: "thumbs-up", style: likeButtonStyle, HTMLtitle: "Click to like" }), UI.createElement("div", { className: this.styleSheet.padding }), UI.createElement(
-                  "span",
-                  { className: this.styleSheet.displayStyle, style: thumbsDownScoreStyle },
-                  this.getNumDislikes()
-              ), UI.createElement("span", { className: "fa fa-thumbs-down voteButton " + this.styleSheet.displayStyle + " " + this.styleSheet.thumbsDownHoverStyle, ref: "dislikeButton", faIcon: "thumbs-down", style: dislikeButtonStyle, HTMLtitle: "Click to dislike" })];
-          }
-      }]);
-      return CommentVotingWidgetWithThumbs;
-  }(CommentVotingWidget)) || _class$49);
-
-  var _class$50, _descriptor$22, _descriptor2$18, _descriptor3$18, _descriptor4$16, _descriptor5$14, _descriptor6$11, _descriptor7$9, _descriptor8$7, _descriptor9$6, _descriptor10$5, _descriptor11$5;
-
-  function _initDefineProp$23(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$23(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-
-  var ChatStyle = (_class$50 = function (_StyleSheet) {
-      inherits(ChatStyle, _StyleSheet);
-
-      function ChatStyle() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, ChatStyle);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ChatStyle.__proto__ || Object.getPrototypeOf(ChatStyle)).call.apply(_ref, [this].concat(args))), _this), _this.navbarHeight = "50px", _this.renderMessageHeight = "100px", _this.userFontSize = "1.1em", _this.commentFontSize = "1.1em", _this.backgroundColor = "#fff", _this.hrBackgroundColor = "#ddd", _this.hoverBackgroundColor = "#f8f8f8", _initDefineProp$23(_this, "renderMessageView", _descriptor$22, _this), _initDefineProp$23(_this, "renderMessage", _descriptor2$18, _this), _initDefineProp$23(_this, "chatInput", _descriptor3$18, _this), _initDefineProp$23(_this, "messageBoxButton", _descriptor4$16, _this), _this.previewButton = { // TODO: This is currently not restyled.
-              // We might not want to use it because previewButton is bad practice
-              height: "30px",
-              width: "30px",
-              borderRadius: "100%",
-              fontSize: "100%",
-              marginLeft: "5px"
-          }, _this.loadMoreButton = {
-              border: "0px",
-              color: "#333",
-              borderRadius: "0",
-              borderBottom: "0",
-              backgroundColor: "#eee",
-              padding: "5px 10px",
-              textTransform: "uppercase",
-              marginTop: "15px"
-          }, _initDefineProp$23(_this, "messageTimeStampHr", _descriptor5$14, _this), _initDefineProp$23(_this, "messageTimeStamp", _descriptor6$11, _this), _initDefineProp$23(_this, "groupChatMessage", _descriptor7$9, _this), _initDefineProp$23(_this, "comment", _descriptor8$7, _this), _initDefineProp$23(_this, "userHandle", _descriptor9$6, _this), _initDefineProp$23(_this, "commentContent", _descriptor10$5, _this), _initDefineProp$23(_this, "timestamp", _descriptor11$5, _this), _temp), possibleConstructorReturn(_this, _ret);
-      }
-
-      return ChatStyle;
-  }(StyleSheet), (_descriptor$22 = _applyDecoratedDescriptor$23(_class$50.prototype, "renderMessageView", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "100%",
-              width: "100%",
-              overflowY: "auto",
-              overflowX: "hidden",
-              backgroundColor: this.backgroundColor,
-              position: "relative",
-              wordBreak: "break-word"
-          };
-      }
-  }), _descriptor2$18 = _applyDecoratedDescriptor$23(_class$50.prototype, "renderMessage", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: this.renderMessageHeight,
-              maxHeight: this.renderMessageHeight,
-              width: "100%",
-              borderTop: "1px solid " + this.hrBackgroundColor,
-              backgroundColor: this.backgroundColor,
-              position: "relative"
-          };
-      }
-  }), _descriptor3$18 = _applyDecoratedDescriptor$23(_class$50.prototype, "chatInput", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _ref2;
-
-          return _ref2 = {
-              height: "100%",
-              width: "calc(100% - 50px)",
-              // "line-height": "30px",
-              paddingTop: "0",
-              paddingBottom: "0",
-              fontSize: "14px",
-              borderRadius: "0",
-              paddingLeft: "8px",
-              border: "0px"
-          }, defineProperty(_ref2, "paddingTop", "5px"), defineProperty(_ref2, "resize", "none"), defineProperty(_ref2, "transition", ".2s"), defineProperty(_ref2, "display", "inline-block"), defineProperty(_ref2, "float", "left"), defineProperty(_ref2, "outline", "none"), defineProperty(_ref2, "position", "absolute"), defineProperty(_ref2, ":focus", {
-              outline: "none",
-              boxShadow: "none"
-          }), defineProperty(_ref2, ":active", {
-              outline: "none",
-              boxShadow: "none"
-          }), _ref2;
-      }
-  }), _descriptor4$16 = _applyDecoratedDescriptor$23(_class$50.prototype, "messageBoxButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              textAlign: "center",
-              flex: "1",
-              backgroundColor: "#fff",
-              border: "0",
-              fontSize: "18px",
-              transition: ".2s",
-              color: "#333",
-              padding: "0",
-              ":hover": {
-                  backgroundColor: "transparent",
-                  color: "#2089b5",
-                  transition: ".2s"
-              },
-              ":active": {
-                  backgroundColor: "transparent",
-                  color: "#2089b5",
-                  transition: ".2s"
-              },
-              ":focus": {
-                  backgroundColor: "transparent",
-                  color: "#2089b5",
-                  transition: ".2s",
-                  outline: "none"
-              },
-              ":focus:active": {
-                  backgroundColor: "transparent",
-                  color: "#2089b5"
-              },
-              ":hover:active": {
-                  backgroundColor: "transparent",
-                  color: "#2089b5"
-              }
-          };
-      }
-  }), _descriptor5$14 = _applyDecoratedDescriptor$23(_class$50.prototype, "messageTimeStampHr", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "1px",
-              marginTop: "1.5em",
-              marginBottom: "1.5em",
-              width: "100%",
-              maxWidth: "100%",
-              backgroundColor: this.hrBackgroundColor,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              textTransform: "uppercase"
-          };
-      }
-  }), _descriptor6$11 = _applyDecoratedDescriptor$23(_class$50.prototype, "messageTimeStamp", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "1.5em",
-              width: "auto",
-              paddingLeft: "10px",
-              paddingRight: "10px",
-              backgroundColor: this.backgroundColor,
-              textAlign: "center",
-              color: "#222",
-              fontWeight: "bold"
-          };
-      }
-  }), _descriptor7$9 = _applyDecoratedDescriptor$23(_class$50.prototype, "groupChatMessage", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "100%",
-              backgroundColor: "#fff"
-          };
-      }
-  }), _descriptor8$7 = _applyDecoratedDescriptor$23(_class$50.prototype, "comment", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              paddingLeft: "12px",
-              paddingRight: "12px",
-              paddingTop: "12px",
-              paddingBottom: "12px",
-              ":hover": {
-                  backgroundColor: this.hoverBackgroundColor
-              }
-          };
-      }
-  }), _descriptor9$6 = _applyDecoratedDescriptor$23(_class$50.prototype, "userHandle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              fontSize: this.userFontSize
-          };
-      }
-  }), _descriptor10$5 = _applyDecoratedDescriptor$23(_class$50.prototype, "commentContent", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              " p": {
-                  marginTop: "0",
-                  marginBottom: "0",
-                  fontSize: this.commentFontSize,
-                  color: "#454545",
-                  // textAlign: "justify",
-                  wordWrap: "break-word"
-              }
-          };
-      }
-  }), _descriptor11$5 = _applyDecoratedDescriptor$23(_class$50.prototype, "timestamp", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              color: "#262626",
-              fontWeight: "bold",
-              margin: "0 10px"
-          };
-      }
-  })), _class$50);
-
-  // Plugins should be used to extends on runtime the functionality of a class, to easily split functionality
-
-  var Plugin = function (_Dispatchable) {
-      inherits(Plugin, _Dispatchable);
-
-      function Plugin(parent) {
-          classCallCheck(this, Plugin);
-
-          var _this = possibleConstructorReturn(this, (Plugin.__proto__ || Object.getPrototypeOf(Plugin)).call(this));
-
-          _this.linkToParent(parent);
-          return _this;
-      }
-
-      createClass(Plugin, [{
-          key: "linkToParent",
-          value: function linkToParent(parent) {
-              this.parent = parent;
-          }
-      }, {
-          key: "name",
-          value: function name() {
-              return this.constructor.pluginName();
-          }
-      }], [{
-          key: "pluginName",
-          value: function pluginName() {
-              return this.name;
-          }
-      }]);
-      return Plugin;
-  }(Dispatchable);
-
-  // TODO: rename this to use Mixin in title
-
-
-  var Pluginable = function Pluginable(BaseClass) {
-      return function (_BaseClass) {
-          inherits(Pluginable, _BaseClass);
-
-          function Pluginable() {
-              classCallCheck(this, Pluginable);
-              return possibleConstructorReturn(this, (Pluginable.__proto__ || Object.getPrototypeOf(Pluginable)).apply(this, arguments));
-          }
-
-          createClass(Pluginable, [{
-              key: "registerPlugin",
-
-              // TODO: this should probably take in a plugin instance also
-              value: function registerPlugin(PluginClass) {
-                  if (!this.hasOwnProperty("plugins")) {
-                      this.plugins = new Map();
-                  }
-                  // TODO: figure out plugin dependencies
-                  var plugin = new PluginClass(this);
-                  var pluginName = plugin.name();
-
-                  if (this.plugins.has(pluginName)) {
-                      console.error("You are overwriting an existing plugin: ", pluginName, " for object ", this);
-                  }
-
-                  this.plugins.set(pluginName, plugin);
-              }
-          }, {
-              key: "removePlugin",
-              value: function removePlugin(pluginName) {
-                  var plugin = this.getPlugin(pluginName);
-                  if (plugin) {
-                      plugin.remove(this);
-                      this.plugins.delete(plugin.name());
-                  } else {
-                      console.error("Can't remove plugin ", pluginName);
-                  }
-              }
-          }, {
-              key: "getPlugin",
-              value: function getPlugin(pluginName) {
-                  if (!(typeof pluginName === "string")) {
-                      pluginName = pluginName.pluginName();
-                  }
-                  if (this.plugins) {
-                      return this.plugins.get(pluginName);
-                  } else {
-                      return null;
-                  }
-              }
-          }]);
-          return Pluginable;
-      }(BaseClass);
-  };
-
-  var _dec$25, _class$51, _dec2$9, _class2$10;
-
-  ButtonStyle.getInstance().ensureFirstUpdate();
-  InputStyle.getInstance().ensureFirstUpdate();
-
-  var PreviewMarkupButton = function (_Button) {
-      inherits(PreviewMarkupButton, _Button);
-
-      function PreviewMarkupButton() {
-          classCallCheck(this, PreviewMarkupButton);
-          return possibleConstructorReturn(this, (PreviewMarkupButton.__proto__ || Object.getPrototypeOf(PreviewMarkupButton)).apply(this, arguments));
-      }
-
-      createClass(PreviewMarkupButton, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              if (!options.faIcon) {
-                  options.label = options.label || UI.T("Preview");
-              }
-              get(PreviewMarkupButton.prototype.__proto__ || Object.getPrototypeOf(PreviewMarkupButton.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this2 = this;
-
-              get(PreviewMarkupButton.prototype.__proto__ || Object.getPrototypeOf(PreviewMarkupButton.prototype), "onMount", this).call(this);
-              this.addClickListener(function () {
-                  MarkupEditorModal.show({
-                      classMap: ChatMarkupRenderer.classMap,
-                      showCallback: function showCallback(modal) {
-                          modal.markupEditor.setValue(_this2.options.getValue());
-                          modal.markupEditor.codeEditor.getAce().focus();
-                      },
-                      hideCallback: function hideCallback(modal) {
-                          _this2.options.setValue(modal.markupEditor.getValue());
-                      }
-                  });
-              });
-          }
-      }]);
-      return PreviewMarkupButton;
-  }(Button);
-
-  var EditableMessage = function (_UI$Element) {
-      inherits(EditableMessage, _UI$Element);
-
-      function EditableMessage() {
-          classCallCheck(this, EditableMessage);
-          return possibleConstructorReturn(this, (EditableMessage.__proto__ || Object.getPrototypeOf(EditableMessage)).apply(this, arguments));
-      }
-
-      createClass(EditableMessage, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return Object.assign({}, get(EditableMessage.prototype.__proto__ || Object.getPrototypeOf(EditableMessage.prototype), "getDefaultOptions", this).call(this), {
-                  deletable: true
-              });
-          }
-      }, {
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(EditableMessage.prototype.__proto__ || Object.getPrototypeOf(EditableMessage.prototype), "setOptions", this).call(this, options);
-              this.message = options.message;
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this4 = this;
-
-              return [UI.createElement(
-                  Button,
-                  { ref: "editButton", onClick: function onClick() {
-                          return _this4.toggleEditMode();
-                      } },
-                  UI.T("Edit")
-              ), UI.createElement(
-                  Switcher,
-                  { ref: "contentSwitcher" },
-                  UI.createElement(
-                      "span",
-                      { ref: "contentContainer", style: { "white-space": "pre-line" } },
-                      this.message.hasMarkupEnabled() ? UI.createElement(ChatMarkupRenderer, { ref: this.refLink("content"), value: this.message.getContent(),
-                          style: { height: "auto" } }) : UI.createElement(UI.TextElement, { ref: "content", value: this.message.getContent() })
-                  )
-              )];
-          }
-      }, {
-          key: "showEditMode",
-          value: function showEditMode() {
-              var _this5 = this;
-
-              if (!this.editContent) {
-                  var writingSectionStyle = {
-                      "margin-top": "5px"
-                  };
-                  var chatInputStyle = {
-                      overflow: "auto",
-                      height: "60px",
-                      width: "100%"
-                  };
-
-                  this.editContent = UI.createElement(
-                      "div",
-                      { style: writingSectionStyle },
-                      UI.createElement(TextArea, { ref: this.refLink("messageInput"), style: chatInputStyle, className: "form-control",
-                          value: this.message.getContent() }),
-                      UI.createElement(
-                          ButtonGroup,
-                          null,
-                          UI.createElement(Button, { label: UI.T("Cancel"), level: Level.DEFAULT, size: Size.SMALL,
-                              onClick: function onClick() {
-                                  _this5.hideEditMode();
-                              } }),
-                          UI.createElement(PreviewMarkupButton, { size: Size.SMALL,
-                              getValue: function getValue() {
-                                  return _this5.messageInput.getValue();
-                              },
-                              setValue: function setValue(value) {
-                                  _this5.messageInput.setValue(value);_this5.messageInput.node.focus();
-                              }
-                          }),
-                          UI.createElement(Button, { label: UI.T("Save changes"), level: Level.PRIMARY,
-                              onClick: function onClick() {
-                                  return _this5.saveMessageChanges();
-                              }, size: Size.SMALL }),
-                          this.options.deletable ? UI.createElement(Button, { level: Level.DANGER, label: UI.T("Delete"), size: Size.SMALL,
-                              onClick: function onClick() {
-                                  return _this5.deleteMessage();
-                              } }) : ""
-                      )
-                  );
-              } else {
-                  this.messageInput.setValue(this.message.getContent());
-              }
-
-              if (!this.contentSwitcher.hasChild(this.editContent)) {
-                  this.contentSwitcher.appendChild(this.editContent);
-              }
-              this.contentSwitcher.setActive(this.editContent);
-          }
-      }, {
-          key: "hideEditMode",
-          value: function hideEditMode() {
-              this.contentSwitcher.setActive(this.contentContainer);
-          }
-      }, {
-          key: "toggleEditMode",
-          value: function toggleEditMode() {
-              if (this.contentSwitcher.getActive() === this.contentContainer) {
-                  this.showEditMode();
-              } else {
-                  this.hideEditMode();
-              }
-          }
-      }, {
-          key: "saveMessageChanges",
-          value: function saveMessageChanges() {
-              var _this6 = this;
-
-              var content = this.messageInput.getValue();
-
-              if (content) {
-                  this.message.edit(content, function () {
-                      _this6.hideEditMode();
-                  });
-              }
-          }
-      }, {
-          key: "deleteMessage",
-          value: function deleteMessage() {
-              if (this.options.deletable) {
-                  this.message.deleteMessage();
-              }
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this7 = this;
-
-              this.message.addListener("edit", function () {
-                  _this7.content.setValue(_this7.message.getContent());
-                  _this7.redraw();
-              });
-
-              this.message.addListener("delete", function () {
-                  // TODO: refactor this, should delete message, not hide
-                  _this7.hide();
-              });
-          }
-      }]);
-      return EditableMessage;
-  }(UI.Element);
-
-  var GroupChatMessage = (_dec$25 = registerStyle(ChatStyle), _dec$25(_class$51 = function (_EditableMessage) {
-      inherits(GroupChatMessage, _EditableMessage);
-
-      function GroupChatMessage() {
-          classCallCheck(this, GroupChatMessage);
-          return possibleConstructorReturn(this, (GroupChatMessage.__proto__ || Object.getPrototypeOf(GroupChatMessage)).apply(this, arguments));
-      }
-
-      createClass(GroupChatMessage, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              var _this9 = this;
-
-              get(GroupChatMessage.prototype.__proto__ || Object.getPrototypeOf(GroupChatMessage.prototype), "setOptions", this).call(this, options);
-              if (this.message.hasTemporaryId()) {
-                  // TODO: this can also happen when editing a message, another case for later
-                  this.message.addListener("postError", function () {
-                      _this9.redraw();
-                  });
-                  this.message.addListener("updateId", function () {
-                      // TODO: we might need to updated our position here
-                      _this9.options.key = _this9.message.id;
-                  });
-              }
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.groupChatMessage);
-          }
-      }, {
-          key: "shouldShowDayTimestamp",
-          value: function shouldShowDayTimestamp() {
-              var lastMessage = this.options.message.getPreviousMessage();
-              return !lastMessage || isDifferentDay(lastMessage.timeAdded, this.options.message.timeAdded);
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this10 = this;
-
-              var editButton = void 0;
-              if (this.message.userId === USER.id || USER.isSuperUser) {
-                  // if (USER.isSuperUser) {
-                  editButton = UI.createElement(
-                      "a",
-                      { style: Object.assign({ "cursor": "pointer" }, this.styleSheet.timestamp),
-                          onClick: function onClick() {
-                              return _this10.toggleEditMode();
-                          } },
-                      UI.T("Edit")
-                  );
-              }
-
-              if (!this.contentSwitcher) {
-                  this.contentSwitcher = UI.createElement(
-                      Switcher,
-                      null,
-                      UI.createElement(
-                          "span",
-                          { ref: "contentContainer", style: { "white-space": "pre-line" } },
-                          this.message.hasMarkupEnabled() ? UI.createElement(ChatMarkupRenderer, { ref: this.refLink("content"), value: this.message.getContent(),
-                              style: { height: "auto" } }) : UI.createElement(UI.TextElement, { ref: "content", value: this.message.getContent() })
-                      )
-                  );
-              }
-
-              var date = null;
-              if (this.shouldShowDayTimestamp()) {
-                  date = UI.createElement(
-                      "div",
-                      { ref: "dayTimestamp", className: this.styleSheet.messageTimeStampHr },
-                      UI.createElement(
-                          "div",
-                          { className: this.styleSheet.messageTimeStamp },
-                          StemDate.unix(this.message.timeAdded).format("dddd, MMMM Do")
-                      )
-                  );
-              }
-
-              var errorElement = null;
-              if (this.message.postError) {
-                  errorElement = UI.createElement("span", { ref: "errorArea", style: { marginLeft: "1rem" }, className: "fa fa-warning",
-                      HTMLTitle: "Error: " + this.message.postError });
-              }
-
-              return [date, UI.createElement(
-                  "div",
-                  { className: this.styleSheet.comment },
-                  UI.createElement(UserHandle, { userId: this.message.userId, className: this.styleSheet.userHandle }),
-                  UI.createElement(
-                      "span",
-                      { className: this.styleSheet.timestamp },
-                      this.message.getTimeOfDay()
-                  ),
-                  editButton,
-                  errorElement,
-                  UI.createElement(
-                      "div",
-                      { className: this.styleSheet.commentContent },
-                      this.contentSwitcher
-                  )
-              )];
-          }
-      }]);
-      return GroupChatMessage;
-  }(EditableMessage)) || _class$51);
-  var PrivateChatMessage = (_dec2$9 = registerStyle(ChatStyle), _dec2$9(_class2$10 = function (_Panel) {
-      inherits(PrivateChatMessage, _Panel);
-
-      function PrivateChatMessage() {
-          classCallCheck(this, PrivateChatMessage);
-          return possibleConstructorReturn(this, (PrivateChatMessage.__proto__ || Object.getPrototypeOf(PrivateChatMessage)).apply(this, arguments));
-      }
-
-      createClass(PrivateChatMessage, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(PrivateChatMessage.prototype.__proto__ || Object.getPrototypeOf(PrivateChatMessage.prototype), "setOptions", this).call(this, options);
-              this.message = options.message;
-          }
-      }, {
-          key: "getNodeAttributes",
-          value: function getNodeAttributes() {
-              var attr = get(PrivateChatMessage.prototype.__proto__ || Object.getPrototypeOf(PrivateChatMessage.prototype), "getNodeAttributes", this).call(this);
-              attr.addClass(this.styleSheet.groupChatMessage);
-              return attr;
-          }
-      }, {
-          key: "shouldShowDayTimestamp",
-          value: function shouldShowDayTimestamp() {
-              var lastMessage = this.options.message.getPreviousMessage();
-              return !lastMessage || isDifferentDay(lastMessage.timeAdded, this.options.message.timeAdded);
-          }
-      }, {
-          key: "isOwnMessage",
-          value: function isOwnMessage() {
-              return this.message.userId === USER.id;
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              if (!this.contentSwitcher) {
-                  this.contentSwitcher = UI.createElement(
-                      Switcher,
-                      null,
-                      UI.createElement(
-                          "span",
-                          { ref: "contentContainer", style: { "white-space": "pre-line" } },
-                          this.message.hasMarkupEnabled() ? UI.createElement(ChatMarkupRenderer, { ref: this.refLink("content"), value: this.message.getContent(),
-                              style: { height: "auto" } }) : UI.createElement(UI.TextElement, { ref: "content", value: this.message.getContent() })
-                      )
-                  );
-              }
-
-              var date = null;
-              if (this.shouldShowDayTimestamp()) {
-                  date = UI.createElement(
-                      "div",
-                      { className: this.styleSheet.messageTimeStampHr },
-                      UI.createElement(
-                          "div",
-                          { ref: "dayTimestamp", className: this.styleSheet.messageTimeStamp },
-                          StemDate.unix(this.message.timeAdded).format("dddd, MMMM Do")
-                      )
-                  );
-              }
-
-              var errorElement = null;
-              if (this.message.postError) {
-                  errorElement = UI.createElement("span", { ref: "errorArea", style: { marginLeft: "1rem" }, className: "fa fa-warning",
-                      HTMLTitle: "Error: " + this.message.postError });
-              }
-
-              var content = [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.comment, style: { margin: "8px 16px", backgroundColor: "#eee" } },
-                  UI.createElement(UserHandle, { userId: this.message.userId, className: this.styleSheet.userHandle }),
-                  UI.createElement(
-                      "span",
-                      { className: this.styleSheet.timestamp },
-                      this.message.getTimeOfDay()
-                  ),
-                  errorElement,
-                  UI.createElement(
-                      "div",
-                      { className: this.styleSheet.commentContent },
-                      this.contentSwitcher
-                  )
-              )];
-
-              var paddingDiv = UI.createElement("div", { style: { flexGrow: "1000000" } });
-
-              var result = void 0;
-              if (this.isOwnMessage()) {
-                  result = [date, UI.createElement(
-                      "div",
-                      { style: {
-                              display: "flex"
-                          } },
-                      paddingDiv,
-                      content
-                  )];
-              } else {
-                  result = [date, UI.createElement(
-                      "div",
-                      { style: {
-                              display: "flex"
-                          } },
-                      content,
-                      paddingDiv
-                  )];
-              }
-
-              return result;
-          }
-      }]);
-      return PrivateChatMessage;
-  }(Panel)) || _class2$10);
-
-  var ChatMessageScrollSection = function (_InfiniteScrollable) {
-      inherits(ChatMessageScrollSection, _InfiniteScrollable);
-
-      function ChatMessageScrollSection() {
-          classCallCheck(this, ChatMessageScrollSection);
-          return possibleConstructorReturn(this, (ChatMessageScrollSection.__proto__ || Object.getPrototypeOf(ChatMessageScrollSection)).apply(this, arguments));
-      }
-
-      createClass(ChatMessageScrollSection, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options = Object.assign({
-                  entryComparator: function entryComparator(a, b) {
-                      return a.getNormalizedId() - b.getNormalizedId();
-                  }
-              }, options);
-              get(ChatMessageScrollSection.prototype.__proto__ || Object.getPrototypeOf(ChatMessageScrollSection.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "getTopMessage",
-          value: function getTopMessage() {
-              return this.children[1];
-          }
-      }]);
-      return ChatMessageScrollSection;
-  }(InfiniteScrollable);
-
-  var ChatWidget = function ChatWidget(ChatMessageClass) {
-      var _dec3, _class3;
-
-      var ChatWidgetClass = (_dec3 = registerStyle(ChatStyle), _dec3(_class3 = function (_Pluginable) {
-          inherits(ChatWidgetClass, _Pluginable);
-
-          function ChatWidgetClass() {
-              classCallCheck(this, ChatWidgetClass);
-              return possibleConstructorReturn(this, (ChatWidgetClass.__proto__ || Object.getPrototypeOf(ChatWidgetClass)).apply(this, arguments));
-          }
-
-          createClass(ChatWidgetClass, [{
-              key: "getDefaultOptions",
-              value: function getDefaultOptions(options) {
-                  return {
-                      dateTimestamps: true,
-                      renderMessage: function renderMessage(messageInstance) {
-                          return UI.createElement(ChatMessageClass, { key: messageInstance.getNormalizedId(), message: messageInstance });
-                      }
-                  };
-              }
-          }, {
-              key: "setOptions",
-              value: function setOptions(options) {
-                  get(ChatWidgetClass.prototype.__proto__ || Object.getPrototypeOf(ChatWidgetClass.prototype), "setOptions", this).call(this, options);
-                  this.initializeShowLoadMoreButton();
-              }
-          }, {
-              key: "extraNodeAttributes",
-              value: function extraNodeAttributes(attr) {
-                  get(ChatWidgetClass.prototype.__proto__ || Object.getPrototypeOf(ChatWidgetClass.prototype), "extraNodeAttributes", this).call(this, attr);
-                  attr.setStyle({
-                      display: "flex",
-                      flexDirection: "column"
-                  });
-              }
-          }, {
-              key: "canOverwrite",
-              value: function canOverwrite() {
-                  return false;
-              }
-          }, {
-              key: "initializeShowLoadMoreButton",
-              value: function initializeShowLoadMoreButton() {
-                  // TODO: this is a shitty way of knowing if there are more messages!
-                  if (this.messageThread.getNumMessages() >= 20) {
-                      this.showLoadMoreButton = true;
-                  }
-              }
-          }, {
-              key: "createVirtualMessage",
-              value: function createVirtualMessage(request, message) {
-                  var virtualId = this.messageThread.getMaxMessageId() + "-" + MessageInstanceStore.generateVirtualId() + "-" + Math.random();
-                  var virtualMessageInstance = MessageInstanceStore.createVirtualMessageInstance(message, this.messageThread, virtualId);
-                  request.virtualId = virtualId;
-                  return virtualMessageInstance;
-              }
-          }, {
-              key: "sendMessage",
-              value: function sendMessage(message) {
-                  if (!USER.isAuthenticated) {
-                      LoginModal.show();
-                      return;
-                  }
-                  var request = Object.assign({}, this.options.baseRequest || {});
-
-                  message = message || this.chatInput.getValue();
-                  message = message.trim();
-
-                  if (!message) {
-                      return;
-                  }
-                  request.message = message;
-
-                  // Create a virtual message to be drawn temporarily
-                  var virtualMessageInstance = this.createVirtualMessage(request, message);
-
-                  var onSuccess = function onSuccess(data) {
-                      if (data.error) {
-                          virtualMessageInstance.setPostError(data.error);
-                          return;
-                      }
-                      if (virtualMessageInstance && virtualMessageInstance.hasTemporaryId()) {
-                          MessageInstanceStore.applyUpdateObjectId(virtualMessageInstance, data.messageId);
-                          GlobalState.importState(data.state);
-                      }
-                  };
-
-                  var onError = function onError(error) {
-                      if (virtualMessageInstance) {
-                          virtualMessageInstance.setPostError(42);
-                      }
-                      console.log("Error in sending chat message:\n" + error.message);
-                      console.log(error.stack);
-                  };
-
-                  this.messageWindow.scrollToBottom();
-
-                  this.chatInput.setValue("");
-                  this.chatInput.dispatch("messageSent");
-
-                  Ajax.postJSON(this.getPostURL(), request, { disableStateImport: true }).then(onSuccess, onError);
-              }
-          }, {
-              key: "saveScrollPosition",
-              value: function saveScrollPosition() {
-                  this.scrollPosition = this.messageWindow.node.scrollTop;
-                  this.scrollPercent = this.scrollPosition / (this.messageWindow.node.scrollHeight - this.messageWindow.node.clientHeight);
-              }
-          }, {
-              key: "applyScrollPosition",
-              value: function applyScrollPosition() {
-                  this.messageWindow.node.scrollTop = this.scrollPosition || this.messageWindow.node.scrollHeight;
-                  this.chatInput.node.focus();
-              }
-          }, {
-              key: "addResizeListeners",
-              value: function addResizeListeners() {
-                  var _this14 = this;
-
-                  this.messageWindow.addNodeListener("scroll", function () {
-                      var scrollTop = _this14.messageWindow.node.scrollTop;
-                      if (scrollTop < 20) {
-                          _this14.loadMoreMessages();
-                      }
-                  });
-
-                  this.addListener("hide", function () {
-                      _this14.saveScrollPosition();
-                  });
-                  this.addListener("show", function () {
-                      _this14.applyScrollPosition();
-                  });
-
-                  window.addEventListener("resize", function () {
-                      _this14.saveScrollPosition();
-                      _this14.setAdaptiveHeight();
-                  });
-
-                  this.addListener("resize", function () {
-                      _this14.setAdaptiveHeight();
-                      _this14.messageWindow.node.scrollTop = _this14.scrollPercent * (_this14.messageWindow.node.scrollHeight - _this14.messageWindow.node.clientHeight);
-                  });
-              }
-          }, {
-              key: "getDesiredHeight",
-              value: function getDesiredHeight() {
-                  if (this.options.style && this.options.style.height) {
-                      return this.options.style.height;
-                  }
-                  var viewportHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-                  var navbarHeight = document.getElementById("navbar").offsetHeight; // use offsetHeight to accommodate padding and margin
-
-                  var availableHeight = viewportHeight - navbarHeight - (this.options.extraHeightOffset || 25);
-                  return Math.max(availableHeight || 0, 100) + "px"; // it needs at least 100px
-              }
-          }, {
-              key: "setAdaptiveHeight",
-              value: function setAdaptiveHeight() {
-                  this.setStyle("height", this.getDesiredHeight());
-              }
-          }, {
-              key: "setHeight",
-              value: function setHeight(height) {
-                  this.setStyle("height", height);
-              }
-          }, {
-              key: "renderMessageView",
-              value: function renderMessageView() {
-                  var _this15 = this;
-
-                  var loadMoreButton = void 0;
-
-                  if (this.showLoadMoreButton) {
-                      loadMoreButton = UI.createElement(
-                          "div",
-                          { className: "text-center" },
-                          UI.createElement(AjaxButton, { ref: this.refLink("loadMoreButton"), level: Level.DEFAULT, onClick: function onClick() {
-                                  _this15.loadMoreMessages();
-                              },
-                              style: this.styleSheet.loadMoreButton, statusOptions: ["Load more messages", { faIcon: "spinner fa-spin", label: " loading messages..." }, "Load more messages", "Failed"]
-                          })
-                      );
-                  }
-
-                  return [UI.createElement(ChatMessageScrollSection, { className: this.styleSheet.renderMessageView,
-                      ref: "messageWindow",
-                      entryRenderer: this.options.renderMessage,
-                      entries: this.messageThread.getMessages(),
-                      staticTop: loadMoreButton })];
-              }
-          }, {
-              key: "getGetType",
-              value: function getGetType() {
-                  return "GET";
-              }
-          }, {
-              key: "loadMoreMessages",
-              value: function loadMoreMessages() {
-                  var _this16 = this;
-
-                  // TODO: wrap this in something
-                  if (this.outstandingRequest) {
-                      return;
-                  }
-                  this.outstandingRequest = true;
-
-                  var topMessage = this.messageWindow.getTopMessage();
-
-                  var messageInstances = this.messageThread.getMessages();
-                  var lastMessageId = 999999999;
-                  if (messageInstances.length) {
-                      lastMessageId = messageInstances[0].id;
-                  }
-
-                  var request = Object.assign({
-                      lastMessageId: lastMessageId
-                  }, this.options.baseRequest || {});
-
-                  var oldScrollHeight = this.messageWindow.node.scrollHeight;
-
-                  if (this.loadMoreButton) {
-                      this.loadMoreButton.ajaxCall({
-                          url: this.getGetURL(),
-                          type: this.getGetType(),
-                          dataType: "json",
-                          data: request,
-                          complete: function complete() {
-                              //TODO(@Rocky): find out why this doesn't work
-                              _this16.outstandingRequest = false;
-                          }
-                      }).then(function (data) {
-                          var emptyData = !data.state || !data.state.MessageInstance;
-                          if (emptyData || data.state.MessageInstance.length < 20) {
-                              if (_this16.loadMoreButton) {
-                                  _this16.loadMoreButton.hide();
-                              }
-                              _this16.showLoadMoreButton = false;
-
-                              if (emptyData) {
-                                  return;
-                              }
-                          }
-
-                          var scrollDelta = 0;
-                          if (!topMessage.shouldShowDayTimestamp()) {
-                              scrollDelta += topMessage.dayTimestamp.getHeight();
-                              topMessage.dayTimestamp.addClass("hidden");
-                          }
-                          _this16.messageWindow.scrollToHeight(_this16.messageWindow.node.scrollHeight - oldScrollHeight - scrollDelta);
-
-                          _this16.outstandingRequest = false;
-                      });
-                  }
-              }
-          }, {
-              key: "renderMessageBox",
-              value: function renderMessageBox() {
-                  var _this17 = this;
-
-                  return UI.createElement(
-                      "div",
-                      { ref: "writingSection", className: this.styleSheet.renderMessage },
-                      UI.createElement(TextArea, { readOnly: this.messageThread.muted,
-                          ref: "chatInput",
-                          placeholder: "Type a message...",
-                          className: this.styleSheet.chatInput }),
-                      UI.createElement(
-                          "div",
-                          { style: { display: "flex", flexDirection: "column", height: "100%", position: "absolute", right: "0px", width: "50px" } },
-                          UI.createElement(Button, { ref: "sendMessageButton",
-                              faIcon: "paper-plane",
-                              disabled: this.messageThread.muted,
-                              onClick: function onClick() {
-                                  return _this17.sendMessage();
-                              },
-                              className: this.styleSheet.messageBoxButton }),
-                          UI.createElement(PreviewMarkupButton, { ref: "previewMessageButton",
-                              getValue: function getValue() {
-                                  return _this17.chatInput.getValue();
-                              },
-                              setValue: function setValue(value) {
-                                  _this17.chatInput.setValue(value);_this17.chatInput.node.focus();
-                              },
-                              className: this.styleSheet.messageBoxButton,
-                              faIcon: "eye" })
-                      )
-                  );
-              }
-          }, {
-              key: "renderStatus",
-              value: function renderStatus() {
-                  if (this.messageThread.muted) {
-                      return [UI.createElement(
-                          "h4",
-                          { style: { color: "red", textAlign: "center" } },
-                          "This chat is currently turned off."
-                      )];
-                  } else {
-                      if (USER.isSuperUser) {
-                          var userData = [];
-                          var _iteratorNormalCompletion = true;
-                          var _didIteratorError = false;
-                          var _iteratorError = undefined;
-
-                          try {
-                              for (var _iterator = this.messageThread.online[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                                  var userId = _step.value;
-
-                                  userData.push([UI.createElement(UserHandle, { id: parseInt(userId) })]);
-                              }
-                          } catch (err) {
-                              _didIteratorError = true;
-                              _iteratorError = err;
-                          } finally {
-                              try {
-                                  if (!_iteratorNormalCompletion && _iterator.return) {
-                                      _iterator.return();
-                                  }
-                              } finally {
-                                  if (_didIteratorError) {
-                                      throw _iteratorError;
-                                  }
-                              }
-                          }
-
-                          return userData;
-                      }
-                  }
-              }
-          }, {
-              key: "render",
-              value: function render() {
-                  return [this.renderMessageView(), this.renderMessageBox()];
-              }
-          }, {
-              key: "getDefaultPlugins",
-              value: function getDefaultPlugins() {
-                  return ChatWidget.defaultPlugins || [];
-              }
-          }, {
-              key: "onMount",
-              value: function onMount() {
-                  var _this18 = this;
-
-                  get(ChatWidgetClass.prototype.__proto__ || Object.getPrototypeOf(ChatWidgetClass.prototype), "onMount", this).call(this);
-
-                  var _iteratorNormalCompletion2 = true;
-                  var _didIteratorError2 = false;
-                  var _iteratorError2 = undefined;
-
-                  try {
-                      for (var _iterator2 = (this.options.plugins || this.getDefaultPlugins())[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                          var plugin = _step2.value;
-
-                          this.registerPlugin(plugin);
-                      }
-                  } catch (err) {
-                      _didIteratorError2 = true;
-                      _iteratorError2 = err;
-                  } finally {
-                      try {
-                          if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                              _iterator2.return();
-                          }
-                      } finally {
-                          if (_didIteratorError2) {
-                              throw _iteratorError2;
-                          }
-                      }
-                  }
-
-                  this.attachUpdateListener(this.messageThread, function (event) {
-                      if (event.type === "muted") {
-                          _this18.redraw();
-                      }
-                  });
-
-                  this.attachListener(this.messageThread, "newMessage", function (event) {
-                      //console.log("Received chat message: ", event);
-                      var messageInstance = MessageInstanceStore.get(event.data.id);
-
-                      // We calculate before adding new message
-                      var messageWindowScrollTop = _this18.messageWindow.node.scrollTop;
-                      var messageWindowscrollMax = _this18.messageWindow.node.scrollHeight - _this18.messageWindow.node.offsetHeight;
-                      _this18.messageWindow.insertEntry(messageInstance);
-
-                      // If we were at the bottom before message was appended, scroll automatically
-                      if (messageWindowScrollTop + 20 > messageWindowscrollMax) {
-                          setTimeout(function () {
-                              _this18.messageWindow.scrollToBottom();
-                          }, 0);
-                      }
-                  });
-
-                  this.addResizeListeners();
-              }
-          }, {
-              key: "messageThread",
-              get: function get$$1() {
-                  return this.options.messageThread;
-              }
-          }]);
-          return ChatWidgetClass;
-      }(Pluginable(Panel))) || _class3);
-
-      return ChatWidgetClass;
-  };
-
-  var GroupChatWidget = function (_ChatWidget) {
-      inherits(GroupChatWidget, _ChatWidget);
-
-      function GroupChatWidget() {
-          classCallCheck(this, GroupChatWidget);
-          return possibleConstructorReturn(this, (GroupChatWidget.__proto__ || Object.getPrototypeOf(GroupChatWidget)).apply(this, arguments));
-      }
-
-      createClass(GroupChatWidget, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(GroupChatWidget.prototype.__proto__ || Object.getPrototypeOf(GroupChatWidget.prototype), "setOptions", this).call(this, options);
-              this.options.baseRequest = {
-                  chatId: this.options.chatId
-              };
-          }
-      }, {
-          key: "getPostURL",
-          value: function getPostURL() {
-              return "/chat/group_chat_post/";
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              get(GroupChatWidget.prototype.__proto__ || Object.getPrototypeOf(GroupChatWidget.prototype), "extraNodeAttributes", this).call(this, attr);
-              attr.setStyle({
-                  display: "flex",
-                  flexDirection: "column",
-                  overflowY: "hidden"
-              });
-          }
-      }, {
-          key: "getGetURL",
-          value: function getGetURL() {
-              return "/chat/group_chat_state/";
-          }
-      }, {
-          key: "renderMessageView",
-          value: function renderMessageView() {
-              var _this20 = this;
-
-              var loadMoreButton = void 0;
-
-              if (this.showLoadMoreButton) {
-                  loadMoreButton = UI.createElement(
-                      "div",
-                      { className: "text-center" },
-                      UI.createElement(AjaxButton, { ref: this.refLink("loadMoreButton"), level: Level.DEFAULT, onClick: function onClick() {
-                              _this20.loadMoreMessages();
-                          },
-                          style: this.styleSheet.loadMoreButton, statusOptions: ["Load more messages", { faIcon: "spinner fa-spin", label: " loading messages..." }, "Load more messages", "Failed"]
-                      })
-                  );
-              }
-
-              return [UI.createElement(ChatMessageScrollSection, { className: this.styleSheet.renderMessageView,
-                  ref: "messageWindow",
-                  entryRenderer: this.options.renderMessage,
-                  entries: this.messageThread.getMessages(),
-                  staticTop: loadMoreButton })];
-          }
-      }]);
-      return GroupChatWidget;
-  }(ChatWidget(GroupChatMessage));
-
-  var PrivateChatWidget = function (_ChatWidget2) {
-      inherits(PrivateChatWidget, _ChatWidget2);
-
-      function PrivateChatWidget() {
-          classCallCheck(this, PrivateChatWidget);
-          return possibleConstructorReturn(this, (PrivateChatWidget.__proto__ || Object.getPrototypeOf(PrivateChatWidget)).apply(this, arguments));
-      }
-
-      createClass(PrivateChatWidget, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options = Object.assign({
-                  messageThread: options.privateChat.getMessageThread(),
-                  baseRequest: {
-                      userId: options.privateChat.getOtherUserId(),
-                      privateChatId: options.privateChat.id
-                  }
-              }, options);
-              get(PrivateChatWidget.prototype.__proto__ || Object.getPrototypeOf(PrivateChatWidget.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "setPrivateChat",
-          value: function setPrivateChat(privateChat) {
-              this.options.privateChat = privateChat;
-              this.setOptions(this.options);
-          }
-      }, {
-          key: "getPostURL",
-          value: function getPostURL() {
-              return "/chat/private_chat_post/";
-          }
-      }, {
-          key: "getGetType",
-          value: function getGetType() {
-              return "POST"; // It might create a chat if it doesn't have one
-          }
-      }, {
-          key: "getGetURL",
-          value: function getGetURL() {
-              return "/chat/private_chat_state/";
-          }
-      }]);
-      return PrivateChatWidget;
-  }(ChatWidget(PrivateChatMessage));
-
-  var VotableChatMessage = function (_GroupChatMessage) {
-      inherits(VotableChatMessage, _GroupChatMessage);
-
-      function VotableChatMessage() {
-          classCallCheck(this, VotableChatMessage);
-          return possibleConstructorReturn(this, (VotableChatMessage.__proto__ || Object.getPrototypeOf(VotableChatMessage)).apply(this, arguments));
-      }
-
-      createClass(VotableChatMessage, [{
-          key: "render",
-          value: function render() {
-              var result = get(VotableChatMessage.prototype.__proto__ || Object.getPrototypeOf(VotableChatMessage.prototype), "render", this).call(this);
-              result[1].options.children.push(UI.createElement(CommentVotingWidgetWithThumbs, { style: { display: "inline-block" }, message: this.options.message }));
-              return result;
-          }
-      }]);
-      return VotableChatMessage;
-  }(GroupChatMessage);
-
-  var VotableGroupChatWidget = function (_ChatWidget3) {
-      inherits(VotableGroupChatWidget, _ChatWidget3);
-
-      function VotableGroupChatWidget() {
-          classCallCheck(this, VotableGroupChatWidget);
-          return possibleConstructorReturn(this, (VotableGroupChatWidget.__proto__ || Object.getPrototypeOf(VotableGroupChatWidget)).apply(this, arguments));
-      }
-
-      createClass(VotableGroupChatWidget, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              options.messageThread = options.messageThread || MessageThreadStore.get(GroupChatStore.get(options.chatId).messageThreadId);
-              get(VotableGroupChatWidget.prototype.__proto__ || Object.getPrototypeOf(VotableGroupChatWidget.prototype), "setOptions", this).call(this, options);
-              this.options.baseRequest = {
-                  chatId: this.options.chatId
-              };
-          }
-      }, {
-          key: "getPostURL",
-          value: function getPostURL() {
-              return "/chat/group_chat_post/";
-          }
-      }, {
-          key: "getGetURL",
-          value: function getGetURL() {
-              return "/chat/group_chat_state/";
-          }
-      }]);
-      return VotableGroupChatWidget;
-  }(ChatWidget(VotableChatMessage));
-
-  var _class$52, _descriptor$23, _descriptor2$19;
-
-  function _initDefineProp$24(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$24(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-
-  var CommentWidgetStyle = (_class$52 = function (_StyleSheet) {
-      inherits(CommentWidgetStyle, _StyleSheet);
-
-      function CommentWidgetStyle() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, CommentWidgetStyle);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = CommentWidgetStyle.__proto__ || Object.getPrototypeOf(CommentWidgetStyle)).call.apply(_ref, [this].concat(args))), _this), _this.loadMoreButton = {
-              border: "0px",
-              color: "#333",
-              borderRadius: "0",
-              borderBottom: "0",
-              backgroundColor: "#eee",
-              padding: "5px 10px"
-          }, _this.writingSectionStyle = {
-              height: "auto",
-              marginTop: "10px"
-          }, _initDefineProp$24(_this, "chatInputStyle", _descriptor$23, _this), _initDefineProp$24(_this, "chatInputMax", _descriptor2$19, _this), _this.previewButtonStyle = { // TODO: This is currently not restyled. We might not want to use it because previewButton is bad practice
-              height: "30px",
-              width: "auto",
-              fontSize: "100%",
-              marginLeft: "5px"
-          }, _temp), possibleConstructorReturn(_this, _ret);
-      }
-
-      return CommentWidgetStyle;
-  }(StyleSheet), (_descriptor$23 = _applyDecoratedDescriptor$24(_class$52.prototype, "chatInputStyle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "30px",
-              width: "100%",
-              paddingBottom: "0",
-              fontSize: "14px",
-              borderRadius: "0",
-              outline: "none",
-              paddingLeft: "8px",
-              paddingTop: "5px",
-              resize: "none",
-              transition: ".2s",
-              display: "block",
-              border: "1px solid #aaa",
-              ":focus": {
-                  height: "120px",
-                  transition: ".2s"
-              },
-              ":active": {
-                  height: "120px",
-                  transition: ".2s"
-              }
-          };
-      }
-  }), _descriptor2$19 = _applyDecoratedDescriptor$24(_class$52.prototype, "chatInputMax", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "120px"
-          };
-      }
-  })), _class$52);
-
-  var _dec$26, _class$53, _dec2$10, _class2$11;
-
-  var ThreadMessage = function (_EditableMessage) {
-      inherits(ThreadMessage, _EditableMessage);
-
-      function ThreadMessage() {
-          classCallCheck(this, ThreadMessage);
-          return possibleConstructorReturn(this, (ThreadMessage.__proto__ || Object.getPrototypeOf(ThreadMessage)).apply(this, arguments));
-      }
-
-      createClass(ThreadMessage, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return Object.assign({}, get(ThreadMessage.prototype.__proto__ || Object.getPrototypeOf(ThreadMessage.prototype), "getDefaultOptions", this).call(this), {
-                  deletable: false
-              });
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this2 = this;
-
-              var messageDate = UI.createElement(TimePassedSpan, { timeStamp: this.message.getDate(), style: { color: "#666 !important", textTransform: "uppercase", fontSize: ".85em" } });
-
-              var editButton = void 0;
-              if (this.message.userId === USER.id || USER.isSuperUser) {
-                  editButton = UI.createElement(
-                      "a",
-                      { style: Object.assign({ "cursor": "pointer", padding: "0 10px", fontSize: "1.05em", lineHeight: "0px" }), onClick: function onClick() {
-                              return _this2.toggleEditMode();
-                          } },
-                      "edit"
-                  );
-              }
-
-              if (!this.contentSwitcher) {
-                  this.contentSwitcher = UI.createElement(
-                      Switcher,
-                      null,
-                      UI.createElement(
-                          "div",
-                          { ref: "contentContainer" },
-                          UI.createElement(MarkupRenderer, { ref: "content", value: this.message.getContent() })
-                      )
-                  );
-              }
-
-              var votes = UI.createElement(CommentVotingWidgetWithThumbs, { height: 40, style: { float: "left" }, message: this.message, ref: "commentVotingWidget" });
-
-              return [UI.createElement(
-                  "span",
-                  { style: { float: "right", display: "inline-block", height: "40px", lineHeight: "40px" } },
-                  messageDate
-              ), UI.createElement(
-                  "div",
-                  { style: {
-                          height: "40px",
-                          lineHeight: "40px"
-                      } },
-                  UI.createElement(
-                      "div",
-                      { style: {
-                              height: "40px",
-                              lineHeight: "40px",
-                              display: "inline-block",
-                              float: "left",
-                              fontSize: ".95em",
-                              color: "#333"
-                          } },
-                      UI.createElement(UserHandle, { userId: this.message.userId, style: { fontSize: "1.1em" } })
-                  ),
-                  editButton
-              ), UI.createElement(
-                  "div",
-                  { style: {
-                          paddingTop: "5px",
-                          fontSize: "16px"
-                      } },
-                  this.contentSwitcher
-              ), UI.createElement(
-                  "div",
-                  { style: {
-                          height: "40px"
-                      } },
-                  votes
-              ), UI.createElement("div", { style: {
-                      height: "1px",
-                      width: "100%",
-                      backgroundColor: "#ddd"
-                  } })];
-          }
-      }]);
-      return ThreadMessage;
-  }(EditableMessage);
-
-  var ToggleLogin = function (_UI$Primitive) {
-      inherits(ToggleLogin, _UI$Primitive);
-
-      function ToggleLogin() {
-          classCallCheck(this, ToggleLogin);
-          return possibleConstructorReturn(this, (ToggleLogin.__proto__ || Object.getPrototypeOf(ToggleLogin)).apply(this, arguments));
-      }
-
-      createClass(ToggleLogin, [{
-          key: "onMount",
-          value: function onMount() {
-              get(ToggleLogin.prototype.__proto__ || Object.getPrototypeOf(ToggleLogin.prototype), "onMount", this).call(this);
-              this.addClickListener(function () {
-                  LoginModal.show();
-                  return;
-              });
-          }
-      }]);
-      return ToggleLogin;
-  }(UI.Primitive("span"));
-
-  var BlogCommentWidget = (_dec$26 = registerStyle(BlogStyle), _dec$26(_class$53 = function (_ChatWidget) {
-      inherits(BlogCommentWidget, _ChatWidget);
-
-      function BlogCommentWidget() {
-          classCallCheck(this, BlogCommentWidget);
-          return possibleConstructorReturn(this, (BlogCommentWidget.__proto__ || Object.getPrototypeOf(BlogCommentWidget)).apply(this, arguments));
-      }
-
-      createClass(BlogCommentWidget, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return Object.assign({}, get(BlogCommentWidget.prototype.__proto__ || Object.getPrototypeOf(BlogCommentWidget.prototype), "getDefaultOptions", this).call(this), {
-                  entryComparator: function entryComparator(a, b) {
-                      return b.getNormalizedId() - a.getNormalizedId();
-                  }
-              });
-          }
-      }, {
-          key: "renderMessageView",
-          value: function renderMessageView() {
-              var _this5 = this;
-
-              var loadMoreButton = void 0;
-
-              if (this.showLoadMoreButton) {
-                  loadMoreButton = UI.createElement(
-                      "div",
-                      { className: "text-center" },
-                      UI.createElement(AjaxButton, { ref: this.refLink("loadMoreButton"), level: Level.DEFAULT, onClick: function onClick() {
-                              _this5.loadMoreMessages();
-                          },
-                          style: this.commentWidgetStyle.loadMoreButton, statusOptions: ["Load more messages", { faIcon: "spinner fa-spin", label: " loading messages..." }, "Load more messages", "Failed"]
-                      })
-                  );
-              }
-
-              return [UI.createElement(ChatMessageScrollSection, { ref: "messageWindow",
-                  entryRenderer: this.options.renderMessage,
-                  entries: this.messageThread.getMessages(true),
-                  entryComparator: this.options.entryComparator,
-                  staticTop: loadMoreButton })];
-          }
-      }, {
-          key: "renderMessageBox",
-          value: function renderMessageBox() {
-              var _this6 = this;
-
-              return [UI.createElement(
-                  "div",
-                  { ref: "writingSection", style: this.commentWidgetStyle.writingSectionStyle },
-                  UI.createElement(TextArea, { readOnly: this.messageThread.muted,
-                      ref: "chatInput",
-                      onChange: function onChange() {
-                          if (_this6.chatInput.getValue()) {
-                              _this6.chatInput.addClass(_this6.commentWidgetStyle.chatInputMax);
-                          } else {
-                              _this6.chatInput.removeClass(_this6.commentWidgetStyle.chatInputMax);
-                          }
-                      },
-                      className: this.commentWidgetStyle.chatInputStyle,
-                      placeholder: "Leave a comment..." }),
-                  UI.createElement(Button, { disabled: this.messageThread.muted,
-                      label: "SUBMIT",
-                      ref: "sendMessageButton",
-                      className: this.styleSheet.sendMessageButtonStyle,
-                      level: Level.PRIMARY,
-                      onClick: function onClick() {
-                          return _this6.sendMessage();
-                      } })
-              )];
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [this.renderMessageBox(), this.renderMessageView()];
-          }
-      }, {
-          key: "getDefaultPlugins",
-          value: function getDefaultPlugins() {
-              return CommentWidget.defaultPlugins || [];
-          }
-      }, {
-          key: "createVirtualMessage",
-          value: function createVirtualMessage(request, message) {
-              return null;
-          }
-      }, {
-          key: "commentWidgetStyle",
-          get: function get$$1() {
-              return CommentWidgetStyle.getInstance();
-          }
-      }]);
-      return BlogCommentWidget;
-  }(ChatWidget(ThreadMessage))) || _class$53);
-  var CommentWidget = (_dec2$10 = registerStyle(BlogStyle), _dec2$10(_class2$11 = function (_BlogCommentWidget) {
-      inherits(CommentWidget, _BlogCommentWidget);
-
-      function CommentWidget() {
-          classCallCheck(this, CommentWidget);
-          return possibleConstructorReturn(this, (CommentWidget.__proto__ || Object.getPrototypeOf(CommentWidget)).apply(this, arguments));
-      }
-
-      createClass(CommentWidget, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              get(CommentWidget.prototype.__proto__ || Object.getPrototypeOf(CommentWidget.prototype), "setOptions", this).call(this, options);
-
-              this.key = this.messageThread.id;
-
-              this.options.baseRequest = {
-                  chatId: this.options.chatId
-              };
-              this.options.dateTimestamps = false;
-          }
-      }, {
-          key: "getPostURL",
-          value: function getPostURL() {
-              return "/chat/group_chat_post/";
-          }
-      }, {
-          key: "renderMessageBox",
-          value: function renderMessageBox() {
-              if (USER.isAuthenticated) {
-                  return get(CommentWidget.prototype.__proto__ || Object.getPrototypeOf(CommentWidget.prototype), "renderMessageBox", this).call(this);
-              } else {
-                  return UI.createElement(
-                      "div",
-                      { style: {
-                              color: "#333",
-                              paddingTop: "5px",
-                              paddingBottom: "5px"
-                          } },
-                      "You need to\xA0",
-                      UI.createElement(
-                          ToggleLogin,
-                          { style: {
-                                  backgroundColor: "#eee",
-                                  cursor: "pointer",
-                                  padding: "5px 10px"
-                              } },
-                          "login"
-                      ),
-                      "\xA0to send a comment."
-                  );
-              }
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var commentsCount = this.messageThread.getMessages().length;
-              var commentsTitle = void 0;
-
-              commentsTitle = UI.createElement(
-                  "div",
-                  { className: this.styleSheet.commentsTitle },
-                  commentsCount,
-                  " ",
-                  commentsCount != 1 ? "comments" : "comment"
-              );
-
-              return [commentsTitle, get(CommentWidget.prototype.__proto__ || Object.getPrototypeOf(CommentWidget.prototype), "render", this).call(this)];
-          }
-      }]);
-      return CommentWidget;
-  }(BlogCommentWidget)) || _class2$11);
-
-  var AsyncCommentThread = function (_UI$Element) {
-      inherits(AsyncCommentThread, _UI$Element);
-
-      function AsyncCommentThread() {
-          classCallCheck(this, AsyncCommentThread);
-          return possibleConstructorReturn(this, (AsyncCommentThread.__proto__ || Object.getPrototypeOf(AsyncCommentThread)).apply(this, arguments));
-      }
-
-      createClass(AsyncCommentThread, [{
-          key: "getMessageThread",
-          value: function getMessageThread() {
-              var groupChat = GroupChatStore.get(this.options.chatId);
-              return groupChat && groupChat.getMessageThread();
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this9 = this;
-
-              var messageThread = this.getMessageThread();
-              var commentWidgetOptions = {
-                  marginBottom: "10px",
-                  paddingBottom: "10px",
-                  height: "auto",
-                  width: "100%",
-                  marginTop: "50px",
-                  marginLeft: "0px",
-                  marginRight: "0px",
-                  border: "0px",
-                  maxWidth: "900px"
-              };
-
-              if (messageThread) {
-                  return [UI.createElement(CommentWidget, { ref: "commentsSection", chatId: this.options.chatId, messageThread: messageThread,
-                      style: commentWidgetOptions })];
-              } else {
-                  GroupChatStore.fetch(this.options.chatId, function (groupChat) {
-                      _this9.redraw();
-                  });
-                  return [UI.createElement(
-                      "div",
-                      { style: {
-                              width: "100%",
-                              height: "60px",
-                              lineHeight: "60px",
-                              fontSize: "1em",
-                              textAlign: "center",
-                              textTransform: "uppercase",
-                              fontWeight: "bold"
-                          } },
-                      UI.createElement("span", { className: "fa fa-spinner fa-spin", style: {
-                              padding: "0 8px"
-                          } }),
-                      "Comments loading..."
-                  )];
-              }
-          }
-      }]);
-      return AsyncCommentThread;
-  }(UI.Element);
-
-  var _class$54, _descriptor$24, _descriptor2$20, _dec$27, _class3$16;
-
-  function _initDefineProp$25(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$25(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-
-  function getCircleStyle(size, borderSize, color, animationName, animationDuration) {
-      return {
-          position: "absolute",
-
-          height: size + "px",
-          width: size + "px",
-
-          border: borderSize + "px solid " + color,
-          borderRadius: size + "px",
-          borderRight: borderSize + "px transparent",
-          borderBottom: borderSize + "px transparent",
-
-          rotate: "0deg",
-          transform: "rotate(45deg)",
-
-          animationName: animationName,
-          animationDuration: animationDuration,
-          animationIterationCount: "infinite",
-          animationTimingFunction: "linear"
-      };
-  }
-
-  function createCircle(size, borderSize, color, animationName, animationDuration) {
-      return UI.createElement("div", { style: getCircleStyle(size, borderSize, color, animationName, animationDuration) });
-  }
-
-  var RotatingHelperStyle = (_class$54 = function (_StyleSheet) {
-      inherits(RotatingHelperStyle, _StyleSheet);
-
-      function RotatingHelperStyle() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, RotatingHelperStyle);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = RotatingHelperStyle.__proto__ || Object.getPrototypeOf(RotatingHelperStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$25(_this, "rotateClockwise", _descriptor$24, _this), _initDefineProp$25(_this, "rotateCounterclockwise", _descriptor2$20, _this), _temp), possibleConstructorReturn(_this, _ret);
-      }
-
-      return RotatingHelperStyle;
-  }(StyleSheet), (_descriptor$24 = _applyDecoratedDescriptor$25(_class$54.prototype, "rotateClockwise", [keyframesRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              "0%": {
-                  transform: "rotate(0deg)"
-              },
-              "100%": {
-                  transform: "rotate(360deg)"
-              }
-          };
-      }
-  }), _descriptor2$20 = _applyDecoratedDescriptor$25(_class$54.prototype, "rotateCounterclockwise", [keyframesRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              "0%": {
-                  transform: "rotate(0deg)"
-              },
-              "100%": {
-                  transform: "rotate(-360deg)"
-              }
-          };
-      }
-  })), _class$54);
-  var ConcentricCirclesLoadingScreen = (_dec$27 = registerStyle(RotatingHelperStyle), _dec$27(_class3$16 = function (_UI$Element) {
-      inherits(ConcentricCirclesLoadingScreen, _UI$Element);
-
-      function ConcentricCirclesLoadingScreen() {
-          classCallCheck(this, ConcentricCirclesLoadingScreen);
-          return possibleConstructorReturn(this, (ConcentricCirclesLoadingScreen.__proto__ || Object.getPrototypeOf(ConcentricCirclesLoadingScreen)).apply(this, arguments));
-      }
-
-      createClass(ConcentricCirclesLoadingScreen, [{
-          key: "render",
-          value: function render() {
-              var centerConstant = 100;
-              return UI.createElement(
-                  "div",
-                  { style: {
-                          height: "100%",
-                          width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          marginTop: "200px"
-                      } },
-                  createCircle(225 - centerConstant, 5, "#3a4859", this.styleSheet.rotateClockwise, "2.25s"),
-                  createCircle(200 - centerConstant, 4, "#666666", this.styleSheet.rotateCounterclockwise, "1.5s"),
-                  createCircle(175 - centerConstant, 3, "#aaaaaa", this.styleSheet.rotateClockwise, "1s"),
-                  createCircle(150 - centerConstant, 2, "#20232d", this.styleSheet.rotateCounterclockwise, "3s")
-              );
-          }
-      }]);
-      return ConcentricCirclesLoadingScreen;
-  }(UI.Element)) || _class3$16);
-
-  var DelayedElement = function DelayedElement(BaseClass) {
-      return function (_BaseClass) {
-          inherits(DelayedElement, _BaseClass);
-
-          function DelayedElement() {
-              classCallCheck(this, DelayedElement);
-              return possibleConstructorReturn(this, (DelayedElement.__proto__ || Object.getPrototypeOf(DelayedElement)).apply(this, arguments));
-          }
-
-          createClass(DelayedElement, [{
-              key: "applyNodeAttributesNotLoaded",
-              value: function applyNodeAttributesNotLoaded() {
-                  get(DelayedElement.prototype.__proto__ || Object.getPrototypeOf(DelayedElement.prototype), "applyNodeAttributes", this).call(this);
-              }
-          }, {
-              key: "applyNodeAttributesLoaded",
-              value: function applyNodeAttributesLoaded() {
-                  get(DelayedElement.prototype.__proto__ || Object.getPrototypeOf(DelayedElement.prototype), "applyNodeAttributes", this).call(this);
-              }
-          }, {
-              key: "applyNodeAttributes",
-              value: function applyNodeAttributes() {
-                  if (!this._loaded) {
-                      return this.applyNodeAttributesNotLoaded();
-                  } else {
-                      return this.applyNodeAttributesLoaded();
-                  }
-              }
-          }, {
-              key: "renderNotLoaded",
-              value: function renderNotLoaded() {
-                  return "Loading component...";
-              }
-          }, {
-              key: "renderLoaded",
-              value: function renderLoaded() {
-                  return get(DelayedElement.prototype.__proto__ || Object.getPrototypeOf(DelayedElement.prototype), "render", this).call(this);
-              }
-          }, {
-              key: "render",
-              value: function render() {
-                  if (!this._loaded) {
-                      return this.renderNotLoaded();
-                  } else {
-                      return this.renderLoaded();
-                  }
-              }
-          }, {
-              key: "setLoaded",
-              value: function setLoaded() {
-                  if (this._loaded) {
-                      return;
-                  }
-                  this._loaded = true;
-                  if (!this.node) {
-                      return;
-                  }
-                  get(DelayedElement.prototype.__proto__ || Object.getPrototypeOf(DelayedElement.prototype), "redraw", this).call(this);
-                  if (!this._executedMount) {
-                      this._executedMount = true;
-                      this.onDelayedMount();
-                  }
-              }
-          }, {
-              key: "beforeRedrawNotLoaded",
-              value: function beforeRedrawNotLoaded() {
-                  // Implement here anything you might need
-              }
-          }, {
-              key: "redrawNotLoaded",
-              value: function redrawNotLoaded() {
-                  this.beforeRedrawNotLoaded();
-                  // The previous code might have triggered a redraw, skip if that was the case
-                  if (!this._loaded) {
-                      get(DelayedElement.prototype.__proto__ || Object.getPrototypeOf(DelayedElement.prototype), "redraw", this).call(this);
-                  }
-              }
-          }, {
-              key: "redrawLoaded",
-              value: function redrawLoaded() {
-                  get(DelayedElement.prototype.__proto__ || Object.getPrototypeOf(DelayedElement.prototype), "redraw", this).call(this);
-              }
-          }, {
-              key: "redraw",
-              value: function redraw() {
-                  if (!this._loaded) {
-                      return this.redrawNotLoaded();
-                  }
-                  return this.redrawLoaded();
-              }
-          }, {
-              key: "onMount",
-              value: function onMount() {
-                  // Nothing to be done here
-              }
-          }, {
-              key: "onDelayedMount",
-              value: function onDelayedMount() {
-                  get(DelayedElement.prototype.__proto__ || Object.getPrototypeOf(DelayedElement.prototype), "onMount", this).call(this);
-              }
-          }]);
-          return DelayedElement;
-      }(BaseClass);
-  };
-
-  // You can configure the loading/error states by defining the "renderLoading" and "renderError" attributes of the
-  // function somewhere globally in your app.
-  // Example:
-  // StateDependentElement.renderLoading = "Loading...";
-  // or
-  // StateDependentElement.renderLoading = () => <MyCustomLoadingAnimation />
-  // StateDependentElement.renderError = (error) => <MyCustomErrorMessageClass error={error} />
-
-  var StateDependentElement = function StateDependentElement(BaseClass) {
-      return function (_DelayedElement) {
-          inherits(StateDependentElementClass, _DelayedElement);
-
-          function StateDependentElementClass() {
-              classCallCheck(this, StateDependentElementClass);
-              return possibleConstructorReturn(this, (StateDependentElementClass.__proto__ || Object.getPrototypeOf(StateDependentElementClass)).apply(this, arguments));
-          }
-
-          createClass(StateDependentElementClass, [{
-              key: "importState",
-              value: function importState(data) {
-                  GlobalState.importState(data.state || {});
-                  var _iteratorNormalCompletion = true;
-                  var _didIteratorError = false;
-                  var _iteratorError = undefined;
-
-                  try {
-                      for (var _iterator = Object.keys(data)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                          var key = _step.value;
-
-                          if (key !== "state") {
-                              this.options[key] = data[key];
-                          }
-                      }
-                  } catch (err) {
-                      _didIteratorError = true;
-                      _iteratorError = err;
-                  } finally {
-                      try {
-                          if (!_iteratorNormalCompletion && _iterator.return) {
-                              _iterator.return();
-                          }
-                      } finally {
-                          if (_didIteratorError) {
-                              throw _iteratorError;
-                          }
-                      }
-                  }
-              }
-          }, {
-              key: "getAjaxUrl",
-              value: function getAjaxUrl() {
-                  var url = location.pathname;
-                  if (!url.endsWith("/")) {
-                      url += "/";
-                  }
-                  return url;
-              }
-          }, {
-              key: "getAjaxRequest",
-              value: function getAjaxRequest() {
-                  return {};
-              }
-          }, {
-              key: "renderNotLoaded",
-              value: function renderNotLoaded() {
-                  var renderLoading = StateDependentElement.renderLoading;
-                  if (typeof renderLoading === "function") {
-                      renderLoading = renderLoading();
-                  }
-                  return renderLoading;
-              }
-          }, {
-              key: "setError",
-              value: function setError(error) {
-                  this.options.error = error;
-              }
-          }, {
-              key: "renderError",
-              value: function renderError() {
-                  var renderError = StateDependentElement.renderError;
-                  if (typeof renderError === "function") {
-                      renderError = renderError(this.options.error);
-                  }
-                  return renderError;
-              }
-          }, {
-              key: "renderLoaded",
-              value: function renderLoaded() {
-                  if (this.options.error) {
-                      return this.renderError();
-                  }
-                  return get(StateDependentElementClass.prototype.__proto__ || Object.getPrototypeOf(StateDependentElementClass.prototype), "renderLoaded", this).call(this);
-              }
-          }, {
-              key: "onDelayedMount",
-              value: function onDelayedMount() {
-                  if (!this.options.error) {
-                      get(StateDependentElementClass.prototype.__proto__ || Object.getPrototypeOf(StateDependentElementClass.prototype), "onDelayedMount", this).call(this);
-                  }
-              }
-          }, {
-              key: "beforeRedrawNotLoaded",
-              value: function beforeRedrawNotLoaded() {
-                  var _this2 = this;
-
-                  Ajax.getJSON(this.getAjaxUrl(), this.getAjaxRequest()).then(function (data) {
-                      _this2.importState(data);
-                      _this2.setLoaded();
-                  }, function (error) {
-                      _this2.setError(error);
-                      _this2.setLoaded();
-                  });
-              }
-          }]);
-          return StateDependentElementClass;
-      }(DelayedElement(BaseClass));
-  };
-
-  StateDependentElement.renderLoading = function () {
-      return UI.createElement(ConcentricCirclesLoadingScreen, null);
-  };
-
-  StateDependentElement.renderError = function (error, message) {
-      return UI.createElement(
-          "div",
-          { style: { maxWidth: "300px", margin: "0 auto", marginTop: "30px" } },
-          UI.createElement(
-              CardPanel,
-              { title: UI.T("Error in opening the URL"), level: Level.ERROR },
-              UI.createElement(
-                  "h3",
-                  null,
-                  message || error.message
-              )
-          )
-      );
-  };
-
-  var BlogEntryEditModal = function (_Modal) {
-      inherits(BlogEntryEditModal, _Modal);
-
-      function BlogEntryEditModal() {
-          classCallCheck(this, BlogEntryEditModal);
-          return possibleConstructorReturn(this, (BlogEntryEditModal.__proto__ || Object.getPrototypeOf(BlogEntryEditModal)).apply(this, arguments));
-      }
-
-      createClass(BlogEntryEditModal, [{
-          key: "getModalWindowStyle",
-          value: function getModalWindowStyle() {
-              return Object.assign({}, get(BlogEntryEditModal.prototype.__proto__ || Object.getPrototypeOf(BlogEntryEditModal.prototype), "getModalWindowStyle", this).call(this), {
-                  margin: "0 auto",
-                  maxHeight: "100%",
-                  overflow: "initial",
-                  display: "flex",
-                  flexDirection: "column",
-                  top: "1vh",
-                  height: "98vh"
-              });
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this2 = this;
-
-              var entry = BlogEntryStore.get(this.options.entryId);
-              var article = entry.getArticle();
-
-              var discussionButton = null;
-              if (!entry.discussionId) {
-                  discussionButton = UI.createElement(Button, { level: Level.WARNING, label: "Create discussion",
-                      onClick: function onClick() {
-                          return _this2.createDiscussion();
-                      }, style: { marginLeft: "5px" } });
-              }
-
-              return [UI.createElement(
-                  "h3",
-                  null,
-                  "Edit Entry"
-              ), UI.createElement(
-                  Form,
-                  null,
-                  UI.createElement(
-                      FormField,
-                      { label: "Title" },
-                      UI.createElement(TextInput, { ref: "titleInput", value: article.name })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { label: "URL Name" },
-                      UI.createElement(TextInput, { ref: "urlInput", value: entry.urlName })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { label: "Visible" },
-                      UI.createElement(CheckboxInput, { ref: "visibleCheckbox", value: entry.visible })
-                  ),
-                  UI.createElement(Button, { level: Level.PRIMARY, label: "Change settings", onClick: function onClick() {
-                          return _this2.changeSettings();
-                      } }),
-                  discussionButton,
-                  UI.createElement(TemporaryMessageArea, { ref: "messageArea" })
-              ), UI.createElement(ArticleEditor, { ref: "contentEditor", articleId: article.id, style: { flex: "1" } })];
-          }
-      }, {
-          key: "changeSettings",
-          value: function changeSettings() {
-              var _this3 = this;
-
-              var title = this.titleInput.getValue();
-              var urlName = this.urlInput.getValue();
-
-              var request = {
-                  entryId: this.options.entryId,
-                  isVisible: this.visibleCheckbox.getValue()
-              };
-
-              if (title) {
-                  request.title = title;
-              }
-
-              if (urlName) {
-                  request.urlName = urlName;
-              }
-
-              Ajax.postJSON("/blog/change_entry_settings/", request).then(function (data) {
-                  if (data.urlName) {
-                      Router.changeURL(["blog", data.urlName]);
-                  }
-                  _this3.hide();
-              });
-          }
-      }, {
-          key: "createDiscussion",
-          value: function createDiscussion() {
-              var _this4 = this;
-
-              var request = {
-                  entryId: this.options.entryId
-              };
-
-              Ajax.postJSON("/blog/create_entry_discussion/", request).then(function () {
-                  return _this4.hide();
-              });
-          }
-      }]);
-      return BlogEntryEditModal;
-  }(Modal);
-
-  var NewBlogEntryModal = function (_Modal2) {
-      inherits(NewBlogEntryModal, _Modal2);
-
-      function NewBlogEntryModal() {
-          classCallCheck(this, NewBlogEntryModal);
-          return possibleConstructorReturn(this, (NewBlogEntryModal.__proto__ || Object.getPrototypeOf(NewBlogEntryModal)).apply(this, arguments));
-      }
-
-      createClass(NewBlogEntryModal, [{
-          key: "render",
-          value: function render() {
-              var _this6 = this;
-
-              return [UI.createElement(
-                  "h1",
-                  null,
-                  "New Entry"
-              ), UI.createElement(
-                  FormGroup,
-                  null,
-                  UI.createElement(
-                      FormField,
-                      { label: "Title" },
-                      UI.createElement(TextInput, { ref: "titleInput" })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { label: "URL Name" },
-                      UI.createElement(TextInput, { ref: "urlInput" })
-                  ),
-                  UI.createElement(
-                      FormField,
-                      { label: "Visible" },
-                      UI.createElement(CheckboxInput, { ref: "visibleCheckbox" })
-                  ),
-                  UI.createElement(Button, { label: "Add Entry", level: Level.PRIMARY, onClick: function onClick() {
-                          _this6.addEntry();
-                      } }),
-                  UI.createElement(MarkupEditor, { ref: "postContentMarkup", style: { height: "450px" } })
-              )];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this7 = this;
-
-              get(NewBlogEntryModal.prototype.__proto__ || Object.getPrototypeOf(NewBlogEntryModal.prototype), "onMount", this).call(this);
-
-              this.titleInput.onKeyUp(function () {
-                  _this7.urlInput.setValue(slugify(_this7.titleInput.getValue()));
-              });
-          }
-      }, {
-          key: "addEntry",
-          value: function addEntry() {
-              var _this8 = this;
-
-              var data = {};
-
-              var title = this.titleInput.getValue();
-              if (title) {
-                  data.title = title;
-              }
-
-              var urlName = this.urlInput.getValue();
-              if (urlName) {
-                  data.urlName = urlName;
-              }
-
-              data.isVisible = this.visibleCheckbox.getValue();
-
-              var content = this.postContentMarkup.getValue();
-              if (content) {
-                  data.content = content;
-              }
-
-              Ajax.postJSON("/blog/add_entry/", data).then(function (data) {
-                  var blogEntry = BlogEntryStore.get(data.blogEntryId);
-                  Router.changeURL(["blog", blogEntry.urlName]);
-                  _this8.hide();
-              });
-          }
-      }]);
-      return NewBlogEntryModal;
-  }(Modal);
-
-  var BlogEntryPreview = function (_UI$Element) {
-      inherits(BlogEntryPreview, _UI$Element);
-
-      function BlogEntryPreview() {
-          classCallCheck(this, BlogEntryPreview);
-          return possibleConstructorReturn(this, (BlogEntryPreview.__proto__ || Object.getPrototypeOf(BlogEntryPreview)).apply(this, arguments));
-      }
-
-      createClass(BlogEntryPreview, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.setStyle({
-                  position: "relative",
-                  maxHeight: "420px",
-                  marginTop: "45px",
-                  marginBottom: "45px"
-              });
-          }
-      }, {
-          key: "canOverwrite",
-          value: function canOverwrite(obj) {
-              return get(BlogEntryPreview.prototype.__proto__ || Object.getPrototypeOf(BlogEntryPreview.prototype), "canOverwrite", this).call(this, obj) && this.options.entryId === obj.options.entryId;
-          }
-      }, {
-          key: "getBlogEntry",
-          value: function getBlogEntry() {
-              return BlogEntryStore.get(this.options.entryId);
-          }
-      }, {
-          key: "getBlogArticle",
-          value: function getBlogArticle() {
-              return this.getBlogEntry().getArticle();
-          }
-      }, {
-          key: "getEntryURL",
-          value: function getEntryURL() {
-              return "/blog/" + this.getBlogEntry().urlName + "/";
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var blogStyle = this.getStyleSheet();
-              var article = this.getBlogArticle();
-
-              // TODO: not actually the published date
-              var publishedDate = article.dateCreated;
-              var publishedFormat = StemDate.unix(publishedDate).format("LL");
-              var modifiedFormat = void 0;
-
-              var articleInfoStyle = {
-                  color: "#777",
-                  fontSize: "1em",
-                  margin: "0",
-                  fontStyle: "italic"
-              };
-
-              if (article.dateModified > article.dateCreated) {
-                  modifiedFormat = UI.createElement(
-                      "p",
-                      { style: articleInfoStyle },
-                      UI.T("Last update on"),
-                      " ",
-                      StemDate.unix(article.dateModified).format("LL"),
-                      "."
-                  );
-              }
-
-              return [UI.createElement(
-                  "div",
-                  { style: { height: "100%" } },
-                  UI.createElement(
-                      "div",
-                      { style: {
-                              boxShadow: "0px 0px 10px rgb(160, 162, 168)",
-                              "background-color": "#fff",
-                              "padding": "1% 4% 10px 4%",
-                              "margin": "0 auto",
-                              "width": "900px",
-                              "max-width": "100%",
-                              position: "relative"
-                          } },
-                      UI.createElement(
-                          "div",
-                          { style: blogStyle.writtenBy },
-                          UI.T("Written by"),
-                          " ",
-                          UI.createElement(UserHandle, {
-                              userId: article.userCreatedId }),
-                          ", ",
-                          publishedFormat,
-                          ".",
-                          modifiedFormat
-                      ),
-                      UI.createElement(
-                          "div",
-                          { style: blogStyle.title },
-                          UI.createElement(Link, { href: this.getEntryURL(), value: article.name,
-                              style: { "text-decoration": "none", "color": "inherit" } })
-                      ),
-                      UI.createElement(BlogArticleRenderer, { article: article, style: blogStyle.blogArticleRenderer }),
-                      UI.createElement("div", { className: blogStyle.whiteOverlay }),
-                      UI.createElement(Link, { href: this.getEntryURL(), style: blogStyle.link, value: UI.T("Continue reading") })
-                  )
-              )];
-          }
-      }]);
-      return BlogEntryPreview;
-  }(UI.Element);
-
-  var BlogEntryView = function (_UI$Element2) {
-      inherits(BlogEntryView, _UI$Element2);
-
-      function BlogEntryView() {
-          classCallCheck(this, BlogEntryView);
-          return possibleConstructorReturn(this, (BlogEntryView.__proto__ || Object.getPrototypeOf(BlogEntryView)).apply(this, arguments));
-      }
-
-      createClass(BlogEntryView, [{
-          key: "getBlogEntry",
-          value: function getBlogEntry() {
-              return BlogEntryStore.get(this.options.entryId);
-          }
-      }, {
-          key: "getBlogArticle",
-          value: function getBlogArticle() {
-              return this.getBlogEntry().getArticle();
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.getStyleSheet().blogEntryView);
-          }
-      }, {
-          key: "getComments",
-          value: function getComments() {
-              var chatId = this.getBlogEntry().discussionId;
-              if (!chatId) {
-                  return null;
-              }
-              return UI.createElement(
-                  "div",
-                  { style: { marginBottom: "20px", marginTop: "20px" } },
-                  UI.createElement(AsyncCommentThread, { chatId: chatId })
-              );
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this11 = this;
-
-              var article = this.getBlogArticle();
-              var blogStyle = this.getStyleSheet();
-
-              // TODO: not actually the published date
-              var publishedDate = article.dateCreated;
-              var publishedFormat = StemDate.unix(publishedDate).format("LL");
-              var modifiedFormat = void 0;
-
-              var articleInfoStyle = {
-                  margin: "3px",
-                  color: "#777",
-                  fontSize: "1em",
-                  fontStyle: "italic"
-              };
-
-              if (article.dateModified > article.dateCreated) {
-                  modifiedFormat = UI.createElement(
-                      "p",
-                      { style: articleInfoStyle },
-                      "Last update on ",
-                      StemDate.unix(article.dateModified).format("LL"),
-                      "."
-                  );
-              }
-
-              var blogEntryEditButton = void 0;
-              // TODO: should use proper rights
-              if (USER.isSuperUser) {
-                  blogEntryEditButton = UI.createElement(Button, { level: Level.DEFAULT, label: "Edit", onClick: function onClick() {
-                          BlogEntryEditModal.show({ entryId: _this11.getBlogEntry().id, fillScreen: true });
-                      } });
-              }
-
-              return [UI.createElement(
-                  "div",
-                  { style: {
-                          "background-color": "#fff",
-                          "padding": "2% 5%",
-                          "box-shadow": "rgb(160, 160, 160) 0px 3px 15px"
-                      } },
-                  blogEntryEditButton,
-                  UI.createElement(
-                      "div",
-                      { style: blogStyle.writtenBy },
-                      "Written by ",
-                      UI.createElement(UserHandle, { userId: article.userCreatedId }),
-                      " on ",
-                      publishedFormat,
-                      ".",
-                      modifiedFormat
-                  ),
-                  UI.createElement(
-                      "div",
-                      { style: blogStyle.title },
-                      article.name
-                  ),
-                  UI.createElement(BlogArticleRenderer, { style: blogStyle.article, article: article }),
-                  UI.createElement(
-                      "div",
-                      { style: {
-                              "margin-top": "30px",
-                              "margin-bottom": "10px"
-                          } },
-                      UI.createElement(Link, { href: "/blog/", style: blogStyle.link, value: "Back to the Main Blog" })
-                  ),
-                  this.getComments()
-              ), UI.createElement("div", { className: blogStyle.bottomSection })];
-          }
-      }, {
-          key: "pageTitle",
-          get: function get$$1() {
-              return this.getBlogArticle().name;
-          }
-      }]);
-      return BlogEntryView;
-  }(UI.Element);
-
-  var BlogEntryList = function (_UI$Element3) {
-      inherits(BlogEntryList, _UI$Element3);
-
-      function BlogEntryList() {
-          classCallCheck(this, BlogEntryList);
-          return possibleConstructorReturn(this, (BlogEntryList.__proto__ || Object.getPrototypeOf(BlogEntryList)).apply(this, arguments));
-      }
-
-      createClass(BlogEntryList, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.setStyle("paddingTop", "10px");
-          }
-      }, {
-          key: "showNewBlogPostModal",
-          value: function showNewBlogPostModal() {
-              var modal = UI.createElement(NewBlogEntryModal, { fillScreen: true });
-              modal.show();
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this13 = this;
-
-              var blogStyle = this.getStyleSheet();
-
-              var entries = [];
-
-              var blogEntries = BlogEntryStore.all().sort(function (a, b) {
-                  return b.getArticle().dateCreated - a.getArticle().dateCreated;
-              });
-
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = blogEntries[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var entry = _step.value;
-
-                      entries.push(UI.createElement(BlogEntryPreview, { key: entry.id, entryId: entry.id }));
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              return [USER.isSuperUser ? UI.createElement(Button, { label: "New Entry",
-                  level: Level.DEFAULT,
-                  onClick: function onClick() {
-                      return _this13.showNewBlogPostModal();
-                  }
-              }) : null, UI.createElement(
-                  "div",
-                  { ref: "entriesList" },
-                  entries
-              ), UI.createElement(Button, { label: this.options.finishedLoading ? UI.T("End of blog") : UI.T("Load More"),
-                  ref: "loadMoreButton",
-                  style: { margin: "0px auto", display: "block" },
-                  className: blogStyle.loadMoreButton,
-                  disabled: this.options.finishedLoading }), UI.createElement("div", { style: {
-                      height: "45px",
-                      width: "100%"
-                  } })];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this14 = this;
-
-              get(BlogEntryList.prototype.__proto__ || Object.getPrototypeOf(BlogEntryList.prototype), "onMount", this).call(this);
-
-              this.loadMoreButton.addClickListener(function () {
-                  if (!_this14.options.finishedLoading) {
-                      Ajax.getJSON("/blog/", {
-                          lastDate: Math.min.apply(null, BlogEntryStore.all().map(function (x) {
-                              return x.getArticle().dateCreated;
-                          }))
-                      }).then(function (data) {
-                          _this14.options.finishedLoading = data.finishedLoading;
-                          if (_this14.options.finishedLoading) {
-                              _this14.loadMoreButton.options.label = UI.T("No more posts");
-                              _this14.loadMoreButton.redraw();
-                              _this14.loadMoreButton.disable();
-                          }
-                          _this14.redraw();
-                      });
-                  }
-              });
-
-              this.attachCreateListener(BlogEntryStore, function () {
-                  _this14.redraw();
-              });
-          }
-      }]);
-      return BlogEntryList;
-  }(UI.Element);
-
-  Theme.register(BlogEntryView, BlogStyle);
-  Theme.register(BlogEntryPreview, BlogStyle);
-  Theme.register(BlogEntryList, BlogStyle);
-
-  var DelayedBlogEntryList = function (_StateDependentElemen) {
-      inherits(DelayedBlogEntryList, _StateDependentElemen);
-
-      function DelayedBlogEntryList() {
-          classCallCheck(this, DelayedBlogEntryList);
-          return possibleConstructorReturn(this, (DelayedBlogEntryList.__proto__ || Object.getPrototypeOf(DelayedBlogEntryList)).apply(this, arguments));
-      }
-
-      return DelayedBlogEntryList;
-  }(StateDependentElement(BlogEntryList));
-
-  var DelayedBlogEntryView = function (_StateDependentElemen2) {
-      inherits(DelayedBlogEntryView, _StateDependentElemen2);
-
-      function DelayedBlogEntryView() {
-          classCallCheck(this, DelayedBlogEntryView);
-          return possibleConstructorReturn(this, (DelayedBlogEntryView.__proto__ || Object.getPrototypeOf(DelayedBlogEntryView)).apply(this, arguments));
-      }
-
-      createClass(DelayedBlogEntryView, [{
-          key: "getBlogEntry",
-          value: function getBlogEntry() {
-              return BlogEntryStore.getEntryForURL(this.options.entryURL);
-          }
-      }, {
-          key: "onDelayedMount",
-          value: function onDelayedMount() {
-              get(DelayedBlogEntryView.prototype.__proto__ || Object.getPrototypeOf(DelayedBlogEntryView.prototype), "onDelayedMount", this).call(this);
-              Router.updateURL();
-          }
-      }, {
-          key: "getAjaxUrl",
-          value: function getAjaxUrl() {
-              return "/blog/get_blog_post/";
-          }
-      }, {
-          key: "getAjaxRequest",
-          value: function getAjaxRequest() {
-              return {
-                  entryUrlName: this.options.entryURL
-              };
-          }
-      }, {
-          key: "pageTitle",
-          get: function get$$1() {
-              if (this.getBlogEntry()) {
-                  return get(DelayedBlogEntryView.prototype.__proto__ || Object.getPrototypeOf(DelayedBlogEntryView.prototype), "pageTitle", this);
-              } else {
-                  return null;
-              }
-          },
-          set: function set$$1(value) {}
-      }]);
-      return DelayedBlogEntryView;
-  }(StateDependentElement(BlogEntryView));
-
-  var BlogRoute = function (_Route) {
-      inherits(BlogRoute, _Route);
-      createClass(BlogRoute, [{
-          key: "getSubroutes",
-          value: function getSubroutes() {
-              return [new Route("%s", function (options) {
-                  var entryURL = options.args[options.args.length - 1];
-
-                  var blogEntry = BlogEntryStore.getEntryForURL(entryURL);
-
-                  if (blogEntry) {
-                      return UI.createElement(BlogEntryView, { entryId: blogEntry.id });
-                  } else {
-                      return UI.createElement(DelayedBlogEntryView, { entryURL: entryURL });
-                  }
-              })];
-          }
-      }]);
-
-      function BlogRoute() {
-          var expr = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "blog";
-          var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-          classCallCheck(this, BlogRoute);
-
-          options.title = options.title || "Blog";
-
-          var _this17 = possibleConstructorReturn(this, (BlogRoute.__proto__ || Object.getPrototypeOf(BlogRoute)).call(this, expr, DelayedBlogEntryList, [], options));
-
-          _this17.subroutes = _this17.getSubroutes();
-          return _this17;
-      }
-
-      return BlogRoute;
-  }(Route);
-
-  var Forum = function (_StoreObject) {
-      inherits(Forum, _StoreObject);
-
-      function Forum() {
-          classCallCheck(this, Forum);
-
-          var _this = possibleConstructorReturn(this, (Forum.__proto__ || Object.getPrototypeOf(Forum)).apply(this, arguments));
-
-          _this.forumThreads = new Map();
-          // TODO: not appropriate to register to streams here
-          _this.registerToStream();
-          ForumThreadStore.addDeleteListener(function (forumThread) {
-              if (forumThread.parentId === _this.id && _this.forumThreads.has(forumThread.id)) {
-                  _this.deleteForumThread(forumThread);
-              }
-          });
-          return _this;
-      }
-
-      createClass(Forum, [{
-          key: "getStreamName",
-          value: function getStreamName() {
-              return "forum-" + this.id;
-          }
-      }, {
-          key: "getForumThreads",
-          value: function getForumThreads() {
-              var forumThreads = Array.from(this.forumThreads.values());
-              // Filter out hidden forum threads
-              forumThreads = forumThreads.filter(function (forumThread) {
-                  return forumThread.isVisible();
-              });
-              forumThreads.sort(function (a, b) {
-                  return b.id - a.id;
-              });
-              return forumThreads;
-          }
-      }, {
-          key: "addForumThread",
-          value: function addForumThread(forumThread, event) {
-              this.forumThreads.set(forumThread.id, forumThread);
-              this.dispatch("newForumThread", event);
-          }
-      }, {
-          key: "deleteForumThread",
-          value: function deleteForumThread(forumThread) {
-              this.forumThreads.delete(forumThread.id);
-              this.dispatch("deleteForumThread", forumThread);
-          }
-      }]);
-      return Forum;
-  }(StoreObject);
-
-  var ForumStore = new GenericObjectStore("forum", Forum);
-
-  var ForumThread = function (_StoreObject2) {
-      inherits(ForumThread, _StoreObject2);
-
-      function ForumThread(obj) {
-          classCallCheck(this, ForumThread);
-
-          var _this2 = possibleConstructorReturn(this, (ForumThread.__proto__ || Object.getPrototypeOf(ForumThread)).call(this, obj));
-
-          var parent = _this2.getParent();
-          parent && parent.addForumThread(_this2);
-          return _this2;
-      }
-
-      createClass(ForumThread, [{
-          key: "getAuthor",
-          value: function getAuthor() {
-              return PublicUserStore.get(this.authorId);
-          }
-      }, {
-          key: "isPinned",
-          value: function isPinned() {
-              return this.pinnedIndex != null;
-          }
-      }, {
-          key: "getPinIndex",
-          value: function getPinIndex() {
-              return this.pinnedIndex;
-          }
-      }, {
-          key: "getTitle",
-          value: function getTitle() {
-              return this.title;
-          }
-      }, {
-          key: "getContentMessage",
-          value: function getContentMessage() {
-              return MessageInstanceStore.get(this.contentMessageId);
-          }
-      }, {
-          key: "getVotesBalance",
-          value: function getVotesBalance() {
-              var message = this.getContentMessage();
-              if (message) {
-                  return message.getVotesBalance();
-              }
-              return this.votesBalance;
-          }
-      }, {
-          key: "getParent",
-          value: function getParent() {
-              return ForumStore.get(this.parentId);
-          }
-      }, {
-          key: "getMessageThread",
-          value: function getMessageThread() {
-              return MessageThreadStore.get(this.messageThreadId);
-          }
-      }, {
-          key: "getTimeAdded",
-          value: function getTimeAdded() {
-              // TODO: maybe return formatted time
-              return this.timeAdded;
-          }
-      }, {
-          key: "getLastActive",
-          value: function getLastActive() {
-              return this.lastActive;
-          }
-      }, {
-          key: "getNumReplies",
-          value: function getNumReplies() {
-              return this.getNumMessages() - 1;
-          }
-      }, {
-          key: "deleteThread",
-          value: function deleteThread() {
-              var onSuccess = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : NOOP_FUNCTION;
-              var onError = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : NOOP_FUNCTION;
-
-              Ajax.postJSON("/forum/edit_forum_thread/", {
-                  forumThreadId: this.id,
-                  hidden: true
-              }).then(onSuccess, onError);
-          }
-      }, {
-          key: "getNumMessages",
-          value: function getNumMessages() {
-              return this.numMessages;
-          }
-      }, {
-          key: "isVisible",
-          value: function isVisible() {
-              return !this.hidden;
-          }
-      }, {
-          key: "isLoaded",
-          value: function isLoaded() {
-              // TODO: this needs to be fixed to support dynamic loading
-              // console.warn(this.getNumReplies(), this.getMessageThread().getNumMessages());
-              return this.getMessageThread() != null && this.getNumReplies() === this.getMessageThread().getNumMessages() - 1;
-          }
-      }]);
-      return ForumThread;
-  }(StoreObject);
-
-  var ForumThreadStore = new GenericObjectStore("forumthread", ForumThread, {
-      dependencies: ["forum", "messageinstance"]
-  });
-
-  var EditThreadReplyButton = function (_Button) {
-      inherits(EditThreadReplyButton, _Button);
-
-      function EditThreadReplyButton() {
-          classCallCheck(this, EditThreadReplyButton);
-          return possibleConstructorReturn(this, (EditThreadReplyButton.__proto__ || Object.getPrototypeOf(EditThreadReplyButton)).apply(this, arguments));
-      }
-
-      createClass(EditThreadReplyButton, [{
-          key: "setOptions",
-          value: function setOptions(options) {
-              if (!options.faIcon) {
-                  options.label = options.label || UI.T("Preview");
-              }
-              options.level = options.level || Level.PRIMARY;
-              get(EditThreadReplyButton.prototype.__proto__ || Object.getPrototypeOf(EditThreadReplyButton.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this2 = this;
-
-              get(EditThreadReplyButton.prototype.__proto__ || Object.getPrototypeOf(EditThreadReplyButton.prototype), "onMount", this).call(this);
-              this.addClickListener(function () {
-                  if (!USER.isAuthenticated) {
-                      LoginModal.show();
-                      return;
-                  }
-                  EditThreadReplyModal.show({
-                      messageInstance: _this2.options.messageInstance,
-                      classMap: ChatMarkupRenderer.classMap
-                  });
-              });
-          }
-      }]);
-      return EditThreadReplyButton;
-  }(Button);
-
-  var EditThreadReplyModal = function (_MarkupEditorModal) {
-      inherits(EditThreadReplyModal, _MarkupEditorModal);
-
-      function EditThreadReplyModal() {
-          classCallCheck(this, EditThreadReplyModal);
-          return possibleConstructorReturn(this, (EditThreadReplyModal.__proto__ || Object.getPrototypeOf(EditThreadReplyModal)).apply(this, arguments));
-      }
-
-      createClass(EditThreadReplyModal, [{
-          key: "onMount",
-          value: function onMount() {
-              var _this4 = this;
-
-              get(EditThreadReplyModal.prototype.__proto__ || Object.getPrototypeOf(EditThreadReplyModal.prototype), "onMount", this).call(this);
-              this.markupEditor.setValue(this.options.messageInstance.getContent());
-              // this.markupEditor.codeEditor.getAce().focus();
-              this.doneButton.addClickListener(function () {
-                  _this4.options.messageInstance.edit(_this4.markupEditor.getValue());
-              });
-          }
-      }]);
-      return EditThreadReplyModal;
-  }(MarkupEditorModal);
-
-  var DeleteThreadReplyModal = function (_ActionModal) {
-      inherits(DeleteThreadReplyModal, _ActionModal);
-
-      function DeleteThreadReplyModal() {
-          classCallCheck(this, DeleteThreadReplyModal);
-          return possibleConstructorReturn(this, (DeleteThreadReplyModal.__proto__ || Object.getPrototypeOf(DeleteThreadReplyModal)).apply(this, arguments));
-      }
-
-      createClass(DeleteThreadReplyModal, [{
-          key: "getTitle",
-          value: function getTitle() {
-              return UI.T("Delete message");
-          }
-      }, {
-          key: "getActionName",
-          value: function getActionName() {
-              return UI.T("Delete");
-          }
-      }, {
-          key: "getBody",
-          value: function getBody() {
-              return UI.createElement(
-                  "p",
-                  null,
-                  UI.T("Are you sure you want to delete the message?")
-              );
-          }
-      }, {
-          key: "action",
-          value: function action() {
-              this.options.messageInstance.deleteMessage();
-              this.hide();
-          }
-      }]);
-      return DeleteThreadReplyModal;
-  }(ActionModal);
-
-  var DeleteThreadReplyButton = ActionModalButton(DeleteThreadReplyModal);
-
-  var _class$55, _descriptor$25, _descriptor2$21, _descriptor3$19, _descriptor4$17, _descriptor5$15, _class3$17, _descriptor6$12, _descriptor7$10, _descriptor8$8, _descriptor9$7, _descriptor10$6, _descriptor11$6, _descriptor12$5, _descriptor13$5, _descriptor14$5, _descriptor15$5, _descriptor16$5, _descriptor17$5, _descriptor18$3, _descriptor19$3, _descriptor20$3, _descriptor21$2, _descriptor22$1, _descriptor23$1, _descriptor24, _class5$5, _descriptor25, _class7$5, _descriptor26, _descriptor27, _descriptor28, _descriptor29, _descriptor30, _descriptor31, _descriptor32, _class9$1, _descriptor33, _class11, _descriptor34, _descriptor35, _descriptor36, _descriptor37, _descriptor38, _descriptor39, _descriptor40, _descriptor41, _descriptor42, _descriptor43, _descriptor44, _descriptor45, _descriptor46, _descriptor47, _class13, _descriptor48, _descriptor49, _descriptor50, _descriptor51, _descriptor52;
-
-  function _initDefineProp$26(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$26(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-  //import {CSAStyle} from "CSAStyle";
-
-  var colors = {
-      // BLUE: "#20232d",
-      BLUE: "#202e3e",
-      HOVER_BLUE: "#364251",
-      // BLACK: "#181a22",
-      BLACK: "#1c2937",
-      // HOVER_BLACK: "#323539",
-      HOVER_BLACK: "#364251",
-      WHITE: "#eee"
-  };
-
-  var ForumThreadReplyStyle = (_class$55 = function (_StyleSheet) {
-      inherits(ForumThreadReplyStyle, _StyleSheet);
-
-      function ForumThreadReplyStyle() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, ForumThreadReplyStyle);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ForumThreadReplyStyle.__proto__ || Object.getPrototypeOf(ForumThreadReplyStyle)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$26(_this, "mainClass", _descriptor$25, _this), _initDefineProp$26(_this, "repliesUserAndDate", _descriptor2$21, _this), _initDefineProp$26(_this, "repliesUser", _descriptor3$19, _this), _initDefineProp$26(_this, "repliesDate", _descriptor4$17, _this), _initDefineProp$26(_this, "repliesContent", _descriptor5$15, _this), _temp), possibleConstructorReturn(_this, _ret);
-      }
-
-      return ForumThreadReplyStyle;
-  }(StyleSheet), (_descriptor$25 = _applyDecoratedDescriptor$26(_class$55.prototype, "mainClass", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "90%",
-              margin: "0 auto",
-              maxWidth: "1200px"
-          };
-      }
-  }), _descriptor2$21 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesUserAndDate", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "40px",
-              width: "100%",
-              lineHeight: "40px",
-              fontSize: "15px",
-              marginTop: "8px",
-              marginBottom: "8px"
-          };
-      }
-  }), _descriptor3$19 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesUser", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "left",
-              color: "#444",
-              fontSize: "14px"
-          };
-      }
-  }), _descriptor4$17 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesDate", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "right"
-          };
-      }
-  }), _descriptor5$15 = _applyDecoratedDescriptor$26(_class$55.prototype, "repliesContent", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              marginBottom: "15px",
-              fontSize: "16px"
-          };
-      }
-  })), _class$55);
-
-  var ForumThreadPanelStyle = (_class3$17 = function (_StyleSheet2) {
-      inherits(ForumThreadPanelStyle, _StyleSheet2);
-
-      function ForumThreadPanelStyle() {
-          var _ref2;
-
-          var _temp2, _this2, _ret2;
-
-          classCallCheck(this, ForumThreadPanelStyle);
-
-          for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-              args[_key2] = arguments[_key2];
-          }
-
-          return _ret2 = (_temp2 = (_this2 = possibleConstructorReturn(this, (_ref2 = ForumThreadPanelStyle.__proto__ || Object.getPrototypeOf(ForumThreadPanelStyle)).call.apply(_ref2, [this].concat(args))), _this2), _this2.fontSize = "0.9em", _this2.numRepliesFontSize = "1.03em", _this2.messageFontSize = "1.2em", _this2.buttonFontSize = "1em", _initDefineProp$26(_this2, "mainClass", _descriptor6$12, _this2), _initDefineProp$26(_this2, "title", _descriptor7$10, _this2), _initDefineProp$26(_this2, "backButton", _descriptor8$8, _this2), _initDefineProp$26(_this2, "replyButtonDiv", _descriptor9$7, _this2), _initDefineProp$26(_this2, "replyButton", _descriptor10$6, _this2), _initDefineProp$26(_this2, "fullPost", _descriptor11$6, _this2), _initDefineProp$26(_this2, "dislikeButton", _descriptor12$5, _this2), _initDefineProp$26(_this2, "likeButton", _descriptor13$5, _this2), _initDefineProp$26(_this2, "author", _descriptor14$5, _this2), _initDefineProp$26(_this2, "header", _descriptor15$5, _this2), _initDefineProp$26(_this2, "message", _descriptor16$5, _this2), _initDefineProp$26(_this2, "buttons", _descriptor17$5, _this2), _initDefineProp$26(_this2, "bottomPanel", _descriptor18$3, _this2), _initDefineProp$26(_this2, "voting", _descriptor19$3, _this2), _initDefineProp$26(_this2, "numReplies", _descriptor20$3, _this2), _initDefineProp$26(_this2, "replies", _descriptor21$2, _this2), _initDefineProp$26(_this2, "editDeleteButtons", _descriptor22$1, _this2), _initDefineProp$26(_this2, "editButton", _descriptor23$1, _this2), _initDefineProp$26(_this2, "deleteButton", _descriptor24, _this2), _temp2), possibleConstructorReturn(_this2, _ret2);
-      }
-
-      return ForumThreadPanelStyle;
-  }(StyleSheet), (_descriptor6$12 = _applyDecoratedDescriptor$26(_class3$17.prototype, "mainClass", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              margin: "0 auto",
-              marginBottom: "20px",
-              width: "100%"
-          };
-      }
-  }), _descriptor7$10 = _applyDecoratedDescriptor$26(_class3$17.prototype, "title", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "90%",
-              maxWidth: "1200px",
-              margin: "0 auto",
-              fontSize: "2em",
-              color: "#333",
-              minHeight: "50px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center"
-          };
-      }
-  }), _descriptor8$8 = _applyDecoratedDescriptor$26(_class3$17.prototype, "backButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              color: "#444",
-              fontSize: this.fontsize,
-              textDecoration: "none",
-              transition: ".15s",
-              opacity: "1",
-              ":hover": {
-                  opacity: "1",
-                  color: "#337ab7",
-                  transition: ".15s"
-              }
-          };
-      }
-  }), _descriptor9$7 = _applyDecoratedDescriptor$26(_class3$17.prototype, "replyButtonDiv", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "90%",
-              maxWidth: "1200px",
-              height: "50px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              margin: "0 auto"
-          };
-      }
-  }), _descriptor10$6 = _applyDecoratedDescriptor$26(_class3$17.prototype, "replyButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              margin: "0"
-          };
-      }
-  }), _descriptor11$6 = _applyDecoratedDescriptor$26(_class3$17.prototype, "fullPost", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "90%",
-              maxWidth: "1200px",
-              margin: "0 auto",
-              fontSize: this.fontSize,
-              border: "1px solid #ddd",
-              borderTop: "0"
-          };
-      }
-  }), _descriptor12$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "dislikeButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "right",
-              marginRight: "16px"
-          };
-      }
-  }), _descriptor13$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "likeButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              float: "right",
-              marginRight: "8px"
-          };
-      }
-  }), _descriptor14$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "author", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              color: "#262626",
-              fontSize: this.fontSize,
-              height: "50px",
-              display: "flex",
-              alignItems: "center",
-              paddingLeft: "0",
-              // justifyContent: "center",
-              textTransform: "uppercase"
-              // fontWeight: "bold",
-          };
-      }
-  }), _descriptor15$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "header", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {};
-      }
-  }), _descriptor16$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "message", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              padding: "5px 12px",
-              fontSize: this.messageFontSize,
-              color: colors.BLUE,
-              " p": {
-                  marginBottom: "0",
-                  padding: "5px 0"
-              }
-          };
-      }
-  }), _descriptor17$5 = _applyDecoratedDescriptor$26(_class3$17.prototype, "buttons", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "50px",
-              width: "100%",
-              paddingTop: "12px"
-          };
-      }
-  }), _descriptor18$3 = _applyDecoratedDescriptor$26(_class3$17.prototype, "bottomPanel", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "50px",
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between"
-          };
-      }
-  }), _descriptor19$3 = _applyDecoratedDescriptor$26(_class3$17.prototype, "voting", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              paddingRight: "12px"
-          };
-      }
-  }), _descriptor20$3 = _applyDecoratedDescriptor$26(_class3$17.prototype, "numReplies", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "50px",
-              fontSize: this.numRepliesFontSize,
-              paddingLeft: "12px",
-              color: "#767676",
-              display: "flex",
-              alignItems: "center",
-              fontWeight: "bold",
-              textTransform: "uppercase"
-          };
-      }
-  }), _descriptor21$2 = _applyDecoratedDescriptor$26(_class3$17.prototype, "replies", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "100%",
-              color: "#444"
-          };
-      }
-  }), _descriptor22$1 = _applyDecoratedDescriptor$26(_class3$17.prototype, "editDeleteButtons", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "100%",
-              height: "50px",
-              padding: "0 7px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-start"
-          };
-      }
-  }), _descriptor23$1 = _applyDecoratedDescriptor$26(_class3$17.prototype, "editButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "35px",
-              width: "35px",
-              margin: "0 4px",
-              border: "0",
-              borderRadius: "0",
-              color: "#fff",
-              backgroundColor: "#333",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: this.buttonFontSize,
-              transition: ".2s",
-              ":hover": {
-                  backgroundColor: "#454545",
-                  transition: ".2s"
-              }
-          };
-      }
-  }), _descriptor24 = _applyDecoratedDescriptor$26(_class3$17.prototype, "deleteButton", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: "35px",
-              width: "35px",
-              margin: "0 4px",
-              border: "0",
-              borderRadius: "0",
-              color: "#fff",
-              backgroundColor: "#333",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: this.buttonFontSize,
-              transition: ".2s",
-              ":hover": {
-                  backgroundColor: "#454545",
-                  transition: ".2s"
-              }
-          };
-      }
-  })), _class3$17);
-  var ButtonStyle$1 = (_class5$5 = function (_StyleSheet3) {
-      inherits(ButtonStyle$$1, _StyleSheet3);
-
-      function ButtonStyle$$1() {
-          var _ref3;
-
-          var _temp3, _this3, _ret3;
-
-          classCallCheck(this, ButtonStyle$$1);
-
-          for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
-              args[_key3] = arguments[_key3];
-          }
-
-          return _ret3 = (_temp3 = (_this3 = possibleConstructorReturn(this, (_ref3 = ButtonStyle$$1.__proto__ || Object.getPrototypeOf(ButtonStyle$$1)).call.apply(_ref3, [this].concat(args))), _this3), _initDefineProp$26(_this3, "button", _descriptor25, _this3), _temp3), possibleConstructorReturn(_this3, _ret3);
-      }
-
-      return ButtonStyle$$1;
-  }(StyleSheet), (_descriptor25 = _applyDecoratedDescriptor$26(_class5$5.prototype, "button", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _ref4;
-
-          return _ref4 = {
-              marginLeft: "16px",
-              color: "#fff",
-              height: "30px",
-              marginTop: "10px",
-              marginBottom: "20px",
-              width: "auto",
-              borderRadius: "0px",
-              backgroundColor: colors.BLUE,
-              border: "0",
-              padding: "5px 10px"
-          }, defineProperty(_ref4, "marginBottom", "0"), defineProperty(_ref4, "borderColor", colors.BLUE), defineProperty(_ref4, "fontSize", "13px"), defineProperty(_ref4, "transition", ".2s"), defineProperty(_ref4, "outline", "none"), defineProperty(_ref4, ":hover", {
-              backgroundColor: colors.HOVER_BLUE,
-              borderColor: colors.HOVER_BLUE,
-              transition: ".2s"
-          }), defineProperty(_ref4, ":active", {
-              backgroundColor: colors.HOVER_BLUE,
-              borderColor: colors.HOVER_BLUE,
-              transition: ".2s"
-          }), defineProperty(_ref4, ":focus", {
-              backgroundColor: colors.HOVER_BLUE,
-              borderColor: colors.HOVER_BLUE,
-              transition: ".2s"
-          }), _ref4;
-      }
-  })), _class5$5);
-  var ForumThreadHeaderStyle = (_class7$5 = function (_StyleSheet4) {
-      inherits(ForumThreadHeaderStyle, _StyleSheet4);
-
-      function ForumThreadHeaderStyle() {
-          classCallCheck(this, ForumThreadHeaderStyle);
-
-          var _this4 = possibleConstructorReturn(this, (ForumThreadHeaderStyle.__proto__ || Object.getPrototypeOf(ForumThreadHeaderStyle)).call(this, {
-              updateOnResize: true
-          }));
-
-          _this4.fontSize = "0.85em";
-          _this4.widthLimit = 800;
-          _this4.tagsHeight = 50;
-          _this4.borderTopColor = "#333";
-          _this4.baseStyleObject = {
-              height: _this4.tagsHeight + "px",
-              // display: "inline-block",
-              // float: "left",
-              color: "#262626",
-              // letterSpacing: "-0.3px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              textTransform: "uppercase",
-              fontWeight: "bold"
-          };
-
-          _initDefineProp$26(_this4, "mainClass", _descriptor26, _this4);
-
-          _initDefineProp$26(_this4, "tagsTitle", _descriptor27, _this4);
-
-          _initDefineProp$26(_this4, "tagsAuthor", _descriptor28, _this4);
-
-          _initDefineProp$26(_this4, "tagsReplies", _descriptor29, _this4);
-
-          _initDefineProp$26(_this4, "tagsViews", _descriptor30, _this4);
-
-          _initDefineProp$26(_this4, "tagsVotes", _descriptor31, _this4);
-
-          _initDefineProp$26(_this4, "tagsActivity", _descriptor32, _this4);
-
-          return _this4;
-      }
-      // borderTopColor = "rgb(232, 189, 35)";
-
-
-      return ForumThreadHeaderStyle;
-  }(StyleSheet), (_descriptor26 = _applyDecoratedDescriptor$26(_class7$5.prototype, "mainClass", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _ref5;
-
-          return _ref5 = {
-              height: "40px",
-              width: "100%",
-              maxWidth: "1200px",
-              marginLeft: "auto",
-              marginRight: "auto",
-              // borderBottom: "2px solid #333",// + this.borderTopColor,
-              color: "#aaa",
-              display: "flex",
-
-              boxSizing: "content-box",
-              backgroundColor: "#eaeaea"
-          }, defineProperty(_ref5, "height", this.tagsHeight + "px"), defineProperty(_ref5, "borderTop", "3px solid " + this.borderTopColor), _ref5;
-      }
-  }), _descriptor27 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsTitle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _this5 = this;
-
-          return [this.baseStyleObject, {
-              // marginLeft: "1%",
-              // width: "40%",
-              paddingLeft: "12px",
-              flex: function flex() {
-                  if (window.innerWidth < _this5.widthLimit) {
-                      return "1.5";
-                  }
-                  return "3";
-              },
-              justifyContent: "initial",
-              fontSize: this.fontSize
-          }];
-      }
-  }), _descriptor28 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsAuthor", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return [this.baseStyleObject, {
-              // width: "14%",
-              paddingLeft: "4px",
-              paddingRight: "4px",
-              flex: ".7",
-              textAlign: "center",
-              fontSize: this.fontSize
-          }];
-      }
-  }), _descriptor29 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsReplies", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _ref6;
-
-          return [this.baseStyleObject, (_ref6 = {
-              paddingLeft: "4px",
-              paddingRight: "4px"
-          }, defineProperty(_ref6, "paddingLeft", "4px"), defineProperty(_ref6, "paddingRight", "4px"), defineProperty(_ref6, "flex", ".5"), defineProperty(_ref6, "textAlign", "center"), defineProperty(_ref6, "fontSize", this.fontSize), _ref6)];
-      }
-  }), _descriptor30 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsViews", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _this6 = this;
-
-          return [this.baseStyleObject, {
-              // width: "8%",
-              paddingLeft: "4px",
-              paddingRight: "4px",
-              flex: ".5",
-              textAlign: "center",
-              fontSize: this.fontSize,
-              display: function display() {
-                  console.log(window.innerWidth);
-                  if (window.innerWidth < _this6.widthLimit) {
-                      return "none";
-                  }
-                  return "inherit";
-              }
-          }];
-      }
-  }), _descriptor31 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsVotes", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _this7 = this;
-
-          return [this.baseStyleObject, {
-              // width: "8%",
-              paddingLeft: "4px",
-              paddingRight: "4px",
-              flex: ".5",
-              textAlign: "center",
-              fontSize: this.fontSize,
-              display: function display() {
-                  if (window.innerWidth < _this7.widthLimit) {
-                      return "none";
-                  }
-                  return "inherit";
-              }
-          }];
-      }
-  }), _descriptor32 = _applyDecoratedDescriptor$26(_class7$5.prototype, "tagsActivity", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return [this.baseStyleObject, {
-              // width: "20%",
-              paddingLeft: "4px",
-              paddingRight: "12px",
-              flex: ".5",
-              textAlign: "center",
-              fontSize: this.fontSize
-          }];
-      }
-  })), _class7$5);
-  var ForumThreadPreviewStyle = (_class9$1 = function (_StyleSheet5) {
-      inherits(ForumThreadPreviewStyle, _StyleSheet5);
-
-      function ForumThreadPreviewStyle() {
-          var _ref7;
-
-          var _temp4, _this8, _ret4;
-
-          classCallCheck(this, ForumThreadPreviewStyle);
-
-          for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
-              args[_key4] = arguments[_key4];
-          }
-
-          return _ret4 = (_temp4 = (_this8 = possibleConstructorReturn(this, (_ref7 = ForumThreadPreviewStyle.__proto__ || Object.getPrototypeOf(ForumThreadPreviewStyle)).call.apply(_ref7, [this].concat(args))), _this8), _this8.maxHeight = 50, _this8.lines = 2, _this8.lineHeight = _this8.maxHeight / _this8.lines, _this8.fontSize = ".88em", _this8.color = "#aaa", _initDefineProp$26(_this8, "forumThreadPreview", _descriptor33, _this8), _temp4), possibleConstructorReturn(_this8, _ret4);
-      }
-      // functionality
-
-
-      // design
-
-
-      return ForumThreadPreviewStyle;
-  }(StyleSheet), (_descriptor33 = _applyDecoratedDescriptor$26(_class9$1.prototype, "forumThreadPreview", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              maxHeight: this.maxHeight + "px",
-              lineHeight: this.lineHeight + "px",
-              overflow: "hidden",
-              fontSize: this.fontSize,
-              color: this.color,
-              " *": {
-                  marginBottom: "0"
-              }
-          };
-      }
-  })), _class9$1);
-  var ForumThreadBubbleStyle = (_class11 = function (_StyleSheet6) {
-      inherits(ForumThreadBubbleStyle, _StyleSheet6);
-
-      function ForumThreadBubbleStyle() {
-          classCallCheck(this, ForumThreadBubbleStyle);
-
-          var _this9 = possibleConstructorReturn(this, (ForumThreadBubbleStyle.__proto__ || Object.getPrototypeOf(ForumThreadBubbleStyle)).call(this, {
-              updateOnResize: true
-          }));
-
-          _this9.fontSize = "1em";
-          _this9.titlePaddingBottom = "10px";
-          _this9.widthLimit = 800;
-          _this9.baseStyleObject = {
-              display: "inline-block",
-              verticalAlign: "top",
-              fontSize: _this9.fontSize
-          };
-
-          _initDefineProp$26(_this9, "backgroundColorOddInstances", _descriptor34, _this9);
-
-          _initDefineProp$26(_this9, "backgroundColorPinnedInstances", _descriptor35, _this9);
-
-          _initDefineProp$26(_this9, "backgroundColorEvenInstances", _descriptor36, _this9);
-
-          _initDefineProp$26(_this9, "mainClass", _descriptor37, _this9);
-
-          _initDefineProp$26(_this9, "threadTitleAndPreview", _descriptor38, _this9);
-
-          _initDefineProp$26(_this9, "threadTitle", _descriptor39, _this9);
-
-          _initDefineProp$26(_this9, "pinnedIcon", _descriptor40, _this9);
-
-          _initDefineProp$26(_this9, "threadTitleSpan", _descriptor41, _this9);
-
-          _initDefineProp$26(_this9, "threadAuthor", _descriptor42, _this9);
-
-          _initDefineProp$26(_this9, "threadReplies", _descriptor43, _this9);
-
-          _initDefineProp$26(_this9, "threadRepliesSpan", _descriptor44, _this9);
-
-          _initDefineProp$26(_this9, "threadViews", _descriptor45, _this9);
-
-          _initDefineProp$26(_this9, "threadVotes", _descriptor46, _this9);
-
-          _initDefineProp$26(_this9, "threadActivity", _descriptor47, _this9);
-
-          return _this9;
-      }
-
-      return ForumThreadBubbleStyle;
-  }(StyleSheet), (_descriptor34 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorOddInstances", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              backgroundColor: "#f4f6f7",
-              ":hover": {
-                  backgroundColor: "#eff1f2"
-              }
-          };
-      }
-  }), _descriptor35 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorPinnedInstances", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              backgroundColor: "#f4f6f7",
-              ":hover": {
-                  backgroundColor: "#eff1f2"
-              }
-          };
-      }
-  }), _descriptor36 = _applyDecoratedDescriptor$26(_class11.prototype, "backgroundColorEvenInstances", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              backgroundColor: "#fff",
-              ":hover": {
-                  backgroundColor: "#fafafa"
-              }
-          };
-      }
-  }), _descriptor37 = _applyDecoratedDescriptor$26(_class11.prototype, "mainClass", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "100%",
-              maxWidth: "1200px",
-              marginLeft: "auto",
-              marginRight: "auto",
-              color: "#555",
-              border: "1px solid #ddd",
-              borderTop: "0",
-              display: "flex"
-          };
-      }
-  }), _descriptor38 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitleAndPreview", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _this10 = this;
-
-          return {
-              flexDirection: "column",
-              flex: function flex() {
-                  if (window.innerWidth < _this10.widthLimit) {
-                      return "1.5";
-                  }
-                  return "3";
-              },
-              paddingTop: "25px",
-              paddingBottom: "25px",
-              paddingLeft: "12px"
-          };
-      }
-  }), _descriptor39 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitle", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return [this.baseStyleObject, {
-              // width: "40%",
-              // maxWidth: "50%",
-              // flex: "1.5",
-              flexDirection: "column",
-              textAlign: "justify",
-              // paddingRight: "8px",
-              verticalAlign: "middle",
-              wordWrap: "break-word",
-              color: "#252628",
-              paddingBottom: this.titlePaddingBottom
-          }];
-      }
-  }), _descriptor40 = _applyDecoratedDescriptor$26(_class11.prototype, "pinnedIcon", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              textAlign: "center",
-              display: "inline-block",
-              float: "left",
-              height: "60px",
-              paddingTop: "25px",
-              paddingRight: "12px"
-          };
-      }
-  }), _descriptor41 = _applyDecoratedDescriptor$26(_class11.prototype, "threadTitleSpan", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "inline-block",
-              verticalAlign: "middle",
-              lineHeight: "20px",
-              // maxWidth: "95%",
-              transition: "0.2s",
-              fontSize: "1.2em",
-              ":hover": {
-                  color: "#337ab7",
-                  transition: "0.2s"
-              }
-          };
-      }
-  }), _descriptor42 = _applyDecoratedDescriptor$26(_class11.prototype, "threadAuthor", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return [this.baseStyleObject, {
-              // width: "14%",
-              // maxWidth: "14%",
-              flex: ".7",
-              // paddingLeft: "8px",
-              textAlign: "center",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingLeft: "4px",
-              paddingRight: "4px"
-          }];
-      }
-  }), _descriptor43 = _applyDecoratedDescriptor$26(_class11.prototype, "threadReplies", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return [this.baseStyleObject, {
-              // width: "8%",
-              flex: ".5",
-              textAlign: "center",
-              fontWeight: "bold",
-              color: "#767676",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingLeft: "4px",
-              paddingRight: "4px"
-          }];
-      }
-  }), _descriptor44 = _applyDecoratedDescriptor$26(_class11.prototype, "threadRepliesSpan", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              transition: "0.2s",
-              ":hover": {
-                  color: "#337ab7",
-                  transition: "0.2s"
-              }
-          };
-      }
-  }), _descriptor45 = _applyDecoratedDescriptor$26(_class11.prototype, "threadViews", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _this11 = this;
-
-          return [this.baseStyleObject, defineProperty({
-              // width: "8%",
-              flex: ".5",
-              textAlign: "center",
-              color: "#767676",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingLeft: "4px",
-              paddingRight: "4px"
-          }, "display", function display() {
-              if (window.innerWidth < _this11.widthLimit) {
-                  return "none";
-              }
-              return "inherit";
-          })];
-      }
-  }), _descriptor46 = _applyDecoratedDescriptor$26(_class11.prototype, "threadVotes", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          var _this12 = this;
-
-          return [this.baseStyleObject, defineProperty({
-              // width: "8%",
-              flex: ".5",
-              textAlign: "center",
-              color: "#767676",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingLeft: "4px",
-              paddingRight: "4px"
-          }, "display", function display() {
-              if (window.innerWidth < _this12.widthLimit) {
-                  return "none";
-              }
-              return "inherit";
-          })];
-      }
-  }), _descriptor47 = _applyDecoratedDescriptor$26(_class11.prototype, "threadActivity", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return [this.baseStyleObject, {
-              // width: "20%",
-              flex: ".5",
-              textAlign: "center",
-              color: "#767676",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingLeft: "4px",
-              paddingRight: "12px",
-              fontSize: ".85em"
-          }];
-      }
-  })), _class11);
-  var ForumPanelStyle = (_class13 = function (_StyleSheet7) {
-      inherits(ForumPanelStyle, _StyleSheet7);
-
-      function ForumPanelStyle() {
-          var _ref10;
-
-          var _temp5, _this13, _ret5;
-
-          classCallCheck(this, ForumPanelStyle);
-
-          for (var _len5 = arguments.length, args = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
-              args[_key5] = arguments[_key5];
-          }
-
-          return _ret5 = (_temp5 = (_this13 = possibleConstructorReturn(this, (_ref10 = ForumPanelStyle.__proto__ || Object.getPrototypeOf(ForumPanelStyle)).call.apply(_ref10, [this].concat(args))), _this13), _this13.textColor = "#333", _this13.headerItemHeight = 50, _initDefineProp$26(_this13, "mainClass", _descriptor48, _this13), _initDefineProp$26(_this13, "title", _descriptor49, _this13), _initDefineProp$26(_this13, "buttonParent", _descriptor50, _this13), _initDefineProp$26(_this13, "button", _descriptor51, _this13), _initDefineProp$26(_this13, "header", _descriptor52, _this13), _temp5), possibleConstructorReturn(_this13, _ret5);
-      }
-
-      return ForumPanelStyle;
-  }(StyleSheet), (_descriptor48 = _applyDecoratedDescriptor$26(_class13.prototype, "mainClass", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "100%"
-          };
-      }
-  }), _descriptor49 = _applyDecoratedDescriptor$26(_class13.prototype, "title", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "100%",
-              // textAlign: "center",
-              fontSize: "2em",
-              color: this.textColor,
-              height: this.headerItemHeight + "px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center"
-          };
-      }
-  }), _descriptor50 = _applyDecoratedDescriptor$26(_class13.prototype, "buttonParent", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              width: "90%",
-              maxWidth: "1200px",
-              margin: "0 auto",
-              height: this.headerItemHeight + "px",
-              display: "flex",
-              justifyContent: "flex-end",
-              alignItems: "center"
-          };
-      }
-  }), _descriptor51 = _applyDecoratedDescriptor$26(_class13.prototype, "button", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              margin: "0"
-          };
-      }
-  }), _descriptor52 = _applyDecoratedDescriptor$26(_class13.prototype, "header", [styleRule], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: 2 * this.headerItemHeight + "px",
-              width: "100%"
-          };
-      }
-  })), _class13);
-
-  var _dec$28, _class$56;
-
-  var CreateThreadReplyButton = (_dec$28 = registerStyle(ButtonStyle$1), _dec$28(_class$56 = function (_Button) {
-      inherits(CreateThreadReplyButton, _Button);
-
-      function CreateThreadReplyButton() {
-          classCallCheck(this, CreateThreadReplyButton);
-          return possibleConstructorReturn(this, (CreateThreadReplyButton.__proto__ || Object.getPrototypeOf(CreateThreadReplyButton)).apply(this, arguments));
-      }
-
-      createClass(CreateThreadReplyButton, [{
-          key: "getDefaultOptions",
-          value: function getDefaultOptions() {
-              return {
-                  level: Level.PRIMARY,
-                  size: Size.LARGE,
-                  label: UI.T("Preview")
-              };
-          }
-      }, {
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.button);
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this2 = this;
-
-              get(CreateThreadReplyButton.prototype.__proto__ || Object.getPrototypeOf(CreateThreadReplyButton.prototype), "onMount", this).call(this);
-              this.addClickListener(function () {
-                  if (!USER.isAuthenticated) {
-                      LoginModal.show();
-                      return;
-                  }
-                  if (!_this2.markupEditorModal) {
-                      _this2.markupEditorModal = UI.createElement(CreateThreadReplyModal, { forumThreadId: _this2.options.forumThreadId,
-                          classMap: ChatMarkupRenderer.classMap
-                      });
-                  }
-                  _this2.markupEditorModal.show();
-              });
-          }
-      }]);
-      return CreateThreadReplyButton;
-  }(Button)) || _class$56);
-
-  var CreateThreadReplyModal = function (_MarkupEditorModal) {
-      inherits(CreateThreadReplyModal, _MarkupEditorModal);
-
-      function CreateThreadReplyModal() {
-          classCallCheck(this, CreateThreadReplyModal);
-          return possibleConstructorReturn(this, (CreateThreadReplyModal.__proto__ || Object.getPrototypeOf(CreateThreadReplyModal)).apply(this, arguments));
-      }
-
-      createClass(CreateThreadReplyModal, [{
-          key: "onMount",
-          value: function onMount() {
-              var _this4 = this;
-
-              get(CreateThreadReplyModal.prototype.__proto__ || Object.getPrototypeOf(CreateThreadReplyModal.prototype), "onMount", this).call(this);
-              this.doneButton.addClickListener(function () {
-                  _this4.createThreadReply();
-              });
-          }
-      }, {
-          key: "createThreadReply",
-          value: function createThreadReply() {
-              // TODO: should be a dispatch: it should jump and highlight your post
-              Ajax.postJSON("/forum/forum_thread_post/", {
-                  forumThreadId: this.options.forumThreadId,
-                  message: this.markupEditor.getValue()
-              });
-          }
-      }]);
-      return CreateThreadReplyModal;
-  }(MarkupEditorModal);
-
-  var _dec$29, _class$57, _dec2$11, _class2$12;
-
-  var forumThreadPanelStyle = ForumThreadPanelStyle.getInstance();
-  var buttonStyle = ButtonStyle$1.getInstance();
-
-  var CreateForumThreadModal = function (_MarkupEditorModal) {
-      inherits(CreateForumThreadModal, _MarkupEditorModal);
-
-      function CreateForumThreadModal() {
-          classCallCheck(this, CreateForumThreadModal);
-          return possibleConstructorReturn(this, (CreateForumThreadModal.__proto__ || Object.getPrototypeOf(CreateForumThreadModal)).apply(this, arguments));
-      }
-
-      createClass(CreateForumThreadModal, [{
-          key: "render",
-          value: function render() {
-              var inputStyle = {
-                  "margin-bottom": "4px",
-                  "border": "0",
-                  //"border-radius": "4px",
-                  //"border": "2px solid #dcdcdc",
-                  "outline": "none",
-                  "color": "#333",
-                  "font-size": "14px",
-                  "padding-left": "8px",
-                  "width": "100%",
-                  "text-align": "center",
-                  "font-weight": "bold"
-              };
-
-              return [UI.createElement(Input, { label: UI.T("Title"), ref: "titleInput", style: inputStyle, placeholder: "Click here to edit the title (max. 160 characters)." })].concat(toConsumableArray(get(CreateForumThreadModal.prototype.__proto__ || Object.getPrototypeOf(CreateForumThreadModal.prototype), "render", this).call(this)));
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this2 = this;
-
-              this.doneButton.addClickListener(function () {
-                  _this2.createForumThread();
-              });
-          }
-      }, {
-          key: "routeToThread",
-          value: function routeToThread(forumThreadId) {
-              // TODO: add the temp forum title
-              Router.changeURL(["forum", forumThreadId, "title"]);
-          }
-      }, {
-          key: "createForumThread",
-          value: function createForumThread() {
-              var _this3 = this;
-
-              var request = {
-                  forumId: this.options.forumId,
-                  title: this.titleInput.getValue(),
-                  message: this.markupEditor.getValue()
-              };
-
-              Ajax.postJSON("/forum/create_forum_thread/", request).then(function (data) {
-                  _this3.routeToThread(data.forumThreadId);
-                  _this3.titleInput.setValue("");
-                  _this3.markupEditor.setValue("");
-                  _this3.markupEditor.redraw();
-                  _this3.hide();
-              });
-          }
-      }]);
-      return CreateForumThreadModal;
-  }(MarkupEditorModal);
-
-  var CreateForumThreadButton = (_dec$29 = registerStyle(ButtonStyle$1), _dec$29(_class$57 = function (_Button) {
-      inherits(CreateForumThreadButton, _Button);
-
-      function CreateForumThreadButton() {
-          classCallCheck(this, CreateForumThreadButton);
-          return possibleConstructorReturn(this, (CreateForumThreadButton.__proto__ || Object.getPrototypeOf(CreateForumThreadButton)).apply(this, arguments));
-      }
-
-      createClass(CreateForumThreadButton, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.button);
-          }
-      }, {
-          key: "setOptions",
-          value: function setOptions(options) {
-              if (!options.faIcon) {
-                  options.label = options.label || UI.T("Preview");
-              }
-              options.level = options.level || Level.PRIMARY;
-              options.size = options.size || Size.LARGE;
-              get(CreateForumThreadButton.prototype.__proto__ || Object.getPrototypeOf(CreateForumThreadButton.prototype), "setOptions", this).call(this, options);
-          }
-      }, {
-          key: "getModalClass",
-          value: function getModalClass() {
-              return CreateForumThreadModal;
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this5 = this;
-
-              get(CreateForumThreadButton.prototype.__proto__ || Object.getPrototypeOf(CreateForumThreadButton.prototype), "onMount", this).call(this);
-              this.addClickListener(function () {
-                  if (!USER.isAuthenticated) {
-                      LoginModal.show();
-                      return;
-                  }
-                  _this5.getModalClass().show({
-                      forumId: _this5.options.forumId,
-                      classMap: ChatMarkupRenderer.classMap
-                  });
-              });
-          }
-      }]);
-      return CreateForumThreadButton;
-  }(Button)) || _class$57);
-
-  var DeleteForumThreadModal = function (_ActionModal) {
-      inherits(DeleteForumThreadModal, _ActionModal);
-
-      function DeleteForumThreadModal() {
-          classCallCheck(this, DeleteForumThreadModal);
-          return possibleConstructorReturn(this, (DeleteForumThreadModal.__proto__ || Object.getPrototypeOf(DeleteForumThreadModal)).apply(this, arguments));
-      }
-
-      createClass(DeleteForumThreadModal, [{
-          key: "getTitle",
-          value: function getTitle() {
-              return UI.T("Delete forum thread");
-          }
-      }, {
-          key: "getActionName",
-          value: function getActionName() {
-              return UI.T("Delete");
-          }
-      }, {
-          key: "getBody",
-          value: function getBody() {
-              return UI.createElement(
-                  "p",
-                  null,
-                  UI.T("Are you sure you want to delete thread"),
-                  " \"" + this.options.forumThread.title + "\"?"
-              );
-          }
-      }, {
-          key: "action",
-          value: function action() {
-              this.options.forumThread.deleteThread();
-              this.hide();
-          }
-      }]);
-      return DeleteForumThreadModal;
-  }(ActionModal);
-
-  var DeleteForumThreadButton = ActionModalButton(DeleteForumThreadModal);
-
-  var ForumThreadReply = function (_UI$Element) {
-      inherits(ForumThreadReply, _UI$Element);
-
-      function ForumThreadReply() {
-          classCallCheck(this, ForumThreadReply);
-          return possibleConstructorReturn(this, (ForumThreadReply.__proto__ || Object.getPrototypeOf(ForumThreadReply)).apply(this, arguments));
-      }
-
-      createClass(ForumThreadReply, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              // attr.addClass(forumThreadReplyStyle.mainClass);
-          }
-      }, {
-          key: "getMessageInstance",
-          value: function getMessageInstance() {
-              return this.options.messageInstance;
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var messageInstance = this.getMessageInstance();
-              var deleteMessage = void 0;
-              var editMessage = void 0;
-              var editAndDeleteButtons = UI.createElement("span", null);
-
-              if (USER.isSuperUser || USER.id === messageInstance.userId) {
-                  deleteMessage = UI.createElement(DeleteThreadReplyButton, {
-                      faIcon: "trash",
-                      level: Level.DANGER,
-                      className: forumThreadPanelStyle.deleteButton,
-                      modalOptions: { messageInstance: messageInstance } });
-                  editMessage = UI.createElement(EditThreadReplyButton, {
-                      faIcon: "pencil",
-                      level: Level.INFO,
-                      messageInstance: messageInstance,
-                      forumThreadPanel: this,
-                      className: forumThreadPanelStyle.editButton });
-                  editAndDeleteButtons = UI.createElement(
-                      "div",
-                      { className: forumThreadPanelStyle.editDeleteButtons, style: { width: "auto" } },
-                      editMessage,
-                      deleteMessage
-                  );
-              }
-
-              return [UI.createElement(
-                  "div",
-                  { className: forumThreadPanelStyle.fullPost },
-                  UI.createElement(
-                      "div",
-                      { className: forumThreadPanelStyle.author,
-                          style: {
-                              fontSize: "1em",
-                              paddingLeft: "12px",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center"
-                          } },
-                      UI.createElement(UserHandle, { id: messageInstance.userId, style: {
-                              textTransform: "initial",
-                              fontSize: "1.1em"
-                          } }),
-                      UI.createElement(TimePassedSpan, { timeStamp: messageInstance.getDate(), style: {
-                              color: "#262626 !important",
-                              paddingRight: "12px"
-                          } })
-                  ),
-                  UI.createElement(ChatMarkupRenderer, { ref: this.refLink("postContent" + messageInstance.id), value: messageInstance.getContent(), className: forumThreadPanelStyle.message }),
-                  UI.createElement(
-                      "div",
-                      { className: forumThreadPanelStyle.bottomPanel },
-                      editAndDeleteButtons,
-                      UI.createElement(CommentVotingWidgetWithThumbs, { height: 40, balanceColor: "#313534", notVoteColor: "#313534", message: messageInstance, className: forumThreadPanelStyle.voting })
-                  )
-              )];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this8 = this;
-
-              this.attachEventListener(this.getMessageInstance(), "messageDelete", function () {
-                  _this8.hide();
-              });
-              this.attachEventListener(this.getMessageInstance(), "messageEdit", function () {
-                  _this8.redraw();
-              });
-          }
-      }]);
-      return ForumThreadReply;
-  }(UI.Element);
-
-  var ForumThreadPanel = (_dec2$11 = registerStyle(ForumThreadPanelStyle), _dec2$11(_class2$12 = function (_Panel) {
-      inherits(ForumThreadPanel, _Panel);
-
-      function ForumThreadPanel() {
-          classCallCheck(this, ForumThreadPanel);
-          return possibleConstructorReturn(this, (ForumThreadPanel.__proto__ || Object.getPrototypeOf(ForumThreadPanel)).apply(this, arguments));
-      }
-
-      createClass(ForumThreadPanel, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.mainClass);
-          }
-      }, {
-          key: "returnToMainForum",
-          value: function returnToMainForum() {
-              Router.changeURL(this.getMainForumURL());
-          }
-      }, {
-          key: "getMainForumURL",
-          value: function getMainForumURL() {
-              return "/forum/";
-          }
-      }, {
-          key: "getForumThreadState",
-          value: function getForumThreadState() {
-              var _this10 = this;
-
-              var callback = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : NOOP_FUNCTION;
-
-              var request = {
-                  forumThreadId: this.options.forumThread.id
-              };
-
-              Ajax.postJSON("/forum/forum_thread_state/", request).then(callback, function (error) {
-                  _this10.returnToMainForum();
-                  ErrorHandlers.showErrorAlert(error);
-              });
-          }
-      }, {
-          key: "getForumThread",
-          value: function getForumThread() {
-              return this.options.forumThread;
-          }
-      }, {
-          key: "getTitle",
-          value: function getTitle() {
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.title },
-                  UI.createElement(Link, { href: this.getMainForumURL(), className: this.styleSheet.backButton,
-                      value: UI.createElement("span", { className: "fa fa-arrow-left", style: {
-                              paddingRight: "10px",
-                              fontSize: ".8em",
-                              color: "#333"
-                          } }) }),
-                  this.getForumThread().getTitle()
-              )];
-          }
-      }, {
-          key: "getAuthor",
-          value: function getAuthor() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.author },
-                  UI.T("written by"),
-                  "\xA0",
-                  UI.createElement(UserHandle, { id: this.getForumThread().authorId, style: {
-                          textTransform: "initial"
-                      } }),
-                  "\xA0",
-                  UI.createElement(TimePassedSpan, { timeStamp: this.getForumThread().getTimeAdded(), style: { color: "#262626 !important" } })
-              );
-          }
-      }, {
-          key: "getMessage",
-          value: function getMessage() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.message },
-                  UI.createElement(ChatMarkupRenderer, { ref: this.refLink("content"), value: this.getForumThread().getContentMessage().getContent(), style: { height: "auto" } })
-              );
-          }
-      }, {
-          key: "getNumReplies",
-          value: function getNumReplies(postsLength) {
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.numReplies },
-                  UI.createElement(
-                      "span",
-                      { style: { "font-weight": "bold" } },
-                      postsLength
-                  ),
-                  "\xA0",
-                  "replies in this thread" + (postsLength == 0 ? ", be the first one to comment" : "")
-              )];
-          }
-      }, {
-          key: "getVoting",
-          value: function getVoting() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.voting },
-                  UI.createElement(CommentVotingWidgetWithThumbs, { height: 40, balanceColor: "#313534", notVoteColor: "#313534", message: this.getForumThread().getContentMessage(), style: { "margin-left": "0" } })
-              );
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var _this11 = this;
-
-              if (!this.options.forumThread.isLoaded()) {
-                  this.getForumThreadState(function () {
-                      _this11.redraw();
-                      _this11.initializeListeners();
-                  });
-                  return UI.createElement(ConcentricCirclesLoadingScreen, null);
-              }
-
-              var replies = [];
-              var spaceBetween = void 0;
-              var forumThread = this.options.forumThread;
-
-              // sort the forum replies by the activity date
-              var forumThreadMessages = Array.from(forumThread.getMessageThread().getMessages());
-              forumThreadMessages.sort(function (a, b) {
-                  return a.getDate() - b.getDate();
-              });
-
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = forumThreadMessages[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var messageInstance = _step.value;
-
-                      if (messageInstance !== forumThread.getContentMessage()) {
-                          replies.push(UI.createElement(ForumThreadReply, { className: this.styleSheet.replies, messageInstance: messageInstance }));
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              if (replies.length) {
-                  spaceBetween = UI.createElement("div", { style: {
-                          height: "60px",
-                          borderBottom: "1px solid #ddd",
-                          width: "90%",
-                          maxWidth: "1200px",
-                          margin: "0 auto"
-                      } });
-              }
-
-              var deleteButton = void 0;
-              var editButton = void 0;
-              var editAndDeleteButtons = void 0;
-
-              if (USER.isSuperUser || USER.id === this.getForumThread().authorId) {
-                  deleteButton = UI.createElement(DeleteForumThreadButton, { faIcon: "trash",
-                      level: Level.DANGER,
-                      className: this.styleSheet.deleteButton,
-                      modalOptions: {
-                          forumThread: this.getForumThread()
-                      } });
-                  editButton = UI.createElement(EditThreadReplyButton, { faIcon: "pencil",
-                      level: Level.INFO,
-                      className: this.styleSheet.editButton,
-                      messageInstance: this.getForumThread().getContentMessage() });
-                  editAndDeleteButtons = UI.createElement(
-                      "div",
-                      { className: this.styleSheet.editDeleteButtons },
-                      editButton,
-                      deleteButton
-                  );
-              }
-
-              return [UI.createElement(
-                  "div",
-                  { style: { marginBottom: "60px" } },
-                  UI.createElement(
-                      "div",
-                      { className: this.styleSheet.header },
-                      this.getTitle(),
-                      UI.createElement(
-                          "div",
-                          { className: this.styleSheet.replyButtonDiv },
-                          this.getAuthor(),
-                          UI.createElement(CreateThreadReplyButton, {
-                              label: UI.T("REPLY"),
-                              className: this.styleSheet.replyButton,
-                              size: Size.DEFAULT,
-                              forumThreadId: forumThread.id,
-                              forumThread: this.getForumThread(),
-                              classMap: ChatMarkupRenderer.classMap
-                          })
-                      )
-                  ),
-                  UI.createElement("div", { style: { width: "90%", maxWidth: "1200px", margin: "0 auto", height: "3px", backgroundColor: "#333", marginTop: "10px" } }),
-                  UI.createElement(
-                      "div",
-                      { className: this.styleSheet.fullPost },
-                      this.getMessage(),
-                      UI.createElement(
-                          "div",
-                          { className: this.styleSheet.bottomPanel },
-                          this.getNumReplies(replies.length),
-                          this.getVoting()
-                      ),
-                      editAndDeleteButtons
-                  ),
-                  spaceBetween,
-                  replies
-              )];
-          }
-      }, {
-          key: "deleteThread",
-          value: function deleteThread() {
-              this.getForumThread().deleteThread();
-          }
-      }, {
-          key: "initializeListeners",
-          value: function initializeListeners() {
-              var _this12 = this;
-
-              // These listeners need to be attached after the ForumThread is loaded in the js state
-              this.getForumThread().getMessageThread().addListener("newMessage", function () {
-                  _this12.redraw();
-              });
-              this.getForumThread().getMessageThread().addListener("deleteMessage", function () {
-                  _this12.redraw();
-              });
-              this.getForumThread().getContentMessage().addEventListener("messageEdit", function () {
-                  _this12.content.setValue(_this12.getForumThread().getContentMessage().getContent());
-                  _this12.content.redraw();
-              });
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this13 = this;
-
-              // This applies only for a newly created forum thread, since the listeners from
-              // render do not get attached when the thread is already in the state.
-
-              if (this.options.forumThread.isLoaded()) {
-                  this.initializeListeners();
-              }
-
-              this.getForumThread().addDeleteListener(function () {
-                  _this13.returnToMainForum();
-              });
-          }
-      }]);
-      return ForumThreadPanel;
-  }(Panel)) || _class2$12);
-
-  var _dec$30, _class$58, _dec2$12, _class2$13, _dec3$3, _class3$18, _dec4$1, _class4$3;
-
-  var ForumThreadHeader = (_dec$30 = registerStyle(ForumThreadHeaderStyle), _dec$30(_class$58 = function (_UI$Element) {
-      inherits(ForumThreadHeader, _UI$Element);
-
-      function ForumThreadHeader() {
-          classCallCheck(this, ForumThreadHeader);
-          return possibleConstructorReturn(this, (ForumThreadHeader.__proto__ || Object.getPrototypeOf(ForumThreadHeader)).apply(this, arguments));
-      }
-
-      createClass(ForumThreadHeader, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.mainClass);
-          }
-      }, {
-          key: "getTitle",
-          value: function getTitle() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.tagsTitle },
-                  UI.T("Title")
-              );
-          }
-      }, {
-          key: "getAuthor",
-          value: function getAuthor() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.tagsAuthor },
-                  UI.T("Author")
-              );
-          }
-      }, {
-          key: "getReplies",
-          value: function getReplies() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.tagsReplies },
-                  UI.T("Replies")
-              );
-          }
-      }, {
-          key: "getViews",
-          value: function getViews() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.tagsViews },
-                  UI.T("Views")
-              );
-          }
-      }, {
-          key: "getVotes",
-          value: function getVotes() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.tagsVotes },
-                  UI.T("Score")
-              );
-          }
-      }, {
-          key: "getActivity",
-          value: function getActivity() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.tagsActivity },
-                  UI.T("Active")
-              );
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [this.getTitle(), this.getAuthor(), this.getReplies(), this.getViews(), this.getVotes(), this.getActivity()];
-          }
-      }]);
-      return ForumThreadHeader;
-  }(UI.Element)) || _class$58);
-
-  var ForumThreadPreview = (_dec2$12 = registerStyle(ForumThreadPreviewStyle), _dec2$12(_class2$13 = function (_ChatMarkupRenderer) {
-      inherits(ForumThreadPreview, _ChatMarkupRenderer);
-
-      function ForumThreadPreview() {
-          classCallCheck(this, ForumThreadPreview);
-          return possibleConstructorReturn(this, (ForumThreadPreview.__proto__ || Object.getPrototypeOf(ForumThreadPreview)).apply(this, arguments));
-      }
-
-      createClass(ForumThreadPreview, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.forumThreadPreview);
-          }
-      }]);
-      return ForumThreadPreview;
-  }(ChatMarkupRenderer)) || _class2$13);
-
-  var ForumThreadBubble = (_dec3$3 = registerStyle(ForumThreadBubbleStyle), _dec3$3(_class3$18 = function (_UI$Element2) {
-      inherits(ForumThreadBubble, _UI$Element2);
-
-      function ForumThreadBubble() {
-          classCallCheck(this, ForumThreadBubble);
-          return possibleConstructorReturn(this, (ForumThreadBubble.__proto__ || Object.getPrototypeOf(ForumThreadBubble)).apply(this, arguments));
-      }
-
-      createClass(ForumThreadBubble, [{
-          key: "getNodeAttributes",
-          value: function getNodeAttributes() {
-              var attr = get(ForumThreadBubble.prototype.__proto__ || Object.getPrototypeOf(ForumThreadBubble.prototype), "getNodeAttributes", this).call(this);
-              attr.addClass(this.styleSheet.mainClass);
-              // couldn't figure out how to solve this easier and better
-              // if (this.options.isPinned) {
-              //     attr.addClass(String(forumThreadBubbleStyle.backgroundColorPinnedInstances));
-              // } else if (this.options.color == 0) {
-              //     attr.addClass(String(forumThreadBubbleStyle.backgroundColorOddInstances));
-              // } else {
-              //     attr.addClass(String(forumThreadBubbleStyle.backgroundColorEvenInstances));
-              // }
-              return attr;
-          }
-      }, {
-          key: "getHref",
-          value: function getHref() {
-              return "/forum/" + this.getForumThread().id + "/" + slugify(this.getForumThread().getTitle());
-          }
-      }, {
-          key: "getForumThread",
-          value: function getForumThread() {
-              return this.options.forumThread;
-          }
-      }, {
-          key: "getThreadTitle",
-          value: function getThreadTitle() {
-              var _this4 = this;
-
-              var pinned = "";
-              if (this.getForumThread().isPinned()) {
-                  pinned = UI.createElement("span", { className: "fa fa-thumb-tack " + this.styleSheet.pinnedIcon, "aria-hidden": "true", style: { paddingTop: "0", lineHeight: "20px", height: "20px" } });
-              }
-              var forumThread = this.getForumThread();
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.threadTitleAndPreview },
-                  UI.createElement(
-                      "div",
-                      { className: this.styleSheet.threadTitle,
-                          style: { paddingBottom: function paddingBottom() {
-                                  if (forumThread.getContentMessage().content) {
-                                      return _this4.styleSheet.titlePaddingBottom;
-                                  }
-                                  return "0";
-                              } } },
-                      pinned,
-                      UI.createElement(Link, { style: { "text-decoration": "none", "color": "inherit", "font-size": "14px", "text-align": "justify" }, href: this.getHref(),
-                          value: UI.createElement(
-                              "span",
-                              { className: this.styleSheet.threadTitleSpan },
-                              this.getForumThread().getTitle()
-                          ) })
-                  ),
-                  UI.createElement(ForumThreadPreview, { value: this.getForumThread().getContentMessage().content })
-              )];
-          }
-      }, {
-          key: "getThreadAuthor",
-          value: function getThreadAuthor() {
-              return [UI.createElement(
-                  "span",
-                  { className: this.styleSheet.threadAuthor },
-                  UI.createElement(UserHandle, { id: this.getForumThread().authorId, style: {
-                          "line-height": "normal",
-                          wordBreak: "break-word"
-                      } })
-              )];
-          }
-      }, {
-          key: "getThreadReplies",
-          value: function getThreadReplies() {
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.threadReplies },
-                  UI.createElement(Link, { style: {
-                          "text-decoration": "none",
-                          "color": "inherit"
-                      }, href: this.getHref(), value: UI.createElement(
-                          "span",
-                          { className: this.styleSheet.threadRepliesSpan },
-                          this.getForumThread().getNumReplies()
-                      ) })
-              )];
-          }
-      }, {
-          key: "getThreadViews",
-          value: function getThreadViews() {
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.threadViews },
-                  this.getForumThread().numViews
-              )];
-          }
-      }, {
-          key: "getThreadVotes",
-          value: function getThreadVotes() {
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.threadVotes },
-                  this.getForumThread().getVotesBalance()
-              )];
-          }
-      }, {
-          key: "getThreadActivity",
-          value: function getThreadActivity() {
-              var threadActivity = this.getForumThread().getLastActive();
-              /* TODO @mihaic, this should support custom color option (but I didn't want to change stem files on my own). check UIPrimitives.jsx line 400 */
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.threadActivity },
-                  UI.createElement(TimePassedSpan, { timeStamp: threadActivity })
-              )];
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [this.getThreadTitle(), this.getThreadAuthor(), this.getThreadReplies(), this.getThreadViews(), this.getThreadVotes(), this.getThreadActivity()];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this5 = this;
-
-              get(ForumThreadBubble.prototype.__proto__ || Object.getPrototypeOf(ForumThreadBubble.prototype), "onMount", this).call(this);
-              this.getForumThread().addUpdateListener(function () {
-                  _this5.redraw();
-              });
-              this.getForumThread().addDeleteListener(function () {
-                  _this5.hide();
-              });
-          }
-      }]);
-      return ForumThreadBubble;
-  }(UI.Element)) || _class3$18);
-
-  var ForumThreadList = function (_UI$Element3) {
-      inherits(ForumThreadList, _UI$Element3);
-
-      function ForumThreadList() {
-          classCallCheck(this, ForumThreadList);
-          return possibleConstructorReturn(this, (ForumThreadList.__proto__ || Object.getPrototypeOf(ForumThreadList)).apply(this, arguments));
-      }
-
-      createClass(ForumThreadList, [{
-          key: "getNodeAttributes",
-          value: function getNodeAttributes() {
-              var attr = get(ForumThreadList.prototype.__proto__ || Object.getPrototypeOf(ForumThreadList.prototype), "getNodeAttributes", this).call(this);
-              attr.setStyle({
-                  width: "90%",
-                  margin: "0 auto",
-                  marginTop: "10px",
-                  marginBottom: "60px"
-                  // boxShadow: "0px 0px 10px #ddd", // TODO: Do we want this?
-              });
-              return attr;
-          }
-      }, {
-          key: "getBubbleClass",
-          value: function getBubbleClass() {
-              return ForumThreadBubble;
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              var forumThreads = Array.from(this.options.forum.getForumThreads());
-
-              forumThreads.sort(function (a, b) {
-                  if (a.isPinned() && b.isPinned()) {
-                      return b.getPinIndex() - a.getPinIndex();
-                  }
-                  if (a.isPinned()) {
-                      return -1;
-                  }
-                  if (b.isPinned()) {
-                      return 1;
-                  }
-                  return b.lastActive - a.lastActive;
-              });
-
-              var result = [];
-              var color = 1;
-              result.push(UI.createElement(ForumThreadHeader, null));
-              var Bubble = this.getBubbleClass();
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = forumThreads[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var forumThread = _step.value;
-
-                      result.push(UI.createElement(Bubble, { forumThread: forumThread, color: color, isPinned: forumThread.isPinned() }));
-                      if (!forumThread.isPinned()) {
-                          color = !color;
-                      }
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-
-              return result;
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this7 = this;
-
-              get(ForumThreadList.prototype.__proto__ || Object.getPrototypeOf(ForumThreadList.prototype), "onMount", this).call(this);
-              this.options.forum.addListener("newForumThread", function () {
-                  _this7.redraw();
-              });
-          }
-      }]);
-      return ForumThreadList;
-  }(UI.Element);
-
-  var ForumPanel = (_dec4$1 = registerStyle(ForumPanelStyle), _dec4$1(_class4$3 = function (_Panel) {
-      inherits(ForumPanel, _Panel);
-
-      function ForumPanel() {
-          classCallCheck(this, ForumPanel);
-          return possibleConstructorReturn(this, (ForumPanel.__proto__ || Object.getPrototypeOf(ForumPanel)).apply(this, arguments));
-      }
-
-      createClass(ForumPanel, [{
-          key: "extraNodeAttributes",
-          value: function extraNodeAttributes(attr) {
-              attr.addClass(this.styleSheet.mainClass);
-          }
-      }, {
-          key: "getTitle",
-          value: function getTitle() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.title },
-                  this.options.forum.name
-              );
-          }
-      }, {
-          key: "getButton",
-          value: function getButton() {
-              return UI.createElement(
-                  "div",
-                  { className: this.styleSheet.buttonParent },
-                  UI.createElement(CreateForumThreadButton, {
-                      label: "NEW POST",
-                      className: this.styleSheet.button,
-                      size: Size.DEFAULT,
-                      forumId: this.options.forum.id
-                  })
-              );
-          }
-      }, {
-          key: "getForumThreadList",
-          value: function getForumThreadList() {
-              return UI.createElement(ForumThreadList, { forum: this.options.forum });
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [UI.createElement(
-                  "div",
-                  { className: this.styleSheet.header },
-                  this.getTitle(),
-                  this.getButton()
-              ), this.getForumThreadList()];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              var _this9 = this;
-
-              this.attachListener(ForumThreadStore, "create", function () {
-                  return _this9.redraw();
-              });
-              this.attachListener(ForumThreadStore, "delete", function () {
-                  return _this9.redraw();
-              });
-          }
-      }]);
-      return ForumPanel;
-  }(Panel)) || _class4$3);
-
-  var DelayedForumPanel = function (_StateDependentElemen) {
-      inherits(DelayedForumPanel, _StateDependentElemen);
-
-      function DelayedForumPanel() {
-          classCallCheck(this, DelayedForumPanel);
-          return possibleConstructorReturn(this, (DelayedForumPanel.__proto__ || Object.getPrototypeOf(DelayedForumPanel)).apply(this, arguments));
-      }
-
-      createClass(DelayedForumPanel, [{
-          key: "importState",
-          value: function importState(data) {
-              get(DelayedForumPanel.prototype.__proto__ || Object.getPrototypeOf(DelayedForumPanel.prototype), "importState", this).call(this, data);
-              this.options.forum = ForumStore.get(this.options.forumId);
-          }
-      }]);
-      return DelayedForumPanel;
-  }(StateDependentElement(ForumPanel));
-
-  var DelayedForumThreadPanel = function (_StateDependentElemen2) {
-      inherits(DelayedForumThreadPanel, _StateDependentElemen2);
-
-      function DelayedForumThreadPanel() {
-          classCallCheck(this, DelayedForumThreadPanel);
-          return possibleConstructorReturn(this, (DelayedForumThreadPanel.__proto__ || Object.getPrototypeOf(DelayedForumThreadPanel)).apply(this, arguments));
-      }
-
-      createClass(DelayedForumThreadPanel, [{
-          key: "beforeRedrawNotLoaded",
-
-          // TODO: must be able to specify if URL is POST or GET in StateDependentElement
-          value: function beforeRedrawNotLoaded() {
-              var _this12 = this;
-
-              Ajax.postJSON("/forum/forum_thread_state/", {
-                  forumThreadId: this.options.forumThreadId
-              }).then(function (data) {
-                  _this12.importState(data);
-                  _this12.setLoaded();
-              }, function () {});
-          }
-      }, {
-          key: "importState",
-          value: function importState(data) {
-              get(DelayedForumThreadPanel.prototype.__proto__ || Object.getPrototypeOf(DelayedForumThreadPanel.prototype), "importState", this).call(this, data);
-              this.options.forumThread = ForumThreadStore.get(this.options.forumThreadId);
-          }
-      }]);
-      return DelayedForumThreadPanel;
-  }(StateDependentElement(ForumThreadPanel));
-
-  var ForumRoute = function (_Route) {
-      inherits(ForumRoute, _Route);
-      createClass(ForumRoute, [{
-          key: "getSubroutes",
-          value: function getSubroutes() {
-              return [new Route(["%s", "%s"], function (options) {
-                  var forumThreadId = options.args[options.args.length - 2];
-
-                  var forumThread = ForumThreadStore.get(forumThreadId);
-
-                  if (forumThread) {
-                      return UI.createElement(ForumThreadPanel, { forumThread: forumThread });
-                  } else {
-                      return UI.createElement(DelayedForumThreadPanel, { forumThreadId: forumThreadId });
-                  }
-              })];
-          }
-      }]);
-
-      function ForumRoute() {
-          var expr = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "forum";
-          var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-          classCallCheck(this, ForumRoute);
-
-          var _this13 = possibleConstructorReturn(this, (ForumRoute.__proto__ || Object.getPrototypeOf(ForumRoute)).call(this, expr, DelayedForumPanel, [], options));
-
-          _this13.subroutes = _this13.getSubroutes();
-          return _this13;
-      }
-
-      return ForumRoute;
-  }(Route);
-
-  var MAIN_ROUTE = new Route("", IndexPage, []);
-
-  function singlePageLinkOnMount() {
-      var _this = this;
-
-      this.addClickListener(function (event) {
-          if (event.shiftKey || event.ctrlKey || event.metaKey || !_this.options.href || !isLocalUrl(_this.options.href) || _this.options.newTab || _this.options.target && _this.options.target !== "_self") {
-              // Leave it to the browser
-              return;
-          }
-          event.preventDefault();
-          event.stopPropagation();
-          Router.changeURL(trimLocalUrl(_this.options.href));
-      });
-  }
-
-  var StemApp = function (_UI$Element) {
-      inherits(StemApp, _UI$Element);
-
-      function StemApp() {
-          classCallCheck(this, StemApp);
-          return possibleConstructorReturn(this, (StemApp.__proto__ || Object.getPrototypeOf(StemApp)).apply(this, arguments));
-      }
-
-      createClass(StemApp, [{
-          key: "getRoutes",
-          value: function getRoutes() {
-              return this.options.routes;
-          }
-      }, {
-          key: "getBeforeContainer",
-          value: function getBeforeContainer() {
-              return null;
-          }
-      }, {
-          key: "getRouterOptions",
-          value: function getRouterOptions() {
-              return {
-                  style: {
-                      height: "100%"
-                  }
-              };
-          }
-      }, {
-          key: "getRouter",
-          value: function getRouter() {
-              return UI.createElement(Router, _extends({ routes: this.getRoutes(), ref: "router" }, this.getRouterOptions()));
-          }
-      }, {
-          key: "getContainer",
-          value: function getContainer() {
-              return UI.createElement(
-                  GlobalContainer,
-                  null,
-                  this.getRouter()
-              );
-          }
-      }, {
-          key: "getAfterContainer",
-          value: function getAfterContainer() {
-              return null;
-          }
-      }, {
-          key: "render",
-          value: function render() {
-              return [this.getBeforeContainer(), this.getContainer(), this.getAfterContainer()];
-          }
-      }, {
-          key: "onMount",
-          value: function onMount() {
-              this.router && this.router.addListener("change", function () {
-                  document.body.click();
-                  Dispatcher.Global.dispatch("closeAllModals");
-              });
-          }
-      }], [{
-          key: "init",
-          value: function init() {
-              Link.prototype.onMount = singlePageLinkOnMount;
-              return self.appInstance = this.create(document.body);
-          }
-      }]);
-      return StemApp;
-  }(UI.Element);
-
-  var _class$59, _temp$9;
-
-  var WebsocketStreamHandler = (_temp$9 = _class$59 = function (_Dispatcher) {
-      inherits(WebsocketStreamHandler, _Dispatcher);
-
-      function WebsocketStreamHandler(websocketSubscriber, streamName) {
-          var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-          classCallCheck(this, WebsocketStreamHandler);
-
-          var _this = possibleConstructorReturn(this, (WebsocketStreamHandler.__proto__ || Object.getPrototypeOf(WebsocketStreamHandler)).call(this));
-
-          _this.websocketSubscriber = websocketSubscriber;
-          _this.streamName = streamName;
-          _this.options = options;
-          _this.bytesReceived = 0;
-          _this.isIndexed = false;
-          _this.lastMessageIndex = -1;
-          _this.messageBuffer = new Map();
-          _this.missedPackets = 0;
-          _this.status = _this.constructor.NONE;
-          _this.tryCount = 0; // TODO: rename to resubscribesubscribeTryCount
-          return _this;
-      }
-
-      createClass(WebsocketStreamHandler, [{
-          key: "sendSubscribe",
-          value: function sendSubscribe() {
-              var _this2 = this;
-
-              var websocketSubscriber = this.websocketSubscriber;
-
-              this.clearResubscribeTimeout();
-              this.status = this.constructor.SUBSCRIBING;
-
-              if (this.haveIndex()) {
-                  websocketSubscriber.sendResubscribe(this.streamName, this.getLastIndex());
-              } else {
-                  websocketSubscriber.sendSubscribe(this.streamName);
-              }
-
-              this.subscribeTryCount++;
-
-              var subscribeTimeout = websocketSubscriber.constructor.STREAM_SUBSCRIBE_TIMEOUT || 3000;
-              var subscribeTimeoutMax = websocketSubscriber.constructor.STREAM_SUBSCRIBE_MAX_TIMEOUT || 30000;
-              var timeoutDuration = Math.min(subscribeTimeout * this.subscribeTryCount, subscribeTimeoutMax);
-
-              this.resendSubscribeTimeout = setTimeout(function () {
-                  console.log("WebsocketSubscriber: stream subscribe timeout for #" + streamName + " reached! Trying to resubscribe again!");
-                  _this2.sendSubscribe();
-              }, timeoutDuration);
-          }
-      }, {
-          key: "clearResubscribeTimeout",
-          value: function clearResubscribeTimeout() {
-              if (this.resendSubscribeTimeout) {
-                  clearTimeout(this.resendSubscribeTimeout);
-                  this.resendSubscribeTimeout = undefined;
-              }
-          }
-      }, {
-          key: "setStatusSubscribed",
-          value: function setStatusSubscribed() {
-              this.clearResubscribeTimeout();
-              this.status = this.constructor.SUBSCRIBED;
-          }
-      }, {
-          key: "getStatus",
-          value: function getStatus() {
-              return this.status;
-          }
-      }, {
-          key: "resetStatus",
-          value: function resetStatus() {
-              this.clearResubscribeTimeout();
-              this.status = this.constructor.NONE;
-              this.subscribeTryCount = 0;
-          }
-      }, {
-          key: "processPacket",
-          value: function processPacket(packet) {
-              this.bytesReceived += packet.length;
-
-              var type = void 0,
-                  payload = void 0;
-              if (packet[0] === "{") {
-                  type = "v";
-                  payload = packet;
-              } else {
-                  var firstSpace = packet.indexOf(" ");
-                  if (firstSpace > 0) {
-                      type = packet.substr(0, firstSpace).trim();
-                      payload = packet.substr(firstSpace + 1).trim();
-                  } else {
-                      console.error("WebsocketStreamHandler: Could not process stream packet: " + packet);
-                      return;
-                  }
-              }
-
-              if (type === "i") {
-                  this.processIndexedPacket(payload);
-              } else if (type === "v") {
-                  this.processVanillaPacket(payload);
-              } else if (type === "n") {
-                  this.processMissedPacket(payload);
-              } else {
-                  console.error("WebsocketStreamHandler: invalid packet type " + type);
-              }
-          }
-      }, {
-          key: "processIndexedMessage",
-          value: function processIndexedMessage(index, message) {
-              this.isIndexed = true;
-              if (this.lastMessageIndex == -1) {
-                  this.lastMessageIndex = index;
-                  this.processVanillaPacket(message);
-              } else if (this.lastMessageIndex + 1 == index) {
-                  this.lastMessageIndex = index;
-                  this.processVanillaPacket(message);
-                  ++index;
-                  while (this.messageBuffer.has(index)) {
-                      message = this.messageBuffer.get(index);
-                      this.messageBuffer.delete(index);
-                      this.lastMessageIndex = index;
-                      this.processVanillaPacket(message);
-                      ++index;
-                  }
-              } else {
-                  this.messageBuffer.set(index, message);
-              }
-          }
-      }, {
-          key: "processMissedPacket",
-          value: function processMissedPacket(packet) {
-              this.processIndexedMessage(parseInt(packet), WebsocketStreamHandler.MISSING_MESSAGE);
-          }
-      }, {
-          key: "processVanillaPacket",
-          value: function processVanillaPacket(packet) {
-              if (packet == WebsocketStreamHandler.MISSING_MESSAGE) {
-                  this.missedPackets++;
-              }
-
-              if (!this.options.rawMessage) {
-                  try {
-                      packet = JSON.parse(packet);
-                  } catch (exception) {
-                      if (!this.options.parseMayFail) {
-                          console.error("WebsocketStreamHandler: Failed to parse ", packet, " on stream ", this.streamName, " Exception:", exception.message);
-                          return;
-                      }
-                  }
-              }
-              this.dispatch(packet);
-          }
-      }, {
-          key: "processIndexedPacket",
-          value: function processIndexedPacket(packet) {
-              var firstSpace = packet.indexOf(" ");
-              var message = void 0,
-                  index = void 0;
-              if (firstSpace > 0) {
-                  index = parseInt(packet.substr(0, firstSpace).trim());
-                  message = packet.substr(firstSpace + 1).trim();
-              } else {
-                  console.error("WebsocketStreamHandler: Could not process indexed stream packet: " + packet);
-                  return;
-              }
-
-              this.processIndexedMessage(index, message);
-          }
-      }, {
-          key: "haveIndex",
-          value: function haveIndex() {
-              return this.isIndexed;
-          }
-      }, {
-          key: "getLastIndex",
-          value: function getLastIndex() {
-              return this.lastMessageIndex;
-          }
-      }]);
-      return WebsocketStreamHandler;
-  }(Dispatcher), _class$59.NONE = Symbol(), _class$59.SUBSCRIBING = Symbol(), _class$59.SUBSCRIBED = Symbol(), _class$59.UNSUBSCRIBED = Symbol(), _class$59.MISSING_MESSAGE = "INVALID_MESSAGE_MISSING_FROM_ROLLING_WINDOW", _temp$9);
-
-  var _class$60, _temp$10;
-
-  var WebsocketSubscriber = (_temp$10 = _class$60 = function (_Dispatchable) {
-      inherits(WebsocketSubscriber, _Dispatchable);
-
-      function WebsocketSubscriber() {
-          var urls = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : self.WEBSOCKET_URL;
-          classCallCheck(this, WebsocketSubscriber);
-
-          var _this = possibleConstructorReturn(this, (WebsocketSubscriber.__proto__ || Object.getPrototypeOf(WebsocketSubscriber)).call(this));
-
-          if (!Array.isArray(urls)) {
-              urls = [urls];
-          }
-          _this.urls = urls;
-          _this.streamHandlers = new Map();
-          _this.attemptedConnect = false;
-          _this.connectionStatus = WebsocketSubscriber.ConnectionStatus.NONE;
-          _this.websocket = null;
-          _this.failedReconnectAttempts = 0;
-          _this.numConnectionAttempts = 0;
-          //TODO: should probably try to connect right now?
-          return _this;
-      }
-
-      createClass(WebsocketSubscriber, [{
-          key: "setConnectionStatus",
-          value: function setConnectionStatus(connectionStatus) {
-              this.connectionStatus = connectionStatus;
-              this.dispatch("connectionStatus", connectionStatus);
-          }
-      }, {
-          key: "getNextUrl",
-          value: function getNextUrl() {
-              var currentURLIndex = this.numConnectionAttempts++ % this.urls.length;
-              return this.urls[currentURLIndex];
-          }
-      }, {
-          key: "newConnection",
-          value: function newConnection(url) {
-              return new WebSocket(url);
-          }
-      }, {
-          key: "connect",
-          value: function connect() {
-              var _this2 = this;
-
-              var url = this.getNextUrl();
-              this.setConnectionStatus(WebsocketSubscriber.ConnectionStatus.CONNECTING);
-              try {
-                  console.log("WebsocketSubscriber: Connecting to " + url + " ...");
-                  this.websocket = this.newConnection(url);
-                  this.websocket.onopen = function () {
-                      _this2.onWebsocketOpen();
-                  };
-                  this.websocket.onmessage = function (event) {
-                      _this2.onWebsocketMessage(event);
-                  };
-                  this.websocket.onerror = function (event) {
-                      _this2.onWebsocketError(event);
-                  };
-                  this.websocket.onclose = function (event) {
-                      _this2.onWebsocketClose(event);
-                  };
-              } catch (e) {
-                  this.tryReconnect();
-                  console.error("WebsocketSubscriber: Failed to connect to ", url, "\nError: ", e.message);
-              }
-          }
-      }, {
-          key: "tryReconnect",
-          value: function tryReconnect() {
-              var _this3 = this;
-
-              var reconnectWait = Math.min(WebsocketSubscriber.CONNECT_RETRY_TIMEOUT * this.failedReconnectAttempts, WebsocketSubscriber.CONNECT_RETRY_MAX_TIMEOUT);
-
-              this.failedReconnectAttempts++;
-
-              if (!this.reconnectTimeout) {
-                  this.reconnectTimeout = setTimeout(function () {
-                      _this3.reconnectTimeout = null;
-                      console.log("WebsocketSubscriber: Trying to reconnect websocket connection");
-                      _this3.connect();
-                  }, reconnectWait);
-              }
-          }
-      }, {
-          key: "getStreamStatus",
-          value: function getStreamStatus(streamName) {
-              var streamHandler = this.getStreamHandler(streamName);
-              return streamHandler && streamHandler.status;
-          }
-      }, {
-          key: "subscribe",
-          value: function subscribe(streamName) {
-              // TODO: make sure to not explicitly support streams with spaces in the name
-              console.log("WebsocketSubscriber: Subscribing to stream ", streamName);
-
-              if (!this.attemptedConnect) {
-                  this.connect();
-                  this.attemptedConnect = true;
-              }
-
-              if (this.streamHandlers.has(streamName)) {
-                  console.warning("WebsocketSubscriber: Already subscribed to stream ", streamName);
-                  return;
-              }
-
-              var streamHandler = new WebsocketStreamHandler(this, streamName);
-              this.streamHandlers.set(streamName, streamHandler);
-
-              // Check if the websocket connection is open, to see if we can send the subscription now
-              if (this.isOpen()) {
-                  this.sendSubscribe(streamName);
-              }
-
-              return streamHandler;
-          }
-      }, {
-          key: "isOpen",
-          value: function isOpen() {
-              return this.websocket && this.websocket.readyState === 1;
-          }
-      }, {
-          key: "sendSubscribe",
-          value: function sendSubscribe(streamName) {
-              if (this.isOpen()) {
-                  this.send("s " + streamName);
-              }
-          }
-      }, {
-          key: "sendResubscribe",
-          value: function sendResubscribe(streamName, index) {
-              if (this.isOpen(streamName)) {
-                  this.send("r " + index + " " + streamName);
-              }
-          }
-      }, {
-          key: "resubscribe",
-          value: function resubscribe() {
-              // Iterate over all streams and resubscribe to them
-              var _iteratorNormalCompletion = true;
-              var _didIteratorError = false;
-              var _iteratorError = undefined;
-
-              try {
-                  for (var _iterator = this.streamHandlers.values()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                      var streamHandler = _step.value;
-
-                      streamHandler.sendSubscribe();
-                  }
-              } catch (err) {
-                  _didIteratorError = true;
-                  _iteratorError = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion && _iterator.return) {
-                          _iterator.return();
-                      }
-                  } finally {
-                      if (_didIteratorError) {
-                          throw _iteratorError;
-                      }
-                  }
-              }
-          }
-      }, {
-          key: "onStreamSubscribe",
-          value: function onStreamSubscribe(streamName) {
-              var streamHandler = this.getStreamHandler(streamName);
-              if (!streamHandler) {
-                  console.error("WebsocketSubscriber: received subscribe success response for unrequested stream #" + streamName);
-                  return;
-              }
-              streamHandler.setStatusSubscribed();
-          }
-      }, {
-          key: "onWebsocketOpen",
-          value: function onWebsocketOpen() {
-              this.previousFailedReconnectAttempts = this.failedReconnectAttempts;
-              this.failedReconnectAttempts = 0;
-              console.log("WebsocketSubscriber: Websocket connection established!");
-
-              this.reset();
-              this.setConnectionStatus(WebsocketSubscriber.ConnectionStatus.CONNECTED);
-              this.resubscribe();
-          }
-      }, {
-          key: "processStreamPacket",
-          value: function processStreamPacket(packet) {
-              var firstSpace = packet.indexOf(" ");
-              var streamName = void 0,
-                  afterStreamName = void 0;
-              if (firstSpace > 0) {
-                  streamName = packet.substr(0, firstSpace).trim();
-                  afterStreamName = packet.substr(firstSpace + 1).trim();
-              } else {
-                  console.error("WebsocketSubscriber: Could not process stream packet: " + packet);
-                  return;
-              }
-
-              var streamHandler = this.streamHandlers.get(streamName);
-              // TODO: have a special mode if no handler is registered
-              if (!streamHandler) {
-                  console.error("WebsocketSubscriber: No handler for websocket stream ", streamName);
-                  return;
-              }
-              streamHandler.processPacket(afterStreamName);
-          }
-      }, {
-          key: "fatalErrorClose",
-          value: function fatalErrorClose(data) {
-              this.failedReconnectAttempts = this.previousFailedReconnectAttempts;
-              console.error("WebsocketSubscriber: server fatal error close: ", data);
-              this.onWebsocketError(data);
-          }
-      }, {
-          key: "onWebsocketMessage",
-          value: function onWebsocketMessage(event) {
-              if (event.data === WebsocketSubscriber.HEARTBEAT_MESSAGE) ; else {
-                  var firstSpace = event.data.indexOf(" ");
-                  var type = void 0,
-                      payload = void 0;
-
-                  if (firstSpace > 0) {
-                      type = event.data.substr(0, firstSpace).trim();
-                      payload = event.data.substr(firstSpace + 1).trim();
-                  } else {
-                      type = event.data;
-                      payload = "";
-                  }
-
-                  if (type === "e" || type === "error") {
-                      // error
-                      console.error("WebsocketSubscriber: Websocket error: ", payload);
-                      payload = payload.split(" ");
-                      var errorType = payload[0];
-                      if (errorType === "invalidSubscription") {
-                          // Stop trying to resubscribe to a stream that's been rejected by the server
-                          var streamName = payload[1];
-                          var streamHandler = this.getStreamHandler(streamName);
-                          if (streamHandler) {
-                              // TODO: set permission denied explicitly?
-                              streamHandler.clearResubscribeTimeout();
-                          }
-                      }
-                  } else if (type === "s") {
-                      // subscribed
-                      console.log("WebsocketSubscriber: Successfully subscribed to stream ", payload);
-                      this.onStreamSubscribe(payload);
-                  } else if (type === "m") {
-                      // stream message
-                      this.processStreamPacket(payload);
-                  } else if (type === "c") {
-                      // command
-                      this.dispatch("serverCommand", payload);
-                  } else if (type == "efc") {
-                      // error - fatal - close
-                      this.fatalErrorClose(payload);
-                  } else {
-                      console.error("WebsocketSubscriber: Can't process " + event.data);
-                  }
-              }
-          }
-      }, {
-          key: "reset",
-          value: function reset() {
-              this.setConnectionStatus(WebsocketSubscriber.ConnectionStatus.DISCONNECTED);
-              var _iteratorNormalCompletion2 = true;
-              var _didIteratorError2 = false;
-              var _iteratorError2 = undefined;
-
-              try {
-                  for (var _iterator2 = this.streamHandlers.values()[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                      var streamHandler = _step2.value;
-
-                      streamHandler.resetStatus();
-                  }
-              } catch (err) {
-                  _didIteratorError2 = true;
-                  _iteratorError2 = err;
-              } finally {
-                  try {
-                      if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                          _iterator2.return();
-                      }
-                  } finally {
-                      if (_didIteratorError2) {
-                          throw _iteratorError2;
-                      }
-                  }
-              }
-          }
-      }, {
-          key: "onWebsocketError",
-          value: function onWebsocketError(event) {
-              console.error("WebsocketSubscriber: Websocket connection is broken!");
-              this.reset();
-              this.tryReconnect();
-          }
-      }, {
-          key: "onWebsocketClose",
-          value: function onWebsocketClose(event) {
-              console.log("WebsocketSubscriber: Connection closed!");
-              this.reset();
-              this.tryReconnect();
-          }
-      }, {
-          key: "send",
-          value: function send(message) {
-              // TODO: if the websocket is not open, enqueue WebsocketSubscriber message to be sent on open or just fail?
-              this.websocket.send(message);
-          }
-      }, {
-          key: "getStreamHandler",
-          value: function getStreamHandler(streamName) {
-              var streamHandler = this.streamHandlers.get(streamName);
-              if (!streamHandler) {
-                  streamHandler = this.subscribe(streamName);
-              }
-              return streamHandler;
-          }
-
-          // this should be pretty much the only external function
-
-      }, {
-          key: "addStreamListener",
-          value: function addStreamListener(streamName, callback) {
-              var streamHandler = this.getStreamHandler(streamName);
-              if (streamHandler.callbackExists(callback)) {
-                  return;
-              }
-              streamHandler.addListener(callback);
-          }
-      }], [{
-          key: "addListener",
-          value: function addListener(streamName, callback) {
-              return this.Global.addStreamListener(streamName, callback);
-          }
-      }]);
-      return WebsocketSubscriber;
-  }(Dispatchable), _class$60.ConnectionStatus = {
-      NONE: 0,
-      CONNECTING: 1,
-      CONNECTED: 2,
-      DISCONNECTED: 3
-  }, _class$60.STREAM_SUBSCRIBE_TIMEOUT = 3000, _class$60.STREAM_SUBSCRIBE_MAX_TIMEOUT = 30000, _class$60.CONNECT_RETRY_TIMEOUT = 3000, _class$60.CONNECT_RETRY_MAX_TIMEOUT = 30000, _class$60.HEARTBEAT_MESSAGE = "-hrtbt-", _temp$10);
-
-
-  WebsocketSubscriber.Global = new WebsocketSubscriber();
-
-  var _dec$31, _dec2$13, _dec3$4, _dec4$2, _dec5$1, _dec6$1, _dec7$1, _dec8, _dec9, _class$61, _descriptor$26, _descriptor2$22, _descriptor3$20, _descriptor4$18, _descriptor5$16, _descriptor6$13, _descriptor7$11, _descriptor8$9, _descriptor9$8;
-
-  function _initDefineProp$27(target, property, descriptor, context) {
-      if (!descriptor) return;
-      Object.defineProperty(target, property, {
-          enumerable: descriptor.enumerable,
-          configurable: descriptor.configurable,
-          writable: descriptor.writable,
-          value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-      });
-  }
-
-  function _applyDecoratedDescriptor$27(target, property, decorators, descriptor, context) {
-      var desc = {};
-      Object['ke' + 'ys'](descriptor).forEach(function (key) {
-          desc[key] = descriptor[key];
-      });
-      desc.enumerable = !!desc.enumerable;
-      desc.configurable = !!desc.configurable;
-
-      if ('value' in desc || desc.initializer) {
-          desc.writable = true;
-      }
-
-      desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-          return decorator(target, property, desc) || desc;
-      }, desc);
-
-      if (context && desc.initializer !== void 0) {
-          desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-          desc.initializer = undefined;
-      }
-
-      if (desc.initializer === void 0) {
-          Object['define' + 'Property'](target, property, desc);
-          desc = null;
-      }
-
-      return desc;
-  }
-
-  var GlobalStyleSheet = (_dec$31 = styleRuleCustom({ selector: "body" }), _dec2$13 = styleRuleCustom({ selector: ".hidden" }), _dec3$4 = styleRuleCustom({ selector: "*" }), _dec4$2 = styleRuleCustom({ selector: "a" }), _dec5$1 = styleRuleCustom({ selector: "hr" }), _dec6$1 = styleRuleCustom({ selector: "code, pre" }), _dec7$1 = styleRuleCustom({ selector: "code" }), _dec8 = styleRuleCustom({ selector: "pre" }), _dec9 = styleRuleCustom({ selector: "pre code" }), (_class$61 = function (_StyleSheet) {
-      inherits(GlobalStyleSheet, _StyleSheet);
-
-      function GlobalStyleSheet() {
-          var _ref;
-
-          var _temp, _this, _ret;
-
-          classCallCheck(this, GlobalStyleSheet);
-
-          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-              args[_key] = arguments[_key];
-          }
-
-          return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = GlobalStyleSheet.__proto__ || Object.getPrototypeOf(GlobalStyleSheet)).call.apply(_ref, [this].concat(args))), _this), _initDefineProp$27(_this, "body", _descriptor$26, _this), _initDefineProp$27(_this, "hidden", _descriptor2$22, _this), _initDefineProp$27(_this, "everything", _descriptor3$20, _this), _initDefineProp$27(_this, "a", _descriptor4$18, _this), _initDefineProp$27(_this, "hr", _descriptor5$16, _this), _initDefineProp$27(_this, "codeAndPre", _descriptor6$13, _this), _initDefineProp$27(_this, "code", _descriptor7$11, _this), _initDefineProp$27(_this, "pre", _descriptor8$9, _this), _initDefineProp$27(_this, "preInCode", _descriptor9$8, _this), _temp), possibleConstructorReturn(_this, _ret);
-      }
-
-      return GlobalStyleSheet;
-  }(StyleSheet), (_descriptor$26 = _applyDecoratedDescriptor$27(_class$61.prototype, "body", [_dec$31], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              margin: 0,
-              fontSize: this.themeProperties.FONT_SIZE_DEFAULT,
-              fontFamily: this.themeProperties.FONT_FAMILY_DEFAULT
-          };
-      }
-  }), _descriptor2$22 = _applyDecoratedDescriptor$27(_class$61.prototype, "hidden", [_dec2$13], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              display: "none !important"
-          };
-      }
-  }), _descriptor3$20 = _applyDecoratedDescriptor$27(_class$61.prototype, "everything", [_dec3$4], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              boxSizing: "border-box"
-          };
-      }
-  }), _descriptor4$18 = _applyDecoratedDescriptor$27(_class$61.prototype, "a", [_dec4$2], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              textDecoration: "none",
-              color: this.themeProperties.COLOR_LINK
-          };
-      }
-  }), _descriptor5$16 = _applyDecoratedDescriptor$27(_class$61.prototype, "hr", [_dec5$1], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              height: 0,
-              marginTop: "20px",
-              marginBottom: "20px",
-              border: 0,
-              borderTop: "1px solid #eee",
-              boxSizing: "content-box"
-          };
-      }
-  }), _descriptor6$13 = _applyDecoratedDescriptor$27(_class$61.prototype, "codeAndPre", [_dec6$1], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              fontFamily: this.themeProperties.FONT_FAMILY_MONOSPACE
-          };
-      }
-  }), _descriptor7$11 = _applyDecoratedDescriptor$27(_class$61.prototype, "code", [_dec7$1], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              padding: "2px 4px", // TODO: should be in rem
-              fontSize: "90%",
-              color: "#345 !important", // TODO: take colors from theme
-              backgroundColor: "#f8f2f4 !important",
-              borderRadius: this.themeProperties.BUTTON_BORDER_RADIUS
-          };
-      }
-  }), _descriptor8$9 = _applyDecoratedDescriptor$27(_class$61.prototype, "pre", [_dec8], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              overflow: "auto",
-              display: "block",
-              padding: this.themeProperties.BUTTON_BORDER_RADIUS,
-              margin: "0 0 10px",
-              fontSize: "13px",
-              lineHeight: "1.42857143",
-              color: "#333",
-              wordBreak: "break-all",
-              wordWrap: "break-word",
-              backgroundColor: "#f5f5f5",
-              border: "1px solid #ccc"
-          };
-      }
-  }), _descriptor9$8 = _applyDecoratedDescriptor$27(_class$61.prototype, "preInCode", [_dec9], {
-      enumerable: true,
-      initializer: function initializer() {
-          return {
-              padding: 0,
-              fontSize: "inherit",
-              color: "inherit",
-              whiteSpace: "pre-wrap",
-              backgroundColor: "transparent",
-              borderRadius: 0
-          };
-      }
-  })), _class$61));
-
-  var _class$62, _temp$11;
-
-  var EstablishmentApp = (_temp$11 = _class$62 = function (_StemApp) {
-      inherits(EstablishmentApp, _StemApp);
-
-      function EstablishmentApp() {
-          classCallCheck(this, EstablishmentApp);
-          return possibleConstructorReturn(this, (EstablishmentApp.__proto__ || Object.getPrototypeOf(EstablishmentApp)).apply(this, arguments));
-      }
-
-      createClass(EstablishmentApp, null, [{
-          key: "init",
-          // Iphone 6
-
-          value: function init() {
-              this.loadPublicState();
-              this.addAjaxProcessors();
-              this.registerWebsocketStreams();
-              this.initializeViewportMeta();
-              this.configureTheme();
-              this.initializeGlobalStyle();
-              return get(EstablishmentApp.__proto__ || Object.getPrototypeOf(EstablishmentApp), "init", this).call(this);
-          }
-      }, {
-          key: "loadPublicState",
-          value: function loadPublicState() {
-              GlobalState.importState(self.PUBLIC_STATE || {});
-          }
-      }, {
-          key: "addAjaxProcessors",
-          value: function addAjaxProcessors() {
-              // Add the csrf cookie and credential for all requests
-              Ajax.addPreprocessor(function (options) {
-                  options.credentials = options.credentials || "include";
-                  options.headers.set("X-CSRFToken", getCookie("csrftoken"));
-              });
-
-              // Add a postprocessor to load any state received from an Ajax response
-              Ajax.addPostprocessor(function (payload, xhrPromise) {
-                  if (payload.state && !xhrPromise.options.disableStateImport) {
-                      GlobalState.importState(payload.state);
-                  }
-              });
-
-              // Sync server time
-              Ajax.addPostprocessor(function (payload, xhrPromise) {
-                  var responseHeaders = xhrPromise.getResponseHeaders();
-                  var responseDate = responseHeaders.get("date");
-                  if (responseDate) {
-                      // Estimate server time, with 500ms rounding and 100 ms latency
-                      var estimatedServerTime = new StemDate(responseDate).add(600);
-                      ServerTime.set(estimatedServerTime, true);
-                  }
-              });
-
-              // Raise any error, to be handled by the error processor
-              Ajax.addPostprocessor(function (payload) {
-                  if (payload.error) {
-                      throw payload.error;
-                  }
-              });
-
-              // Prettify any error, so it's in a standardized format
-              Ajax.addErrorPostprocessor(function (error) {
-                  return ErrorHandlers.wrapError(error);
-              });
-
-              // Add a default error handler
-              Ajax.errorHandler = function (error) {
-                  return ErrorHandlers.showErrorAlert(error);
-              };
-          }
-      }, {
-          key: "registerWebsocketStreams",
-          value: function registerWebsocketStreams() {
-              // TODO: first check if websockets are enabled
-              GlobalState.registerStream = function (streamName) {
-                  WebsocketSubscriber.addListener(streamName, GlobalState.applyEventWrapper);
-              };
-
-              //Register on the global event stream
-              GlobalState.registerStream("global-events");
-
-              //Register on the user event stream
-              if (self.USER && self.USER.id) {
-                  GlobalState.registerStream("user-" + self.USER.id + "-events");
-              }
-          }
-      }, {
-          key: "initializeViewportMeta",
-          value: function initializeViewportMeta() {
-              return this.viewportMeta = ViewportMeta.create(document.head);
-          }
-      }, {
-          key: "configureTheme",
-          value: function configureTheme() {
-              // Nothing to do by default
-          }
-      }, {
-          key: "initializeGlobalStyle",
-          value: function initializeGlobalStyle() {
-              GlobalStyleSheet.initialize();
-          }
-      }]);
-      return EstablishmentApp;
-  }(StemApp), _class$62.MIN_VIEWPORT_META_WIDTH = 375, _temp$11);
-
-  Theme.Global.setProperties({
-      NAV_MANAGER_NAVBAR_HEIGHT: 0,
-      COLOR_BACKGROUND: "#fff",
-      COLOR_BACKGROUND_BODY: "#fff"
-  });
-
-  var AppClass = function (_EstablishmentApp) {
-      inherits(AppClass, _EstablishmentApp);
-
-      function AppClass() {
-          classCallCheck(this, AppClass);
-          return possibleConstructorReturn(this, (AppClass.__proto__ || Object.getPrototypeOf(AppClass)).apply(this, arguments));
-      }
-
-      createClass(AppClass, [{
-          key: "getRoutes",
-          value: function getRoutes() {
-              return MAIN_ROUTE;
-          }
-      }], [{
-          key: "registerWebsocketStreams",
-          value: function registerWebsocketStreams() {}
-      }]);
-      return AppClass;
-  }(EstablishmentApp);
-
   exports.AppClass = AppClass;
   exports.State = State;
   exports.GlobalState = GlobalState;
@@ -34468,5 +19641,5 @@ var Bundle = (function (exports) {
 
   return exports;
 
-}({}));
+}({},BlogPanel,ForumPanel,EstablishmentApp));
 //# sourceMappingURL=bundle.js.map
